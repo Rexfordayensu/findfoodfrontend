@@ -25,7 +25,6 @@ class _CartScreenState extends State<CartScreen> {
   Timer? _paymentVerificationTimer;
   bool _hasNavigatedToTracking = false;
   bool _isDelivery = true;
-<<<<<<< HEAD
   bool _isDetectingLocation = false;
   double? _deliveryLatitude;
   double? _deliveryLongitude;
@@ -33,19 +32,7 @@ class _CartScreenState extends State<CartScreen> {
   final _deliveryAddressController = TextEditingController();
   final _pickupNameController = TextEditingController();
   final _pickupPhoneController = TextEditingController();
-=======
-  final TextEditingController _pickupNameController = TextEditingController();
-final TextEditingController _pickupPhoneController = TextEditingController();
-final TextEditingController _kitchenNoteController = TextEditingController();
-
-@override
-void dispose() {
-  _pickupNameController.dispose();
-  _pickupPhoneController.dispose();
-  _kitchenNoteController.dispose();
-  super.dispose();
-}
->>>>>>> d1f75c9b08079d2ea89cdb950b69509984e09271
+  final _kitchenNoteController = TextEditingController();
 
   final List<PaymentProviderOption> _providers = const [
     PaymentProviderOption(value: 'paystack', label: 'Paystack'),
@@ -71,6 +58,7 @@ void dispose() {
     _deliveryAddressController.dispose();
     _pickupNameController.dispose();
     _pickupPhoneController.dispose();
+    _kitchenNoteController.dispose();
     super.dispose();
   }
 
@@ -256,17 +244,14 @@ void dispose() {
         restaurantId: cart.restaurantId!,
         items: cart.orderPayload,
         fulfillmentMethod: _isDelivery ? 'delivery' : 'pickup',
-<<<<<<< HEAD
-        deliveryAddress: _isDelivery ? _deliveryAddressController.text : null,
+        deliveryAddress: _isDelivery ? _deliveryAddressController.text.trim() : null,
         deliveryLatitude: _isDelivery ? _deliveryLatitude : null,
         deliveryLongitude: _isDelivery ? _deliveryLongitude : null,
-        pickupName: !_isDelivery ? _pickupNameController.text : null,
-        pickupPhone: !_isDelivery ? _pickupPhoneController.text : null,
-=======
         pickupName: !_isDelivery ? _pickupNameController.text.trim() : null,
         pickupPhone: !_isDelivery ? _pickupPhoneController.text.trim() : null,
-        kitchenNote: _kitchenNoteController.text.trim().isNotEmpty ? _kitchenNoteController.text.trim() : null,
->>>>>>> d1f75c9b08079d2ea89cdb950b69509984e09271
+        kitchenNote: _kitchenNoteController.text.trim().isNotEmpty
+            ? _kitchenNoteController.text.trim()
+            : null,
       );
 
       final init = await ApiService.initializePayment(
