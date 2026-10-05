@@ -60,17 +60,25 @@ class _ChatScreenState extends State<ChatScreen> {
     if (auth.token == null) return;
     setState(() { _loading = true; _error = ''; });
     try {
-      final msgs = await ChatMessage.getMessages(
+      final messages = await ApiService.getChatMessages(
           token: auth.token!, orderId: widget.orderId);
+      if (!mounted) return;
+      final parsedMessages = messages
+          .map((message) => ChatMessage.fromJson({
+                ...message,
+                'is_mine': message['sender_id'] == auth.userId,
+              }))
+          .toList();
       setState(() {
-        _messages = msgs as List<ChatMessage>;
+        _messages = parsedMessages;
         _messageIds.addAll(_messages.map((m) => m.id));
       });
       _scrollToBottom();
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -141,16 +149,17 @@ class _ChatScreenState extends State<ChatScreen> {
         orderId: widget.orderId,
         content: text,
       );
-      
-      final chatMsg = msg as ChatMessage;
-
-      if (!_messageIds.contains(chatMsg.id)) {
-       setState(() {
-        // Convert the raw map data into a structured ChatMessage object
-        final chatMessage = ChatMessage.fromJson(msg);
-        _messages.add(chatMessage);
-        _messageIds.add(chatMessage.id);
+      if (!mounted) return;
+      final chatMessage = ChatMessage.fromJson({
+        ...msg,
+        'is_mine': msg['sender_id'] == auth.userId,
       });
+
+      if (!_messageIds.contains(chatMessage.id)) {
+        setState(() {
+          _messages.add(chatMessage);
+          _messageIds.add(chatMessage.id);
+        });
         _scrollToBottom();
       }
     } catch (e) {

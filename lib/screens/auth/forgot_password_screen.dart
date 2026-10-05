@@ -39,15 +39,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     });
 
     try {
-    await ApiService.forgotPassword(_emailController.text.trim()); // Delete the "final message = " part
-    if (!mounted) return;
-    
-    setState(() {
-      _isSubmitted = true;
-      _serverMessage = 'Password reset email sent successfully!'; // Use a hardcoded success message string
-    });
-    
-    _showMessage('Success! Check your email.', AppTheme.success); // Use a hardcoded message string here too
+      final response = await ApiService.forgotPassword(email);
+      if (!mounted) return;
+
+      setState(() {
+        _isSubmitted = true;
+        _serverMessage = response['message']?.toString() ??
+            'If the account exists, a password reset link has been sent.';
+      });
+
+      _showMessage('Check your email for reset instructions.', AppTheme.success);
     } on PasswordResetException catch (e) {
       if (!mounted) return;
       _showMessage(e.message, AppTheme.danger);

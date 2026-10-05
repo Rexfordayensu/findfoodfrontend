@@ -21,17 +21,59 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   Timer? _pollTimer;
   
 
-  static const _steps = [
-    {'status': 'pending',          'label': 'Order placed',      'icon': Icons.receipt_long_outlined},
-    {'status': 'preparing',        'label': 'Preparing food',    'icon': Icons.soup_kitchen_outlined},
-    {'status': 'ready',            'label': 'Ready for pickup',  'icon': Icons.check_circle_outline},
-    {'status': 'out_for_delivery', 'label': 'Rider on the way',  'icon': Icons.electric_bike_outlined},
-    {'status': 'delivered',        'label': 'Delivered',         'icon': Icons.home_outlined},
-  ];
+  List<Map<String, Object>> get _steps => _order.fulfillmentMethod == 'pickup'
+      ? const [
+          {
+            'status': 'pending',
+            'label': 'Order placed',
+            'icon': Icons.receipt_long_outlined,
+          },
+          {
+            'status': 'preparing',
+            'label': 'Preparing food',
+            'icon': Icons.soup_kitchen_outlined,
+          },
+          {
+            'status': 'ready',
+            'label': 'Ready for pickup',
+            'icon': Icons.check_circle_outline,
+          },
+          {
+            'status': 'picked_up',
+            'label': 'Picked up',
+            'icon': Icons.storefront_outlined,
+          },
+        ]
+      : const [
+          {
+            'status': 'pending',
+            'label': 'Order placed',
+            'icon': Icons.receipt_long_outlined,
+          },
+          {
+            'status': 'preparing',
+            'label': 'Preparing food',
+            'icon': Icons.soup_kitchen_outlined,
+          },
+          {
+            'status': 'ready',
+            'label': 'Ready for pickup',
+            'icon': Icons.check_circle_outline,
+          },
+          {
+            'status': 'out_for_delivery',
+            'label': 'Rider on the way',
+            'icon': Icons.electric_bike_outlined,
+          },
+          {
+            'status': 'delivered',
+            'label': 'Delivered',
+            'icon': Icons.home_outlined,
+          },
+        ];
 
-  static const _statusOrder = [
-    'pending', 'preparing', 'ready', 'out_for_delivery', 'delivered'
-  ];
+  List<String> get _statusOrder =>
+      _steps.map((step) => step['status']! as String).toList();
 
   @override
   void initState() {
@@ -57,9 +99,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         final updated = orders.where((o) => o.id == _order.id).firstOrNull;
         if (updated != null && mounted && updated.status != _order.status) {
           setState(() => _order = updated);
-          if (updated.status == 'delivered') {
+          if (updated.status == 'delivered' || updated.status == 'picked_up') {
             _pollTimer?.cancel();
-            _showDeliveredCelebration();
+            _showOrderComplete();
           }
         }
       } catch (_) {
@@ -68,7 +110,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     });
   }
 
-  void _showDeliveredCelebration() {
+  void _showOrderComplete() {
+    final isPickup = _order.fulfillmentMethod == 'pickup';
     showModalBottomSheet(
       context: context,
       isDismissible: false,
@@ -97,13 +140,14 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            Text('Delivered!',
+            Text(isPickup ? 'Picked up!' : 'Delivered!',
                 style: TextStyle(
                     color: AppColors.textPrimary(context),
                     fontSize: 22,
                     fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
-            Text('Enjoy your meal! How was your experience?',
+             Text(
+              'Enjoy your meal! How was your experience?',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.textSecondary(context))),
             const SizedBox(height: 20),
@@ -126,7 +170,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     );
   }
 
-  int get _currentStep => _statusOrder.indexOf(_order.status);
+  int get _currentStep {
+    final index = _statusOrder.indexOf(_order.status);
+    return index < 0 ? 0 : index;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -175,11 +222,19 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 const Icon(Icons.delivery_dining_rounded,
                     color: AppTheme.accent, size: 36),
                 const SizedBox(height: 10),
-                Text('Estimated arrival',
+                Text(
+                  _order.fulfillmentMethod == 'pickup'
+                    ? 'Pickup status'
+                    : 'Estimated arrival',
                     style: TextStyle(color: AppColors.textSecondary(context))),
                 const SizedBox(height: 6),
-                const Text('25–35 min',
-                    style: TextStyle(
+                Text(
+                  _order.fulfillmentMethod == 'pickup'
+                    ? (_order.status == 'ready'
+                      ? 'Ready for pickup'
+                      : 'Preparing')
+                    : '25–35 min',
+                  style: const TextStyle(
                       color: AppTheme.accent,
                       fontSize: 32,
                       fontWeight: FontWeight.w800,

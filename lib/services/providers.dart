@@ -117,6 +117,12 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateName(String name) async {
+    _name = name.trim();
+    await _persistSession();
+    notifyListeners();
+  }
+
   Future<void> initializeFromSecureStorage() async {
     try {
       final token = await _secureStorage.read(key: _tokenKey);
@@ -185,10 +191,12 @@ class CartProvider extends ChangeNotifier {
   final List<CartItem> _items = [];
   int? _restaurantId;
   String? _restaurantName;
+  String? _restaurantAddress;
 
   List<CartItem> get items => _items;
   int? get restaurantId => _restaurantId;
   String? get restaurantName => _restaurantName;
+  String? get restaurantAddress => _restaurantAddress;
   bool get isEmpty => _items.isEmpty;
   int get itemCount => _items.fold(0, (s, i) => s + i.quantity);
   int get totalAmount => _items.fold(0, (s, i) => s + i.subtotal);
@@ -198,10 +206,19 @@ class CartProvider extends ChangeNotifier {
       .map((i) => {'menu_item_id': i.menuItem.id, 'quantity': i.quantity})
       .toList();
 
-  void addItem(MenuItem menuItem, int restaurantId, String restaurantName) {
-    if (_restaurantId != null && _restaurantId != restaurantId) _items.clear();
+  void addItem(
+    MenuItem menuItem,
+    int restaurantId,
+    String restaurantName, {
+    String? restaurantAddress,
+  }) {
+    if (_restaurantId != null && _restaurantId != restaurantId) {
+      _items.clear();
+      _restaurantAddress = null;
+    }
     _restaurantId = restaurantId;
     _restaurantName = restaurantName;
+    _restaurantAddress = restaurantAddress ?? _restaurantAddress;
     final existing = _items.where((i) => i.menuItem.id == menuItem.id);
     if (existing.isNotEmpty) {
       existing.first.quantity++;
@@ -220,13 +237,21 @@ class CartProvider extends ChangeNotifier {
     } else {
       _items.remove(item);
     }
-    if (_items.isEmpty) _restaurantId = null;
+    if (_items.isEmpty) {
+      _restaurantId = null;
+      _restaurantName = null;
+      _restaurantAddress = null;
+    }
     notifyListeners();
   }
 
   void removeItem(int menuItemId) {
     _items.removeWhere((i) => i.menuItem.id == menuItemId);
-    if (_items.isEmpty) _restaurantId = null;
+    if (_items.isEmpty) {
+      _restaurantId = null;
+      _restaurantName = null;
+      _restaurantAddress = null;
+    }
     notifyListeners();
   }
 
@@ -234,6 +259,7 @@ class CartProvider extends ChangeNotifier {
     _items.clear();
     _restaurantId = null;
     _restaurantName = null;
+    _restaurantAddress = null;
     notifyListeners();
   }
 

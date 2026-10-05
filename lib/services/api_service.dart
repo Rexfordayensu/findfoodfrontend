@@ -1,9 +1,7 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import '../models/models.dart';
-import 'package:flutter/material.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
 
@@ -23,6 +21,17 @@ class ApiService {
         ? 'https://findfooddelivery-backend.onrender.com' //  Used automatically when built for production/Vercel
         : 'http://localhost:8000', // Used automatically when running local development debug sessions
   );
+
+  static MediaType _imageMediaType(String filename) {
+    final extension = filename.toLowerCase().split('.').last;
+    final subtype = switch (extension) {
+      'png' => 'png',
+      'webp' => 'webp',
+      'jpg' || 'jpeg' => 'jpeg',
+      _ => 'jpeg',
+    };
+    return MediaType('image', subtype);
+  }
 
   // ── Safe decoder ──────────────────────────────────────────────────────────
   static Map<String, dynamic> _decode(http.Response response) {
@@ -178,41 +187,32 @@ class ApiService {
 
   // ── FORGOT / RESET PASSWORD ───────────────────────────────────────────────
 
-  /// Called from the bottom sheet in login_screen.dart
-  static Future<void> requestPasswordReset(String email) async {
-    final response = await http.post(
-      Uri.parse(
-          '$baseUrl/auth/forgot-password?email=${Uri.encodeComponent(email)}'),
-    );
-    if (response.statusCode != 200) {
-      final data = _decode(response);
-      throw Exception(data['detail'] ?? 'Failed to send reset code');
-    }
-  }
-
   /// Called from forgot_password_screen.dart Step 1
-  static Future<void> forgotPassword(String email) async {
+  static Future<Map<String, dynamic>> forgotPassword(String email) async {
     final response = await http.post(
-      Uri.parse(
-          '$baseUrl/auth/forgot-password?email=${Uri.encodeComponent(email)}'),
+      Uri.parse('$baseUrl/auth/forgot-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email.trim()}),
     );
-    if (response.statusCode != 200) {
-      final data = _decode(response);
-      throw Exception(data['detail'] ?? 'Failed to send reset code');
-    }
+    final data = _decode(response);
+    if (response.statusCode == 200) return data;
+    throw PasswordResetException(
+      data['detail']?.toString() ?? 'Failed to send reset link.',
+    );
   }
 
   /// Called from forgot_password_screen.dart Step 2
   static Future<void> resetPassword(String token, String newPassword) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/reset-password'
-          '?token=${Uri.encodeComponent(token)}'
-          '&new_password=${Uri.encodeComponent(newPassword)}'),
+      Uri.parse('$baseUrl/auth/reset-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'token': token, 'new_password': newPassword}),
     );
-    if (response.statusCode != 200) {
-      final data = _decode(response);
-      throw Exception(data['detail'] ?? 'Failed to reset password');
-    }
+    if (response.statusCode == 200) return;
+    final data = _decode(response);
+    throw PasswordResetException(
+      data['detail']?.toString() ?? 'Failed to reset password.',
+    );
   }
 
   // ── RESTAURANTS ───────────────────────────────────────────────────────────
@@ -298,8 +298,7 @@ class ApiService {
       'file',
       imageBytes,
       filename: filename,
-      contentType: MediaType(
-          'image', filename.toLowerCase().endsWith('.png') ? 'png' : 'jpeg'),
+      contentType: _imageMediaType(filename),
     ));
     final response = await http.Response.fromStream(await request.send());
     final data = _decode(response);
@@ -331,6 +330,21 @@ class ApiService {
       return _decodeList(response).map((m) => MenuItem.fromJson(m)).toList();
     }
     throw Exception('Failed to load menu (${response.statusCode})');
+  }
+
+  static Future<List<MenuItem>> getManagedMenu({
+    required String token,
+    required int restaurantId,
+  }) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/restaurants/$restaurantId/menu/manage'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) {
+      return _decodeList(response).map((item) => MenuItem.fromJson(item)).toList();
+    }
+    final data = _decode(response);
+    throw Exception(data['detail'] ?? 'Failed to load menu for management');
   }
 
   static Future<MenuItem> addMenuItem({
@@ -578,35 +592,6 @@ class ApiService {
     throw Exception('Failed to load stats');
   }
 
-  static Future<Map<String, dynamic>> submitCheckout({
-    required String token,
-    required int restaurantId,
-    required List<Map<String, dynamic>> items,
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/checkout'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          'restaurant_id': restaurantId,
-          'items': items,
-        }),
-      );
-
-      final data = _decode(response);
-      if (response.statusCode == 200) {
-        return data;
-      }
-      throw Exception(data['detail'] ?? 'Checkout failed');
-    } catch (e) {
-      debugPrint('Checkout Error: $e');
-      rethrow;
-    }
-  }
-
 // ── MENU CRUD (edit/delete/toggle) ────────────────────────────────────────
   static Future<Restaurant> getMyRestaurant(String token) async {
     final response = await http.get(
@@ -774,29 +759,6 @@ class ApiService {
   }
 
   // ── SCHEDULED ORDERS ──────────────────────────────────────────────────────
-  static Future<Order> placeScheduledOrder({
-    required String token,
-    required int restaurantId,
-    required List<Map<String, int>> items,
-    required DateTime scheduledFor,
-  }) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/orders'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'restaurant_id': restaurantId,
-        'items': items,
-        'scheduled_for': scheduledFor.toIso8601String(),
-      }),
-    );
-    final data = _decode(response);
-    if (response.statusCode == 201) return Order.fromJson(data);
-    throw Exception(data['detail'] ?? 'Failed to schedule order');
-  }
-
   // ── CHAT ──────────────────────────────────────────────────────────────────
   static Future<List<Map<String, dynamic>>> getChatMessages({
     required String token,
@@ -856,70 +818,21 @@ class ApiService {
     }
   }
 
-  // ── MOMO PAYMENT (real gateway wiring) ────────────────────────────────────
-  static Future<Map<String, dynamic>> initiateMomoPaymentReal({
-    required String token,
-    required int orderId,
-    required String provider,
-    required String phoneNumber,
-  }) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/payments/momo/initiate'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'order_id': orderId,
-        'provider': provider,
-        'phone_number': phoneNumber,
-      }),
-    );
-    final data = _decode(response);
-    if (response.statusCode == 200 || response.statusCode == 201) return data;
-    throw Exception(data['detail'] ?? 'MoMo payment failed');
-  }
-
-  static Future<Map<String, dynamic>> checkMomoPaymentStatus({
-    required String token,
-    required String referenceId,
-  }) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/payments/momo/status/$referenceId'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-    final data = _decode(response);
-    if (response.statusCode == 200) return data;
-    throw Exception(data['detail'] ?? 'Failed to check payment status');
-  }
-
-  static Future<void> updateNotificationPrefs(
-      {required String token,
-      required bool emailNotifications,
-      required bool pushNotifications,
-      required bool orderAlerts}) async {}
-
-  static Future<Map<String, dynamic>> getNotificationPrefs(String token) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/user/notifications'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-    final data = _decode(response);
-    if (response.statusCode == 200) return data;
-    throw Exception(
-        data['detail'] ?? 'Failed to load notification preferences');
-  }
-
   static Future<void> changeMyPassword({
     required String token,
     required String currentPassword,
     required String newPassword,
   }) async {
-    final response = await http.put(
-      Uri.parse('$baseUrl/users/me/change-password'
-          '?current_password=${Uri.encodeComponent(currentPassword)}'
-          '&new_password=${Uri.encodeComponent(newPassword)}'),
-      headers: {'Authorization': 'Bearer $token'},
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/change-password'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'old_password': currentPassword,
+        'new_password': newPassword,
+      }),
     );
     if (response.statusCode != 200) {
       final data = _decode(response);
@@ -927,25 +840,9 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> updateMyProfile({
-    required String token,
-    required String name,
-    required String email,
-  }) async {
-    final response = await http.put(
-      Uri.parse('$baseUrl/users/me'
-          '?name=${Uri.encodeComponent(name)}'
-          '&email=${Uri.encodeComponent(email)}'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-    final data = _decode(response);
-    if (response.statusCode == 200) return data;
-    throw Exception(data['detail'] ?? 'Failed to update profile');
-  }
-
   static Future<Map<String, dynamic>> getMyProfile(String token) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/user/profile'),
+      Uri.parse('$baseUrl/auth/me'),
       headers: {'Authorization': 'Bearer $token'},
     );
     final data = _decode(response);
@@ -953,11 +850,54 @@ class ApiService {
     throw Exception(data['detail'] ?? 'Failed to load profile');
   }
 
-  static Future<Object?> toggleMenuItemAvailability(
-      {required String token,
-      required int restaurantId,
-      required int itemId}) async {
-    return null;
+  static Future<Map<String, dynamic>> updateMyProfile({
+    required String token,
+    required String name,
+  }) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl/auth/me'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'name': name.trim()}),
+    );
+    final data = _decode(response);
+    if (response.statusCode == 200) return data;
+    throw Exception(data['detail'] ?? 'Failed to update profile');
+  }
+
+  static Future<Map<String, dynamic>> getNotificationPrefs(String token) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/auth/notifications'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    final data = _decode(response);
+    if (response.statusCode == 200) return data;
+    throw Exception(data['detail'] ?? 'Failed to load notification preferences');
+  }
+
+  static Future<void> updateNotificationPrefs({
+    required String token,
+    required bool emailNotifications,
+    required bool pushNotifications,
+    required bool orderAlerts,
+  }) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/auth/notifications'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'email_notifications': emailNotifications,
+        'push_notifications': pushNotifications,
+        'order_alerts': orderAlerts,
+      }),
+    );
+    if (response.statusCode == 200) return;
+    final data = _decode(response);
+    throw Exception(data['detail'] ?? 'Failed to save notification preferences');
   }
 
   static Future<void> removeMenuItemImage(
@@ -990,8 +930,7 @@ class ApiService {
           'file', // Must match the name parameter expected by your FastAPI backend (e.g., File(...))
           imageBytes,
           filename: filename,
-          contentType: MediaType(
-              'image', filename.split('.').last == 'png' ? 'png' : 'jpeg'),
+          contentType: _imageMediaType(filename),
         ),
       );
 
@@ -1067,8 +1006,9 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: json.encode({'code': authCode}),
     );
-    if (response.statusCode != 200)
+    if (response.statusCode != 200) {
       throw Exception('Google Authentication Failed');
+    }
     return json.decode(response.body);
   }
 
@@ -1091,6 +1031,7 @@ class ApiService {
         'file',
         imageBytes,
         filename: filename,
+        contentType: _imageMediaType(filename),
       ),
     );
 

@@ -58,16 +58,35 @@ class MenuItem {
   });
 
   /// Builds the full URL to display the uploaded image, or null if none set
-  String? fullImageUrl(String baseUrl) =>
-      imageUrl != null ? '$baseUrl$imageUrl' : null;
+  String? fullImageUrl(String baseUrl) {
+    if (imageUrl == null) return null;
+    if (imageUrl!.startsWith('http://') || imageUrl!.startsWith('https://')) {
+      return imageUrl;
+    }
+    final normalizedBase = baseUrl.endsWith('/')
+        ? baseUrl.substring(0, baseUrl.length - 1)
+        : baseUrl;
+    final normalizedPath = imageUrl!.startsWith('/') ? imageUrl! : '/$imageUrl';
+    return '$normalizedBase$normalizedPath';
+  }
 
   String get displayPrice => 'GH₵ ${(price / 100).toStringAsFixed(2)}';
+
+  MenuItem copyWith({bool? isAvailable}) => MenuItem(
+        id: id,
+        name: name,
+        description: description,
+        price: price,
+        isAvailable: isAvailable ?? this.isAvailable,
+        restaurantId: restaurantId,
+        imageUrl: imageUrl,
+      );
 
   factory MenuItem.fromJson(Map<String, dynamic> json) => MenuItem(
         id: json['id'],
         name: json['name'],
         description: json['description'],
-        price: json['price'],
+        price: (json['price'] as num).round(),
         isAvailable: json['is_available'] ?? true,
         restaurantId: json['restaurant_id'],
         imageUrl: json['image_url'],
@@ -80,6 +99,7 @@ class Order {
   final String status;
   final int restaurantId;
   final int userId;
+  final String? restaurantName;
   final String fulfillmentMethod;
   final String? pickupName;
   final String? pickupPhone;
@@ -95,6 +115,7 @@ class Order {
     required this.status,
     required this.restaurantId,
     required this.userId,
+    this.restaurantName,
     this.fulfillmentMethod = 'delivery',
     this.pickupName,
     this.pickupPhone,
@@ -113,6 +134,7 @@ class Order {
         status: json['status'],
         restaurantId: json['restaurant_id'],
         userId: json['user_id'],
+        restaurantName: json['restaurant_name'],
         fulfillmentMethod: json['fulfillment_method'] ?? 'delivery',
         pickupName: json['pickup_name'],
         pickupPhone: json['pickup_phone'],
@@ -125,14 +147,13 @@ class Order {
             : DateTime.tryParse(json['scheduled_for'].toString()),
       );
 
-  String? get restaurantName => null;
-
   Order copyWith({
     int? id,
     String? status,
     int? totalAmount,
     int? restaurantId,
     int? userId,
+    String? restaurantName,
     String? fulfillmentMethod,
     String? pickupName,
     String? pickupPhone,
@@ -150,6 +171,7 @@ class Order {
       totalAmount: totalAmount ?? this.totalAmount,
       restaurantId: restaurantId ?? this.restaurantId,
       userId: userId ?? this.userId,
+      restaurantName: restaurantName ?? this.restaurantName,
       fulfillmentMethod: fulfillmentMethod ?? this.fulfillmentMethod,
       pickupName: pickupName ?? this.pickupName,
       pickupPhone: pickupPhone ?? this.pickupPhone,
@@ -189,13 +211,6 @@ class PaymentInitializationRequest {
       };
 }
 
-class PaymentProviderOption {
-  final String value;
-  final String label;
-
-  const PaymentProviderOption({required this.value, required this.label});
-}
-
 // ─── CHAT MESSAGE ─────────────────────────────────────────────────────────────
 class ChatMessage {
   final int id;
@@ -226,10 +241,6 @@ class ChatMessage {
         isMine: json['is_mine'] ?? false,
       );
 
-  static Future<Object?> getMessages(
-      {required String token, required int orderId}) async {
-    return null;
-  }
 }
 
 // ─── ANALYTICS ────────────────────────────────────────────────────────────────
@@ -241,7 +252,7 @@ class BestSeller {
 
   factory BestSeller.fromJson(Map<String, dynamic> json) => BestSeller(
         name: json['name'] ?? 'Unknown',
-        quantitySold: json['quantity_sold'] ?? 0,
+      quantitySold: json['count'] ?? json['quantity_sold'] ?? 0,
       );
 }
 
@@ -283,8 +294,10 @@ class RestaurantAnalytics {
         totalOrders: json['total_orders'] ?? 0,
         deliveredOrders: json['delivered_orders'] ?? 0,
         totalRevenue: json['total_revenue'] ?? 0,
-        averageOrderValue: json['average_order_value'] ?? 0,
-        bestSellers: ((json['best_sellers'] ?? []) as List)
+        averageOrderValue: json['avg_order_value'] ??
+          json['average_order_value'] ??
+          0,
+        bestSellers: ((json['top_items'] ?? json['best_sellers'] ?? []) as List)
             .map((b) => BestSeller.fromJson(b))
             .toList(),
         dailyRevenue: ((json['daily_revenue'] ?? []) as List)
@@ -315,7 +328,10 @@ class RiderAnalytics {
         totalDeliveries: json['total_deliveries'] ?? 0,
         completedDeliveries: json['completed_deliveries'] ?? 0,
         totalEarnings: json['total_earnings'] ?? 0,
-        averageEarningPerDelivery: json['average_earning_per_delivery'] ?? 0,
+        averageEarningPerDelivery:
+          json['avg_earning_per_delivery'] ??
+            json['average_earning_per_delivery'] ??
+            0,
       );
 }
 

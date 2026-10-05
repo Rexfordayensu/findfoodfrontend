@@ -920,8 +920,12 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
       final restaurant = await ApiService.getMyRestaurant(auth.token!);
       _restaurantId = restaurant.id;
 
-      // Step 2: load that restaurant's menu
-      final items = await ApiService.getMenu(_restaurantId!);
+      // Load unavailable items too so the owner can turn them back on.
+      final items = await ApiService.getManagedMenu(
+        token: auth.token!,
+        restaurantId: _restaurantId!,
+      );
+      if (!mounted) return;
       setState(() => _items = items);
     } catch (e) {
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
@@ -979,9 +983,18 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
                   final picked = await picker.pickImage(
                     source: ImageSource.gallery,
                     imageQuality: 85,
+                    maxWidth: 1600,
+                    maxHeight: 1200,
                   );
                   if (picked == null) return;
                   final bytes = await picked.readAsBytes();
+                  if (!ctx.mounted) return;
+                  if (bytes.length > 5 * 1024 * 1024) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                      content: Text('Menu images must be 5 MB or smaller.'),
+                    ));
+                    return;
+                  }
                   set(() {
                     pickedBytes = bytes;
                     pickedFilename = picked.name;
@@ -1171,9 +1184,18 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
                       final picked = await picker.pickImage(
                         source: ImageSource.gallery,
                         imageQuality: 85,
+                        maxWidth: 1600,
+                        maxHeight: 1200,
                       );
                       if (picked == null) return;
                       final bytes = await picked.readAsBytes();
+                      if (!ctx.mounted) return;
+                      if (bytes.length > 5 * 1024 * 1024) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                          content: Text('Menu images must be 5 MB or smaller.'),
+                        ));
+                        return;
+                      }
                       set(() {
                         pickedBytes = bytes;
                         pickedFilename = picked.name;
@@ -1198,7 +1220,8 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(14),
                                   child: Image.network(
-                                    '${ApiService.baseUrl}$currentImageUrl',
+                                    item.fullImageUrl(ApiService.baseUrl) ??
+                                        currentImageUrl,
                                     fit: BoxFit.cover,
                                     width: double.infinity,
                                     errorBuilder: (_, __, ___) => Center(
@@ -1401,14 +1424,13 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
     final messenger = ScaffoldMessenger.maybeOf(context);
     setState(() => _processingIds.add(item.id));
     try {
-      final updated = await ApiService.toggleMenuItemAvailability(
-        token: auth.token!,
-        restaurantId: _restaurantId!,
-        itemId: item.id,
-      );
+      final isAvailable = await ApiService.toggleMenuItem(auth.token!, item.id);
+      if (!mounted) return;
       setState(() {
         final idx = _items.indexWhere((m) => m.id == item.id);
-        if (idx != -1) _items[idx] = updated as MenuItem;
+        if (idx != -1) {
+          _items[idx] = _items[idx].copyWith(isAvailable: isAvailable);
+        }
       });
     } catch (e) {
       if (!mounted) return;
@@ -2052,6 +2074,269 @@ class _RevenueBarChart extends StatelessWidget {
   }
 }
 
+class _PromotionManager extends StatefulWidget {
+  final int restaurantId;
+  final String token;
+
+  const _PromotionManager({required this.restaurantId, required this.token});
+
+  @override
+  State<_PromotionManager> createState() => _PromotionManagerState();
+}
+
+class _PromotionManagerState extends State<_PromotionManager> {
+  List<Promotion> _promotions = [];
+  bool _loading = true;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPromotions();
+  }
+
+  Future<void> _loadPromotions() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final promotions = await ApiService.getMyPromotions(widget.token);
+      if (mounted) setState(() => _promotions = promotions);
+    } catch (error) {
+      if (mounted) {
+        setState(() => _error = error.toString().replaceAll('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _createPromotion() async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 1600,
+      maxHeight: 900,
+    );
+    if (picked == null) return;
+    if (!mounted) return;
+
+    final filename = picked.name;
+    final lowerFilename = filename.toLowerCase();
+    if (!lowerFilename.endsWith('.jpg') &&
+        !lowerFilename.endsWith('.jpeg') &&
+        !lowerFilename.endsWith('.png') &&
+        !lowerFilename.endsWith('.webp')) {
+      _showMessage('Choose a JPEG, PNG, or WebP image.', isError: true);
+      return;
+    }
+    final bytes = await picked.readAsBytes();
+    if (!mounted) return;
+    if (bytes.length > 5 * 1024 * 1024) {
+      _showMessage('Promotion images must be 5 MB or smaller.', isError: true);
+      return;
+    }
+
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final discountController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('New promotion'),
+        scrollable: true,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.memory(bytes,
+                  height: 130, width: double.infinity, fit: BoxFit.cover),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: 'Title'),
+              textCapitalization: TextCapitalization.sentences,
+            ),
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(labelText: 'Description'),
+              textCapitalization: TextCapitalization.sentences,
+            ),
+            TextField(
+              controller: discountController,
+              decoration: const InputDecoration(
+                  labelText: 'Discount percentage (optional)'),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Upload'),
+          ),
+        ],
+      ),
+    );
+    final title = titleController.text.trim();
+    final description = descriptionController.text.trim();
+    final discountText = discountController.text.trim();
+    titleController.dispose();
+    descriptionController.dispose();
+    discountController.dispose();
+    if (confirmed != true) return;
+    if (title.isEmpty) {
+      _showMessage('Enter a promotion title.', isError: true);
+      return;
+    }
+    final discount = discountText.isEmpty ? null : int.tryParse(discountText);
+    if (discountText.isNotEmpty &&
+        (discount == null || discount < 0 || discount > 100)) {
+      _showMessage('Discount must be a number from 0 to 100.', isError: true);
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      final promotion = await ApiService.createPromotion(
+        token: widget.token,
+        restaurantId: widget.restaurantId,
+        title: title,
+        description: description.isEmpty ? null : description,
+        discountPercent: discount,
+        imageBytes: bytes,
+        filename: filename,
+      );
+      if (mounted) {
+        setState(() => _promotions.insert(0, promotion));
+        _showMessage('Promotion uploaded.');
+      }
+    } catch (error) {
+      if (mounted) {
+        _showMessage(error.toString().replaceAll('Exception: ', ''),
+            isError: true);
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _deletePromotion(Promotion promotion) async {
+    try {
+      await ApiService.deletePromotion(
+        token: widget.token,
+        restaurantId: widget.restaurantId,
+        promotionId: promotion.id,
+      );
+      if (mounted) {
+        setState(
+            () => _promotions.removeWhere((item) => item.id == promotion.id));
+      }
+    } catch (error) {
+      if (mounted) {
+        _showMessage(error.toString().replaceAll('Exception: ', ''),
+            isError: true);
+      }
+    }
+  }
+
+  void _showMessage(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: isError ? AppTheme.danger : AppTheme.success,
+    ));
+  }
+
+  String _imageUrl(String url) =>
+      url.startsWith('http') ? url : '${ApiService.baseUrl}$url';
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.card(context),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border(context)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text('Promotions',
+                    style: TextStyle(
+                        color: AppColors.textPrimary(context),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700)),
+              ),
+              IconButton(
+                tooltip: 'Upload promotion',
+                onPressed: _saving ? null : _createPromotion,
+                icon: _saving
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.add_photo_alternate_outlined),
+              ),
+            ],
+          ),
+          if (_loading)
+            const Center(child: CircularProgressIndicator())
+          else if (_error != null)
+            Row(
+              children: [
+                Expanded(child: Text(_error!)),
+                IconButton(
+                    tooltip: 'Retry',
+                    onPressed: _loadPromotions,
+                    icon: const Icon(Icons.refresh)),
+              ],
+            )
+          else if (_promotions.isEmpty)
+            Text('No promotions yet.',
+                style: TextStyle(color: AppColors.textSecondary(context)))
+          else
+            for (final promotion in _promotions)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: Image.network(
+                    _imageUrl(promotion.imageUrl),
+                    width: 52,
+                    height: 52,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                        const Icon(Icons.image_outlined),
+                  ),
+                ),
+                title: Text(promotion.title,
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                subtitle: promotion.discountPercent == null
+                    ? null
+                    : Text('${promotion.discountPercent}% off'),
+                trailing: IconButton(
+                  tooltip: 'Delete promotion',
+                  onPressed: () => _deletePromotion(promotion),
+                  icon: const Icon(Icons.delete_outline),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
 // ─── SETTINGS PAGE ────────────────────────────────────────────────────────────
 class _SettingsPage extends StatefulWidget {
   final int restaurantId;
@@ -2284,6 +2569,13 @@ class _SettingsPageState extends State<_SettingsPage> {
                   children: [
                     _buildBannerSection(context, auth),
                     const SizedBox(height: 16),
+                    if (auth.token != null) ...[
+                      _PromotionManager(
+                        restaurantId: widget.restaurantId,
+                        token: auth.token!,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
 
                     // Kitchen toggle
                     Container(

@@ -20,37 +20,19 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  String _selectedProvider = 'paystack';
   bool _isLoading = false;
   Timer? _paymentVerificationTimer;
   bool _hasNavigatedToTracking = false;
   bool _isDelivery = true;
-<<<<<<< HEAD
   bool _isDetectingLocation = false;
   double? _deliveryLatitude;
   double? _deliveryLongitude;
 
-  final _deliveryAddressController = TextEditingController();
-  final _pickupNameController = TextEditingController();
-  final _pickupPhoneController = TextEditingController();
-=======
+  final TextEditingController _deliveryAddressController = TextEditingController();
   final TextEditingController _pickupNameController = TextEditingController();
-final TextEditingController _pickupPhoneController = TextEditingController();
-final TextEditingController _kitchenNoteController = TextEditingController();
+  final TextEditingController _pickupPhoneController = TextEditingController();
+  final TextEditingController _kitchenNoteController = TextEditingController();
 
-@override
-void dispose() {
-  _pickupNameController.dispose();
-  _pickupPhoneController.dispose();
-  _kitchenNoteController.dispose();
-  super.dispose();
-}
->>>>>>> d1f75c9b08079d2ea89cdb950b69509984e09271
-
-  final List<PaymentProviderOption> _providers = const [
-    PaymentProviderOption(value: 'paystack', label: 'Paystack'),
-    PaymentProviderOption(value: 'mtn_momo', label: 'MTN Mobile Money'),
-  ];
 
   @override
   void initState() {
@@ -71,6 +53,7 @@ void dispose() {
     _deliveryAddressController.dispose();
     _pickupNameController.dispose();
     _pickupPhoneController.dispose();
+    _kitchenNoteController.dispose();
     super.dispose();
   }
 
@@ -256,57 +239,46 @@ void dispose() {
         restaurantId: cart.restaurantId!,
         items: cart.orderPayload,
         fulfillmentMethod: _isDelivery ? 'delivery' : 'pickup',
-<<<<<<< HEAD
+
         deliveryAddress: _isDelivery ? _deliveryAddressController.text : null,
         deliveryLatitude: _isDelivery ? _deliveryLatitude : null,
         deliveryLongitude: _isDelivery ? _deliveryLongitude : null,
-        pickupName: !_isDelivery ? _pickupNameController.text : null,
-        pickupPhone: !_isDelivery ? _pickupPhoneController.text : null,
-=======
         pickupName: !_isDelivery ? _pickupNameController.text.trim() : null,
         pickupPhone: !_isDelivery ? _pickupPhoneController.text.trim() : null,
         kitchenNote: _kitchenNoteController.text.trim().isNotEmpty ? _kitchenNoteController.text.trim() : null,
->>>>>>> d1f75c9b08079d2ea89cdb950b69509984e09271
+
       );
 
       final init = await ApiService.initializePayment(
         token: auth.token!,
         orderId: order.id,
-        provider: _selectedProvider,
+        provider: 'paystack',
       );
 
       if (!mounted) return;
 
-      if (_selectedProvider == 'paystack') {
-        final authorizationUrl = init['authorization_url'] as String?;
-        final reference = init['reference'] as String?;
+      final authorizationUrl = init['authorization_url'] as String?;
+      final reference = init['reference'] as String?;
 
-        if (authorizationUrl == null || reference == null) {
-          throw Exception('Invalid payment initialization response.');
-        }
-
-        await launchUrlString(
-          authorizationUrl,
-          mode: LaunchMode.platformDefault,
-          webOnlyWindowName: '_self',
-        );
-
-        if (!mounted) return;
-        _startPaymentVerification(reference: reference, order: order);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Opening checkout for reference $reference...'),
-        ));
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text(
-              'MTN Mobile Money flow is being prepared. Please try again later.'),
-        ));
+      if (authorizationUrl == null || reference == null) {
+        throw Exception('Invalid payment initialization response.');
       }
+
+      await launchUrlString(
+        authorizationUrl,
+        mode: LaunchMode.platformDefault,
+        webOnlyWindowName: '_self',
+      );
+
+      if (!mounted) return;
+      _startPaymentVerification(reference: reference, order: order);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Opening checkout for reference $reference...'),
+      ));
     } catch (e) {
       if (!mounted) return;
       final errorMsg = e.toString().replaceAll('Exception: ', '');
-      debugPrint(
-          'Payment initialization error: $errorMsg | Provider: $_selectedProvider');
+        debugPrint('Payment initialization error: $errorMsg | Provider: paystack');
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: AppTheme.danger,
         content: Text(errorMsg, style: const TextStyle(color: Colors.white)),
@@ -391,7 +363,8 @@ void dispose() {
                             () => Provider.of<CartProvider>(context,
                                     listen: false)
                                 .addItem(item.menuItem, cart.restaurantId!,
-                                    cart.restaurantName!)),
+                              cart.restaurantName!,
+                              restaurantAddress: cart.restaurantAddress)),
                       ],
                     ),
                   ],
@@ -400,6 +373,8 @@ void dispose() {
 
           // ── Summary ────────────────────────────────────────────
           const SizedBox(height: 8),
+              _buildFulfillmentSelector(cart),
+              const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -409,154 +384,9 @@ void dispose() {
             ),
             child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: AppTheme
-                          .darkBorder, // Blends perfectly with your theme palette!
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => _isDelivery = true),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: _isDelivery
-                                    ? AppTheme.accent
-                                    : Colors
-                                        .transparent, // Uses your theme color highlight
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                '🛵 Delivery',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color:
-                                      _isDelivery ? Colors.white : Colors.grey,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => setState(() => _isDelivery = false),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: !_isDelivery
-                                    ? AppTheme.accent
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                '🛍️ Pickup',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color:
-                                      !_isDelivery ? Colors.white : Colors.grey,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                // 1. Your existing selector toggle container ends right above this line...
-const SizedBox(height: 12),
-
-// 2. Dynamic Input Fields Form for Pickup Orders:
-if (!_isDelivery) ...[
-  Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(16.0),
-    decoration: BoxDecoration(
-      color: AppTheme.darkCard, // Blends smoothly into your dark theme styling
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: AppTheme.darkBorder, width: 1),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          '👤 Your details',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 12),
-        
-        // Full Name Input Textbox
-        TextField(
-          controller: _pickupNameController,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            labelText: 'Pickup Name',
-            labelStyle: const TextStyle(color: Colors.grey),
-            hintText: 'Enter name of person picking up',
-            hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-            prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
-            filled: true,
-            fillColor: AppTheme.darkBorder,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-          ),
-        ),
-        const SizedBox(height: 10),
-        
-        // Mobile Money Phone Number Input Textbox
-        TextField(
-          controller: _pickupPhoneController,
-          keyboardType: TextInputType.phone,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            labelText: 'Pickup Phone Number',
-            labelStyle: const TextStyle(color: Colors.grey),
-            hintText: 'e.g. 054XXXXXXX',
-            hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-            prefixIcon: const Icon(Icons.phone_android_outlined, color: Colors.grey),
-            filled: true,
-            fillColor: AppTheme.darkBorder,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-          ),
-        ),
-        const SizedBox(height: 10),
-        
-        // Kitchen Notes Multi-Line Message Box
-        TextField(
-          controller: _kitchenNoteController,
-          maxLines: 2,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            labelText: 'Kitchen Notes (Optional)',
-            labelStyle: const TextStyle(color: Colors.grey),
-            hintText: 'e.g. Add a little stew, etc.',
-            hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-            prefixIcon: const Icon(Icons.chat_bubble_outline, color: Colors.grey),
-            filled: true,
-            fillColor: AppTheme.darkBorder,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-          ),
-        ),
-      ],
-    ),
-  ),
-  const SizedBox(height: 16),
-],
-
                 _summaryRow('Subtotal', cart.displayTotal),
                 const SizedBox(height: 8),
-                _summaryRow('Delivery fee', 'Free'),
+                _summaryRow(_isDelivery ? 'Delivery fee' : 'Pickup fee', 'Free'),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 10),
                   child: Divider(color: AppTheme.darkBorder),
@@ -574,45 +404,36 @@ if (!_isDelivery) ...[
           ),
 
           const SizedBox(height: 20),
-          if (_isDelivery) _buildDeliveryDetails() else _buildPickupDetails(),
+          if (_isDelivery)
+            _buildDeliveryDetails()
+          else
+            _buildPickupDetails(cart.restaurantAddress),
 
           const SizedBox(height: 24),
-          const Text('Payment Method', style: AppText.heading),
+          const Text('Payment', style: AppText.heading),
           const SizedBox(height: 14),
-          Row(
-            children: _providers.map((provider) {
-              final active = _selectedProvider == provider.value;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () =>
-                      setState(() => _selectedProvider = provider.value),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: EdgeInsets.only(
-                        right: provider == _providers.last ? 0 : 8),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: active ? AppTheme.accentDim : AppTheme.card,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: active ? AppTheme.accent : AppTheme.darkBorder,
-                        width: active ? 1.5 : 1,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(provider.label,
-                          style: TextStyle(
-                            color:
-                                active ? AppTheme.accent : AppTheme.textSecond,
-                            fontWeight:
-                                active ? FontWeight.w700 : FontWeight.w400,
-                            fontSize: 12,
-                          )),
-                    ),
-                  ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.card,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppTheme.darkBorder),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.lock_outline_rounded, color: AppTheme.accent),
+                SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Paystack', style: AppText.title),
+                    SizedBox(height: 3),
+                    Text('Secure online payment', style: AppText.caption),
+                  ],
                 ),
-              );
-            }).toList(),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
           if (!auth.isLoggedIn)
@@ -634,6 +455,57 @@ if (!_isDelivery) ...[
           const SizedBox(height: 32),
         ],
       ),
+    );
+  }
+
+  Widget _buildFulfillmentSelector(CartProvider cart) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Fulfillment', style: AppText.title),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<bool>(
+            segments: const [
+              ButtonSegment<bool>(
+                value: true,
+                label: Text('Delivery'),
+                icon: Icon(Icons.delivery_dining_outlined),
+              ),
+              ButtonSegment<bool>(
+                value: false,
+                label: Text('Pickup'),
+                icon: Icon(Icons.storefront_outlined),
+              ),
+            ],
+            selected: {_isDelivery},
+            showSelectedIcon: false,
+            onSelectionChanged: (selection) {
+              setState(() => _isDelivery = selection.first);
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(
+              _isDelivery ? Icons.location_on_outlined : Icons.store_outlined,
+              size: 17,
+              color: AppTheme.textSecond,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                _isDelivery
+                    ? 'Delivered to your address or current location'
+                    : 'Collect from ${cart.restaurantName ?? 'the restaurant'}',
+                style: AppText.caption.copyWith(color: AppTheme.textSecond),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -714,7 +586,7 @@ if (!_isDelivery) ...[
     );
   }
 
-  Widget _buildPickupDetails() {
+  Widget _buildPickupDetails(String? restaurantAddress) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -723,13 +595,23 @@ if (!_isDelivery) ...[
         border: Border.all(color: AppTheme.darkBorder),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const Text('Pickup location', style: AppText.title),
+          const SizedBox(height: 6),
+          Text(
+            restaurantAddress?.trim().isNotEmpty == true
+                ? restaurantAddress!
+                : 'Restaurant address unavailable',
+            style: AppText.body,
+          ),
+          const SizedBox(height: 16),
           TextField(
             controller: _pickupNameController,
             textCapitalization: TextCapitalization.words,
             decoration: const InputDecoration(
               labelText: 'Pickup name',
-              hintText: 'Name for collection',
+              hintText: 'Name of the person collecting the order',
               prefixIcon: Icon(Icons.person_outline),
             ),
           ),
@@ -739,8 +621,18 @@ if (!_isDelivery) ...[
             keyboardType: TextInputType.phone,
             decoration: const InputDecoration(
               labelText: 'Pickup phone number',
-              hintText: 'Phone number for collection',
+              hintText: 'Phone number for collection updates',
               prefixIcon: Icon(Icons.phone_outlined),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _kitchenNoteController,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'Kitchen note (optional)',
+              hintText: 'Special instructions for the restaurant',
+              prefixIcon: Icon(Icons.chat_bubble_outline),
             ),
           ),
         ],

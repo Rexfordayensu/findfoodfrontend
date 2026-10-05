@@ -67,69 +67,11 @@ String? _imageFor(dynamic r) {
   return null;
 }
 
-// ── Demo data ─────────────────────────────────────────────────────────────────
-final _demoRestaurants = [
-  Restaurant(
-      id: -1,
-      name: "Mama's Kitchen",
-      cuisineType: 'Local Ghanaian',
-      address: 'Osu, Accra',
-      email: '',
-      isActive: true,
-      isApproved: true,
-      ownerId: 0),
-  Restaurant(
-      id: -2,
-      name: 'Burger Republic',
-      cuisineType: 'Fast Food',
-      address: 'Airport City, Accra',
-      email: '',
-      isActive: true,
-      isApproved: true,
-      ownerId: 0),
-  Restaurant(
-      id: -3,
-      name: 'Dragon Palace',
-      cuisineType: 'Chinese',
-      address: 'East Legon, Accra',
-      email: '',
-      isActive: true,
-      isApproved: true,
-      ownerId: 0),
-  Restaurant(
-      id: -4,
-      name: "Auntie Ama's",
-      cuisineType: 'Local Ghanaian',
-      address: 'Cantonments, Accra',
-      email: '',
-      isActive: false,
-      isApproved: true,
-      ownerId: 0),
-  Restaurant(
-      id: -5,
-      name: 'Pizzeria Roma',
-      cuisineType: 'Italian / Pizza',
-      address: 'Labone, Accra',
-      email: '',
-      isActive: true,
-      isApproved: true,
-      ownerId: 0),
-  Restaurant(
-      id: -6,
-      name: 'Ocean Catch',
-      cuisineType: 'Seafood',
-      address: 'Tema, Accra',
-      email: '',
-      isActive: true,
-      isApproved: true,
-      ownerId: 0),
-];
-
 // ── Main screen ───────────────────────────────────────────────────────────────
 String getFullImageUrl(String? url) {
   if (url == null || url.isEmpty) return '';
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  return 'https://findfooddelivery-backend.onrender.com/$url';
+  return '${ApiService.baseUrl}${url.startsWith('/') ? '' : '/'}$url';
 }
 
 class FoodFeedScreen extends StatefulWidget {
@@ -194,10 +136,9 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
     });
     try {
       final list = await ApiService.getRestaurants();
-      final ids = list.map((r) => r.id).toSet();
-      final extra = _demoRestaurants.where((d) => !ids.contains(d.id)).toList();
+      if (!mounted) return;
       setState(() {
-        _restaurants = [...list, ...extra];
+        _restaurants = list;
         _applyFilter();
       });
       _staggerCtrl.forward(from: 0);

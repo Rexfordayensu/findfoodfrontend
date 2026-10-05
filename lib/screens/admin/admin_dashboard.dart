@@ -1728,7 +1728,7 @@ class _AdminSettingsPageState extends State<_AdminSettingsPage> {
   void _showEditProfileSheet(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final nameCtrl = TextEditingController();
-    final emailCtrl = TextEditingController();
+    var email = auth.email ?? '';
     bool loading = true;
     bool saving = false;
     String error = '';
@@ -1745,7 +1745,7 @@ class _AdminSettingsPageState extends State<_AdminSettingsPage> {
           if (loading && error.isEmpty) {
             ApiService.getMyProfile(auth.token!).then((data) {
               nameCtrl.text = data['name'] ?? '';
-              emailCtrl.text = data['email'] ?? '';
+              email = data['email']?.toString() ?? email;
               set(() => loading = false);
             }).catchError((e) {
               set(() {
@@ -1792,17 +1792,25 @@ class _AdminSettingsPageState extends State<_AdminSettingsPage> {
                       controller: nameCtrl, hint: 'Full name',
                       prefixIcon: Icons.person_outline_rounded),
                   const SizedBox(height: 12),
-                  AppTextField(
-                      controller: emailCtrl, hint: 'Email address',
-                      prefixIcon: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress),
+                  InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Verified email',
+                      prefixIcon: Icon(Icons.verified_user_outlined),
+                    ),
+                    child: Text(email),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Changing your email requires a separate verification flow.',
+                    style: TextStyle(
+                        color: AppColors.textHint(ctx), fontSize: 12),
+                  ),
                   const SizedBox(height: 20),
                   PrimaryButton(
                     label: 'Save changes',
                     isLoading: saving,
                     onPressed: () async {
-                      if (nameCtrl.text.trim().isEmpty ||
-                          emailCtrl.text.trim().isEmpty) {
+                      if (nameCtrl.text.trim().isEmpty) {
                         return;
                       }
                       set(() => saving = true);
@@ -1810,8 +1818,8 @@ class _AdminSettingsPageState extends State<_AdminSettingsPage> {
                         await ApiService.updateMyProfile(
                           token: auth.token!,
                           name: nameCtrl.text.trim(),
-                          email: emailCtrl.text.trim(),
                         );
+                        await auth.updateName(nameCtrl.text.trim());
                         if (!context.mounted) return;
                         Navigator.pop(ctx);
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -1891,7 +1899,7 @@ class _AdminSettingsPageState extends State<_AdminSettingsPage> {
               const SizedBox(height: 12),
               AppTextField(
                 controller: newCtrl,
-                hint: 'New password (min 6 characters)',
+                hint: 'New password (min 8 characters)',
                 prefixIcon: Icons.lock_reset_rounded,
                 obscure: obscure2,
                 suffixIcon: IconButton(
@@ -1917,10 +1925,10 @@ class _AdminSettingsPageState extends State<_AdminSettingsPage> {
                 label: 'Update password',
                 isLoading: saving,
                 onPressed: () async {
-                  if (currentCtrl.text.isEmpty || newCtrl.text.length < 6) {
+                  if (currentCtrl.text.isEmpty || newCtrl.text.length < 8) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                       backgroundColor: AppTheme.danger,
-                      content: Text('Fill in all fields (min 6 characters)',
+                      content: Text('Fill in all fields (min 8 characters)',
                           style: TextStyle(color: Colors.white)),
                     ));
                     return;
@@ -1969,6 +1977,7 @@ class _AdminSettingsPageState extends State<_AdminSettingsPage> {
   void _showNotificationsSheet(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     bool loading = true;
+    bool loadStarted = false;
     bool saving = false;
     String error = '';
     bool emailNotif = true, pushNotif = true, orderAlerts = true;
@@ -1981,7 +1990,8 @@ class _AdminSettingsPageState extends State<_AdminSettingsPage> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, set) {
-          if (loading && error.isEmpty) {
+          if (loading && error.isEmpty && !loadStarted) {
+            loadStarted = true;
             ApiService.getNotificationPrefs(auth.token!).then((data) {
               set(() {
                 emailNotif = data['email_notifications'] ?? true;
@@ -2006,6 +2016,12 @@ class _AdminSettingsPageState extends State<_AdminSettingsPage> {
                 pushNotifications: pushNotif,
                 orderAlerts: orderAlerts,
               );
+              if (!ctx.mounted) return;
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                backgroundColor: AppTheme.success,
+                content: Text('Notification preferences saved.'),
+              ));
             } catch (e) {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -2015,7 +2031,7 @@ class _AdminSettingsPageState extends State<_AdminSettingsPage> {
                 ));
               }
             } finally {
-              set(() => saving = false);
+              if (ctx.mounted) set(() => saving = false);
             }
           }
 
@@ -2056,13 +2072,13 @@ class _AdminSettingsPageState extends State<_AdminSettingsPage> {
                 else ...[
                   _notifSwitch(ctx, 'Email notifications',
                       'Get order and platform updates via email',
-                      emailNotif, (v) { set(() => emailNotif = v); save(); }),
+                      emailNotif, (v) => set(() => emailNotif = v)),
                   _notifSwitch(ctx, 'Push notifications',
                       'Get real-time alerts on this device',
-                      pushNotif, (v) { set(() => pushNotif = v); save(); }),
+                      pushNotif, (v) => set(() => pushNotif = v)),
                   _notifSwitch(ctx, 'Order alerts',
                       'Notify me about new and updated orders',
-                      orderAlerts, (v) { set(() => orderAlerts = v); save(); }),
+                      orderAlerts, (v) => set(() => orderAlerts = v)),
                   if (saving)
                     const Padding(
                       padding: EdgeInsets.only(top: 12),
@@ -2074,6 +2090,12 @@ class _AdminSettingsPageState extends State<_AdminSettingsPage> {
                         ),
                       ),
                     ),
+                  const SizedBox(height: 12),
+                  PrimaryButton(
+                    label: 'Save preferences',
+                    isLoading: saving,
+                    onPressed: saving ? null : save,
+                  ),
                 ],
                 const SizedBox(height: 8),
               ],
