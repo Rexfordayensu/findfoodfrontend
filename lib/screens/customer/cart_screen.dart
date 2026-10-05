@@ -10,6 +10,7 @@ import '../../services/providers.dart';
 import '../../models/models.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key, this.paymentReference});
 
@@ -28,10 +29,17 @@ class _CartScreenState extends State<CartScreen> {
   double? _deliveryLatitude;
   double? _deliveryLongitude;
 
+
   final TextEditingController _deliveryAddressController = TextEditingController();
   final TextEditingController _pickupNameController = TextEditingController();
   final TextEditingController _pickupPhoneController = TextEditingController();
   final TextEditingController _kitchenNoteController = TextEditingController();
+
+
+  final List<PaymentProviderOption> _providers = const [
+    PaymentProviderOption(value: 'paystack', label: 'Paystack'),
+    PaymentProviderOption(value: 'mtn_momo', label: 'MTN Mobile Money'),
+  ];
 
 
   @override
@@ -240,13 +248,13 @@ class _CartScreenState extends State<CartScreen> {
         items: cart.orderPayload,
         fulfillmentMethod: _isDelivery ? 'delivery' : 'pickup',
 
-        deliveryAddress: _isDelivery ? _deliveryAddressController.text : null,
+
+        deliveryAddress: _isDelivery ? _deliveryAddressController.text.trim() : null,
         deliveryLatitude: _isDelivery ? _deliveryLatitude : null,
         deliveryLongitude: _isDelivery ? _deliveryLongitude : null,
         pickupName: !_isDelivery ? _pickupNameController.text.trim() : null,
         pickupPhone: !_isDelivery ? _pickupPhoneController.text.trim() : null,
         kitchenNote: _kitchenNoteController.text.trim().isNotEmpty ? _kitchenNoteController.text.trim() : null,
-
       );
 
       final init = await ApiService.initializePayment(
@@ -640,3 +648,13 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 }
+class PaymentProviderOption {
+  final String value;
+  final String label;
+
+  const PaymentProviderOption({
+    required this.value,
+    required this.label,
+  });
+}
+
