@@ -252,9 +252,12 @@ class ApiService {
     throw Exception(data['detail'] ?? 'Failed to create restaurant');
   }
 
-  static Future<List<Promotion>> getMyPromotions(String token) async {
+   static Future<List<Promotion>> getMyPromotions({
+    required String token,
+    required int restaurantId, 
+  }) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/restaurants/mine/promotions'),
+      Uri.parse('$baseUrl/restaurants/$restaurantId/promotions'),
       headers: {'Authorization': 'Bearer $token'},
     );
     if (response.statusCode == 200) {

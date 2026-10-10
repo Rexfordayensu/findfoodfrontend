@@ -10037,12 +10037,12 @@ s=1
 break}throw A.h(A.aR("Failed to load restaurants ("+o+")"))
 case 1:return A.p(q,r)}})
 return A.q($async$a7x,r)},
-a7s(a){var s=0,r=A.r(t.Cy),q,p,o
-var $async$a7s=A.n(function(b,c){if(b===1)return A.o(c,r)
+a7s(a,b){var s=0,r=A.r(t.Cy),q,p,o
+var $async$a7s=A.n(function(c,d){if(c===1)return A.o(d,r)
 for(;;)switch(s){case 0:p=t.N
 s=3
-return A.k(A.fR(A.bi("https://findfooddelivery-backend.onrender.com/restaurants/mine/promotions",0,null),A.a1(["Authorization","Bearer "+a],p,p)),$async$a7s)
-case 3:o=c
+return A.k(A.fR(A.bi(u.L+a+"/promotions",0,null),A.a1(["Authorization","Bearer "+b],p,p)),$async$a7s)
+case 3:o=d
 if(o.b===200){p=J.f_(A.B4(o),new A.a7t(),t.WS)
 p=A.a7(p,p.$ti.i("aq.E"))
 q=p
@@ -55389,20 +55389,22 @@ V(){return new A.KF(A.b([],t.Cr))}}
 A.KF.prototype={
 ai(){this.au()
 this.vM()},
-vM(){var s=0,r=A.r(t.H),q=1,p=[],o=[],n=this,m,l,k,j
+vM(){var s=0,r=A.r(t.H),q=1,p=[],o=[],n=this,m,l,k,j,i,h
 var $async$vM=A.n(function(a,b){if(a===1){p.push(b)
 s=q}for(;;)switch(s){case 0:n.C(new A.aHS(n))
 q=3
+k=n.a
+j=k.d
 s=6
-return A.k(A.a7s(n.a.d),$async$vM)
+return A.k(A.a7s(k.c,j),$async$vM)
 case 6:m=b
 if(n.c!=null)n.C(new A.aHT(n,m))
 o.push(5)
 s=4
 break
 case 3:q=2
-j=p.pop()
-l=A.Z(j)
+h=p.pop()
+l=A.Z(h)
 if(n.c!=null)n.C(new A.aHU(n,l))
 o.push(5)
 s=4

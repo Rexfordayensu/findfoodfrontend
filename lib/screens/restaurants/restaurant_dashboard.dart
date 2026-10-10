@@ -2102,7 +2102,10 @@ class _PromotionManagerState extends State<_PromotionManager> {
       _error = null;
     });
     try {
-      final promotions = await ApiService.getMyPromotions(widget.token);
+     final promotions = await ApiService.getMyPromotions(
+        token: widget.token,                       
+        restaurantId: widget.restaurantId,     
+      );
       if (mounted) setState(() => _promotions = promotions);
     } catch (error) {
       if (mounted) {
