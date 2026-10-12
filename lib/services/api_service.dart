@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
@@ -14,6 +15,12 @@ class EmailNotVerifiedException implements Exception {
   String toString() => message;
 }
 
+class ServerTimeoutException implements Exception {
+  @override
+  String toString() =>
+      'The server is taking too long to respond. Please try again in a moment.';
+}
+
 class SessionExpiredException implements Exception {
   final String message;
   SessionExpiredException(this.message);
@@ -26,13 +33,22 @@ class SessionExpiredException implements Exception {
 /// with `http.runWithClient`) and reports rejected sessions: a 401 for a
 /// request that carried a token, or a 403 for a suspended account.
 class _SessionAwareClient extends http.BaseClient {
+  /// Long enough for a sleeping server to wake, short enough not to hang.
+  static const _timeout = Duration(seconds: 45);
+
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     final inner = http.Client();
     try {
-      final response = await inner.send(request);
-      // Buffer the body so the inner client can be closed safely on web too.
-      final bytes = await response.stream.toBytes();
+      final http.StreamedResponse response;
+      final List<int> bytes;
+      try {
+        response = await inner.send(request).timeout(_timeout);
+        // Buffer the body so the inner client can be closed safely on web too.
+        bytes = await response.stream.toBytes().timeout(_timeout);
+      } on TimeoutException {
+        throw ServerTimeoutException();
+      }
       final hadToken =
           request.headers['Authorization']?.startsWith('Bearer ') ?? false;
       if (hadToken) {

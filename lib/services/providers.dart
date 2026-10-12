@@ -198,21 +198,39 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Restores the saved session. Signed-in users go straight to their screen
+  /// using the cached details; the token is then checked with the server in
+  /// the background (a slow or sleeping server never blocks app start-up).
   Future<void> initializeFromSecureStorage() async {
     String? token;
     try {
       token = await _secureStorage.read(key: _tokenKey);
       if (token == null || token.isEmpty) return;
 
-      final user = await ApiService.getCurrentUser(token);
-      final userId = user['user_id'] ?? user['id'];
-      final role = user['role']?.toString().toLowerCase();
+      await _restoreCachedSession(token);
+      if (_isLoggedIn) {
+        unawaited(_verifySession(token));
+        return;
+      }
+      // Older installs have no cached profile: wait for the server once.
+      await _verifySession(token);
+    } catch (error) {
+      debugPrint('Unable to restore auth session: $error');
+    } finally {
+      _isInitialized = true;
+      notifyListeners();
+    }
+  }
 
+  /// Confirms the stored token with the server and refreshes the profile.
+  Future<void> _verifySession(String token) async {
+    try {
+      final user = await ApiService.getCurrentUser(token);
+      if (_token != null && _token != token) return; // signed in again since
+      final userId = user['user_id'] ?? user['id'];
       _token = token;
-      _userId = userId is int
-          ? userId
-          : int.tryParse(userId?.toString() ?? '0');
-      _role = role;
+      _userId = userId is int ? userId : int.tryParse(userId?.toString() ?? '0');
+      _role = user['role']?.toString().toLowerCase();
       _name = user['name']?.toString();
       _email = user['email']?.toString();
       _isEmailVerified = user['is_verified'] == true ||
@@ -222,18 +240,14 @@ class AuthProvider extends ChangeNotifier {
       _isLoggedIn = true;
       _startTokenRefresh();
       await _persistSession();
+      notifyListeners();
       unawaited(refreshSession());
     } on SessionExpiredException catch (error) {
       debugPrint('Stored auth session was rejected: $error');
-      await clearPersistedSession();
+      if (_token == null || _token == token) await logout();
     } catch (error) {
-      // The backend could not be reached; keep the stored session so the user
-      // is not signed out by a temporary network or server problem.
+      // Server unreachable: keep the cached session; requests retry later.
       debugPrint('Unable to verify auth session: $error');
-      if (token != null && token.isNotEmpty) await _restoreCachedSession(token);
-    } finally {
-      _isInitialized = true;
-      notifyListeners();
     }
   }
 

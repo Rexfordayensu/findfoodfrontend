@@ -184,7 +184,14 @@ class GlassNavBar extends StatelessWidget {
     final half = (items.length / 2).ceil();
     final children = <Widget>[];
     for (var i = 0; i < items.length; i++) {
-      if (hasCenter && i == half) children.add(const SizedBox(width: 64));
+      if (hasCenter && i == half) {
+        children.add(_CenterAction(
+          icon: centerIcon!,
+          tooltip: centerTooltip,
+          badge: centerBadge,
+          onTap: onCenterTap,
+        ));
+      }
       children.add(Expanded(
         child: _NavButton(
           item: items[i],
@@ -198,32 +205,14 @@ class GlassNavBar extends StatelessWidget {
       top: false,
       minimum: const EdgeInsets.only(bottom: 10),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 4, 14, 0),
+        padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
         child: SizedBox(
-          height: 74,
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              Positioned.fill(
-                top: 6,
-                child: GlassPanel(
-                  borderRadius: BorderRadius.circular(30),
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: Row(children: children),
-                ),
-              ),
-              if (hasCenter)
-                Positioned(
-                  top: -10,
-                  child: _CenterAction(
-                    icon: centerIcon!,
-                    tooltip: centerTooltip,
-                    badge: centerBadge,
-                    onTap: onCenterTap,
-                  ),
-                ),
-            ],
+          height: 70,
+          child: GlassPanel(
+            borderRadius: BorderRadius.circular(26),
+            blur: 28,
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Row(children: children),
           ),
         ),
       ),
@@ -302,26 +291,26 @@ class _CenterAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget button = Container(
-      width: 60,
-      height: 60,
+      width: 54,
+      height: 50,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
+        borderRadius: BorderRadius.circular(18),
         gradient: AppTheme.brandGradient,
-        border: Border.all(color: AppColors.baseBg(context), width: 4),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.accentDeep.withValues(alpha: 0.45),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: AppTheme.accentDeep.withValues(alpha: 0.28),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(
-          customBorder: const CircleBorder(),
+          borderRadius: BorderRadius.circular(18),
           onTap: onTap,
-          child: Icon(icon, color: Colors.black, size: 26),
+          child: Icon(icon, color: Colors.black, size: 24),
         ),
       ),
     );
@@ -329,10 +318,14 @@ class _CenterAction extends StatelessWidget {
       button = Badge(
         label: Text('$badge'),
         backgroundColor: AppTheme.danger,
-        offset: const Offset(-4, 4),
+        offset: const Offset(-2, 2),
         child: button,
       );
     }
-    return tooltip == null ? button : Tooltip(message: tooltip!, child: button);
+    return Semantics(
+      button: true,
+      label: tooltip,
+      child: tooltip == null ? button : Tooltip(message: tooltip!, child: button),
+    );
   }
 }

@@ -301,8 +301,8 @@ class AppColors {
 
   /// Translucent fill for frosted-glass panels.
   static Color glass(BuildContext context) => _dark(context)
-      ? const Color(0xB31A1D24)
-      : const Color(0xC7FFFFFF);
+      ? const Color(0xE61A1D24)
+      : const Color(0xEBFFFFFF);
   static Color glassBorder(BuildContext context) => _dark(context)
       ? const Color(0x1FFFFFFF)
       : const Color(0xB3FFFFFF);

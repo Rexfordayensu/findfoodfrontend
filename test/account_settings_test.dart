@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:findfood_app/services/api_service.dart';
@@ -190,5 +191,55 @@ void main() {
 
     await http.runWithClient(auth.refreshSession, () => client);
     expect(auth.token, 'fresh');
+  });
+
+  test('a saved session opens instantly while the server is slow', () async {
+    FlutterSecureStorage.setMockInitialValues({
+      'auth_token': 'saved',
+      'auth_user_id': '7',
+      'auth_role': 'rider',
+      'auth_name': 'Kofi',
+      'auth_email': 'kofi@example.com',
+    });
+    final serverAnswered = Completer<void>();
+    final client = MockClient((_) async {
+      await serverAnswered.future; // a sleeping server
+      return json({'id': 7, 'name': 'Kofi Mensah', 'email': 'kofi@example.com',
+          'role': 'rider'});
+    });
+
+    await http.runWithClient(() async {
+      final auth = AuthProvider();
+      await auth.initializeFromSecureStorage();
+      expect(auth.isInitialized, isTrue, reason: 'does not wait for the server');
+      expect(auth.isLoggedIn, isTrue);
+      expect(auth.role, 'rider');
+      expect(auth.name, 'Kofi');
+
+      serverAnswered.complete();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(auth.name, 'Kofi Mensah', reason: 'refreshed in the background');
+    }, () => client);
+  });
+
+  test('a rejected saved session is signed out in the background', () async {
+    FlutterSecureStorage.setMockInitialValues({
+      'auth_token': 'stale',
+      'auth_user_id': '7',
+      'auth_role': 'customer',
+    });
+    final client = MockClient((_) async => json({'detail': 'Token has expired.'}, 401));
+
+    await http.runWithClient(() async {
+      final auth = AuthProvider();
+      await auth.initializeFromSecureStorage();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(auth.isLoggedIn, isFalse);
+    }, () => client);
+  });
+
+  test('a timed-out request explains itself', () {
+    expect(ServerTimeoutException().toString(),
+        contains('taking too long to respond'));
   });
 }
