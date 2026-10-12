@@ -34,7 +34,7 @@ void main() {
       testWidgets(
           'feed fits at ${width.toInt()}px wide (${signedIn ? 'signed in' : 'guest'})',
           (tester) async {
-        tester.view.physicalSize = Size(width, 900);
+        tester.view.physicalSize = Size(width, 2400);
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.reset);
         FlutterSecureStorage.setMockInitialValues({});
@@ -54,6 +54,34 @@ void main() {
                 restaurant(1, "Mama's Kitchen with a fairly long name",
                     open: false, rating: 4.6),
                 restaurant(2, 'Short', rating: null),
+              ]),
+              200,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          if (request.url.path == '/promotions') {
+            return http.Response(
+              jsonEncode([
+                {
+                  'id': 1,
+                  'restaurant_id': 1,
+                  'restaurant_name': "Mama's Kitchen with a fairly long name",
+                  'title': 'Christmas Promo with a long headline',
+                  'image_url': null,
+                  'discount_percent': 20,
+                  'is_active': true,
+                  'created_at': '2026-10-12T10:00:00Z',
+                },
+                {
+                  'id': 2,
+                  'restaurant_id': 2,
+                  'restaurant_name': 'Short',
+                  'title': 'Lunch deal',
+                  'image_url': null,
+                  'discount_percent': null,
+                  'is_active': true,
+                  'created_at': '2026-10-12T10:00:00Z',
+                },
               ]),
               200,
               headers: {'content-type': 'application/json'},
@@ -82,6 +110,8 @@ void main() {
           }
         }, () => client);
 
+        expect(find.text('Deals for you'), findsOneWidget);
+        expect(find.text('20% OFF'), findsOneWidget);
         expect(find.text('Closed'), findsOneWidget);
         expect(find.text('4.6 (12)'), findsOneWidget);
         expect(find.text('New'), findsOneWidget);

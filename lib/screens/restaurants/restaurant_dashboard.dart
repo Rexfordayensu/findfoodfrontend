@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../theme.dart';
 import '../../widgets/widgets.dart';
 import '../../widgets/account_settings.dart';
+import '../../widgets/promotion_card.dart';
 import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
@@ -2329,9 +2330,6 @@ class _PromotionManagerState extends State<_PromotionManager> {
     ));
   }
 
-  String _imageUrl(String url) =>
-      url.startsWith('http') ? url : '${ApiService.baseUrl}$url';
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -2379,32 +2377,37 @@ class _PromotionManagerState extends State<_PromotionManager> {
           else if (_promotions.isEmpty)
             Text('No promotions yet.',
                 style: TextStyle(color: AppColors.textSecondary(context)))
-          else
-            for (final promotion in _promotions)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: Image.network(
-                    _imageUrl(promotion.imageUrl),
-                    width: 52,
-                    height: 52,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                        const Icon(Icons.image_outlined),
-                  ),
-                ),
-                title: Text(promotion.title,
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-                subtitle: promotion.discountPercent == null
-                    ? null
-                    : Text('${promotion.discountPercent}% off'),
+          else ...[
+            Text('Customers see these on your menu and in the Deals feed.',
+                style: TextStyle(
+                    color: AppColors.textSecondary(context), fontSize: 12)),
+            const SizedBox(height: 12),
+            for (final promotion in _promotions) ...[
+              PromotionCard(
+                key: Key('manage-promotion-${promotion.id}'),
+                promotion: promotion,
+                showRestaurant: false,
+                height: 140,
                 trailing: IconButton(
                   tooltip: 'Delete promotion',
                   onPressed: () => _deletePromotion(promotion),
-                  icon: const Icon(Icons.delete_outline),
+                  style: IconButton.styleFrom(
+                      backgroundColor: const Color(0x99000000)),
+                  icon: const Icon(Icons.delete_outline, color: Colors.white),
                 ),
               ),
+              if (promotion.imageUrl == null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                      'This image was lost. Delete it and upload it again.',
+                      style: TextStyle(
+                          color: AppTheme.warning.withValues(alpha: 0.9),
+                          fontSize: 12)),
+                ),
+              const SizedBox(height: 12),
+            ],
+          ],
         ],
       ),
     );

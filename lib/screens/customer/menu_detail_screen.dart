@@ -5,6 +5,7 @@ import '../../theme.dart';
 import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
+import '../../widgets/promotion_card.dart';
 
 String? _uploadedImageUrl(String? imageUrl) {
   if (imageUrl == null || imageUrl.trim().isEmpty) return null;
@@ -27,6 +28,7 @@ class MenuDetailScreen extends StatefulWidget {
 
 class _MenuDetailScreenState extends State<MenuDetailScreen> {
   List<MenuItem> _menu = [];
+  List<Promotion> _promotions = [];
   bool _loading = true;
   String _error = '';
 
@@ -41,6 +43,7 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
       _loading = true;
       _error = '';
     });
+    _loadPromotions();
     try {
       final items = await ApiService.getMenu(widget.restaurant.id);
       if (!mounted) return;
@@ -50,6 +53,15 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _loadPromotions() async {
+    try {
+      final promotions = await ApiService.getPromotions(widget.restaurant.id);
+      if (mounted) setState(() => _promotions = promotions);
+    } catch (_) {
+      // Promotions are optional; the menu still works without them.
     }
   }
 
@@ -355,12 +367,19 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
                     children: [
                       _tag('Free delivery', AppTheme.success),
                       const SizedBox(width: 8),
-                      _tag('Min GH₵ 20', textHint),
-                      const SizedBox(width: 8),
                       _tag('Avg 25 min', AppTheme.accent),
                     ],
                   ),
                   const SizedBox(height: 16),
+                  if (_promotions.isNotEmpty) ...[
+                    PromotionCarousel(
+                      title: 'Current offers',
+                      promotions: _promotions,
+                      showRestaurant: false,
+                      padding: EdgeInsets.zero,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   Divider(color: border, height: 1),
                   const SizedBox(height: 4),
 

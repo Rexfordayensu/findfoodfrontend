@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../theme.dart';
 import '../../widgets/widgets.dart';
+import '../../widgets/promotion_card.dart';
 import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
@@ -87,6 +89,7 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
     with TickerProviderStateMixin {
   List<Restaurant> _restaurants = [];
   List<Restaurant> _filtered = [];
+  List<Promotion> _deals = [];
   bool _loading = true;
   String _error = '';
   String _search = '';
@@ -135,6 +138,7 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
       _error = '';
     });
     try {
+      unawaited(_loadDeals());
       final list = await ApiService.getRestaurants();
       if (!mounted) return;
       setState(() {
@@ -148,6 +152,24 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _loadDeals() async {
+    try {
+      final deals = await ApiService.getActivePromotions();
+      if (mounted) setState(() => _deals = deals);
+    } catch (_) {
+      // Deals are optional; the restaurant list still works without them.
+    }
+  }
+
+  void _openDeal(Promotion deal) {
+    final restaurant =
+        _restaurants.where((r) => r.id == deal.restaurantId).firstOrNull;
+    if (restaurant == null) return;
+    _rememberViewed(restaurant);
+    Navigator.push(context,
+        MaterialPageRoute(builder: (_) => MenuDetailScreen(restaurant: restaurant)));
   }
 
   Future<void> _restoreLocalState() async {
@@ -307,10 +329,23 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
                                 itemCount: _filtered.length + 1,
                                 itemBuilder: (_, i) {
                                   if (i == 0) {
+                                    final showDeals = _deals.isNotEmpty &&
+                                        _search.isEmpty &&
+                                        _filter == 'All';
                                     return Padding(
                                       padding:
                                           const EdgeInsets.only(bottom: 14),
-                                      child: Row(
+                                      child: Column(children: [
+                                      if (showDeals) ...[
+                                        PromotionCarousel(
+                                          title: 'Deals for you',
+                                          promotions: _deals,
+                                          padding: EdgeInsets.zero,
+                                          onTap: _openDeal,
+                                        ),
+                                        const SizedBox(height: 20),
+                                      ],
+                                      Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
                                         children: [
@@ -348,6 +383,7 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
                                           ),
                                         ],
                                       ),
+                                      ]),
                                     );
                                   }
                                   final r = _filtered[i - 1];

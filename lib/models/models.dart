@@ -439,17 +439,20 @@ class RiderAnalytics {
 class Promotion {
   final int id;
   final int restaurantId;
+  final String? restaurantName;
   final String title;
   final String? description;
-  final String imageUrl;
+  /// Null when the backend no longer has the image file.
+  final String? imageUrl;
   final int? discountPercent;
   final bool isActive;
 
   const Promotion({
     required this.id,
     required this.restaurantId,
+    this.restaurantName,
     required this.title,
-    required this.imageUrl,
+    this.imageUrl,
     this.description,
     this.discountPercent,
     required this.isActive,
@@ -458,6 +461,7 @@ class Promotion {
   factory Promotion.fromJson(Map<String, dynamic> json) => Promotion(
         id: json['id'],
         restaurantId: json['restaurant_id'],
+        restaurantName: json['restaurant_name'],
         title: json['title'],
         description: json['description'],
         imageUrl: json['image_url'],

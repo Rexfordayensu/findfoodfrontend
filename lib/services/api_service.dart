@@ -320,6 +320,23 @@ class ApiService {
     throw Exception(_decode(response)['detail'] ?? 'Failed to load promotions');
   }
 
+  /// Current deals across all restaurants, for the customer feed.
+  static Future<List<Promotion>> getActivePromotions() async {
+    final response = await _http.get(Uri.parse('$baseUrl/promotions'));
+    if (response.statusCode == 200) {
+      return _decodeList(response).map((p) => Promotion.fromJson(p)).toList();
+    }
+    throw Exception(_decode(response)['detail'] ?? 'Failed to load deals');
+  }
+
+  /// Turns a stored image path into a loadable URL (relative paths are
+  /// served by the backend).
+  static String? imageUrl(String? path) {
+    if (path == null || path.isEmpty) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    return '$baseUrl${path.startsWith('/') ? '' : '/'}$path';
+  }
+
   static Future<List<Promotion>> getPromotions(int restaurantId) async {
     final response = await _http.get(
       Uri.parse('$baseUrl/restaurants/$restaurantId/promotions'),
