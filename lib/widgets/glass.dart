@@ -107,6 +107,7 @@ class GlassPanel extends StatelessWidget {
   final BorderRadius borderRadius;
   final EdgeInsetsGeometry? padding;
   final double blur;
+  final Color? borderColor;
 
   const GlassPanel({
     super.key,
@@ -114,6 +115,7 @@ class GlassPanel extends StatelessWidget {
     this.borderRadius = const BorderRadius.all(Radius.circular(24)),
     this.padding,
     this.blur = 22,
+    this.borderColor,
   });
 
   @override
@@ -132,7 +134,7 @@ class GlassPanel extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.glass(context),
               borderRadius: borderRadius,
-              border: Border.all(color: AppColors.glassBorder(context)),
+              border: Border.all(color: borderColor ?? AppColors.glassBorder(context)),
             ),
             child: child,
           ),
@@ -156,8 +158,9 @@ class GlassNavItem {
   });
 }
 
-/// Floating frosted bottom navigation, optionally with a raised centre
-/// action button (e.g. the customer's cart).
+/// Floating pill-shaped bottom navigation in a light, line-icon style. The
+/// selected tab sits on a raised pill that slides between tabs; an optional
+/// round centre action (e.g. the customer's cart) sits in the middle.
 class GlassNavBar extends StatelessWidget {
   final List<GlassNavItem> items;
   final int currentIndex;
@@ -166,6 +169,8 @@ class GlassNavBar extends StatelessWidget {
   final String? centerTooltip;
   final VoidCallback? onCenterTap;
   final int centerBadge;
+
+  static const double _height = 72;
 
   const GlassNavBar({
     super.key,
@@ -182,14 +187,21 @@ class GlassNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasCenter = centerIcon != null;
     final half = (items.length / 2).ceil();
+    final slots = items.length + (hasCenter ? 1 : 0);
+    int slotOf(int i) => hasCenter && i >= half ? i + 1 : i;
+
     final children = <Widget>[];
     for (var i = 0; i < items.length; i++) {
       if (hasCenter && i == half) {
-        children.add(_CenterAction(
-          icon: centerIcon!,
-          tooltip: centerTooltip,
-          badge: centerBadge,
-          onTap: onCenterTap,
+        children.add(Expanded(
+          child: Center(
+            child: _CenterAction(
+              icon: centerIcon!,
+              tooltip: centerTooltip,
+              badge: centerBadge,
+              onTap: onCenterTap,
+            ),
+          ),
         ));
       }
       children.add(Expanded(
@@ -201,20 +213,72 @@ class GlassNavBar extends StatelessWidget {
       ));
     }
 
+    final hasSelection = currentIndex >= 0 && currentIndex < items.length;
     return SafeArea(
       top: false,
-      minimum: const EdgeInsets.only(bottom: 10),
+      minimum: const EdgeInsets.only(bottom: 12),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
         child: SizedBox(
-          height: 70,
+          height: _height,
           child: GlassPanel(
-            borderRadius: BorderRadius.circular(26),
+            borderRadius: BorderRadius.circular(_height / 2),
             blur: 28,
+            borderColor: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0x24FFFFFF)
+                : const Color(0x14101828),
             padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: Row(children: children),
+            child: LayoutBuilder(builder: (context, constraints) {
+              final slotWidth = constraints.maxWidth / slots;
+              return Stack(
+                children: [
+                  if (hasSelection)
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 320),
+                      curve: Curves.easeOutCubic,
+                      left: slotOf(currentIndex) * slotWidth + 3,
+                      width: slotWidth - 6,
+                      top: 8,
+                      bottom: 8,
+                      child: const _SelectionPill(),
+                    ),
+                  Row(children: children),
+                ],
+              );
+            }),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The raised pill behind the selected tab: a bright surface with a soft
+/// brand-coloured glow, like a pressed-out key.
+class _SelectionPill extends StatelessWidget {
+  const _SelectionPill();
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: dark ? const Color(0xFF2B2F3A) : Colors.white,
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(
+          color: AppTheme.accent.withValues(alpha: dark ? 0.30 : 0.55),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.accent.withValues(alpha: dark ? 0.16 : 0.30),
+            blurRadius: 16,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: dark ? 0.30 : 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
     );
   }
@@ -229,48 +293,47 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final activeColor = dark ? AppTheme.accent : const Color(0xFF0F172A);
-    final color = selected ? activeColor : AppColors.textHint(context);
-    final icon = Icon(selected ? item.activeIcon : item.icon, color: color, size: 23);
+    final color = selected
+        ? AppColors.textPrimary(context)
+        : AppColors.textSecondary(context);
+    final icon = Icon(
+      item.icon,
+      color: selected ? AppColors.accentText(context) : color,
+      size: 23,
+    );
     return Semantics(
       button: true,
       selected: selected,
       label: item.label,
       child: InkResponse(
         onTap: onTap,
-        radius: 34,
+        radius: 30,
+        highlightShape: BoxShape.rectangle,
+        borderRadius: BorderRadius.circular(22),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-              decoration: BoxDecoration(
-                color: selected
-                    ? AppTheme.accent.withValues(alpha: dark ? 0.16 : 0.28)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: item.badge > 0
-                  ? Badge(
-                      label: Text('${item.badge}'),
-                      backgroundColor: AppTheme.danger,
-                      child: icon,
-                    )
-                  : icon,
-            ),
-            const SizedBox(height: 3),
-            Text(
-              item.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            item.badge > 0
+                ? Badge(
+                    label: Text('${item.badge}'),
+                    backgroundColor: AppTheme.danger,
+                    child: icon,
+                  )
+                : icon,
+            const SizedBox(height: 4),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
               style: TextStyle(
+                fontFamily: 'PlusJakartaSans',
                 color: color,
-                fontSize: 11,
-                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                fontSize: 11.5,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 letterSpacing: -0.1,
+              ),
+              child: Text(
+                item.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -292,25 +355,25 @@ class _CenterAction extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget button = Container(
       width: 54,
-      height: 50,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
+      height: 54,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        shape: BoxShape.circle,
         gradient: AppTheme.brandGradient,
         boxShadow: [
           BoxShadow(
-            color: AppTheme.accentDeep.withValues(alpha: 0.28),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: AppTheme.accentDeep.withValues(alpha: 0.35),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
       child: Material(
         type: MaterialType.transparency,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
           onTap: onTap,
-          child: Icon(icon, color: Colors.black, size: 24),
+          child: Icon(icon, color: const Color(0xFF111111), size: 25),
         ),
       ),
     );
