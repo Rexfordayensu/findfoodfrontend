@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../theme.dart';
 import '../../widgets/account_settings.dart';
 import '../../widgets/greeting_header.dart';
+import '../../widgets/live_refresh.dart';
 import '../../services/providers.dart';
 import '../../services/api_service.dart';
 
@@ -17,9 +18,11 @@ class AdminDashboard extends StatefulWidget {
   State<AdminDashboard> createState() => _AdminDashboardState();
 }
 
-class _AdminDashboardState extends State<AdminDashboard> {
+class _AdminDashboardState extends State<AdminDashboard>
+    with LiveRefresh<AdminDashboard> {
   int _selectedIndex = 0;
   int _pendingApprovalsCount = 0;
+  int _attentionCount = 0;
   String _navQuery = '';
   bool _sidebarCollapsed = false;
 
@@ -40,7 +43,39 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   void initState() {
     super.initState();
-    _loadPendingApprovalsCount();
+    _refreshBadges();
+    startLiveRefresh(_refreshBadges);
+  }
+
+  Future<void> _refreshBadges() async {
+    await Future.wait([_loadPendingApprovalsCount(), _loadAttentionCount()]);
+  }
+
+  /// Notifications that need the admin to act (approvals, failed refunds).
+  Future<void> _loadAttentionCount() async {
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
+    try {
+      final items = await ApiService.getAdminNotifications(token);
+      if (!mounted) return;
+      final count = items
+          .where((n) => n['kind'] == 'approval' || n['kind'] == 'refund')
+          .length;
+      if (count != _attentionCount) setState(() => _attentionCount = count);
+    } catch (_) {
+      // Keep the last known count.
+    }
+  }
+
+  Widget _bellIcon() {
+    const bell = Icon(Icons.notifications_none_rounded);
+    if (_attentionCount == 0) return bell;
+    return Badge(
+      key: const Key('admin-attention-badge'),
+      label: Text('$_attentionCount'),
+      backgroundColor: AppTheme.danger,
+      child: bell,
+    );
   }
 
   Future<void> _loadPendingApprovalsCount() async {
@@ -50,10 +85,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
     try {
       final list = await ApiService.getPendingRestaurants(auth.token!);
       if (!mounted) return;
-      setState(() => _pendingApprovalsCount = getPendingApprovalsCount(list));
+      final count = getPendingApprovalsCount(list);
+      if (count != _pendingApprovalsCount) {
+        setState(() => _pendingApprovalsCount = count);
+      }
     } catch (_) {
-      if (!mounted) return;
-      setState(() => _pendingApprovalsCount = 0);
+      // Keep the last known count if a background refresh fails.
     }
   }
 
@@ -500,7 +537,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         ),
                         IconButton(
                           tooltip: 'Notifications',
-                          icon: const Icon(Icons.notifications_none_rounded),
+                          icon: _bellIcon(),
                           onPressed: _showNotifications,
                         ),
                         IconButton(
@@ -532,7 +569,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         actions: [
           IconButton(
             tooltip: 'Notifications',
-            icon: const Icon(Icons.notifications_none_rounded),
+            icon: _bellIcon(),
             onPressed: _showNotifications,
           ),
           IconButton(
@@ -573,7 +610,8 @@ class _OverviewPage extends StatefulWidget {
   State<_OverviewPage> createState() => _OverviewPageState();
 }
 
-class _OverviewPageState extends State<_OverviewPage> {
+class _OverviewPageState extends State<_OverviewPage>
+    with LiveRefresh<_OverviewPage> {
   Map<String, dynamic>? _stats;
   bool _loading = true;
   String _error = '';
@@ -583,18 +621,24 @@ class _OverviewPageState extends State<_OverviewPage> {
   void initState() {
     super.initState();
     _load();
+    startLiveRefresh(() => _load(silent: true));
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool silent = false}) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     if (auth.token == null) return;
-    setState(() { _loading = true; _error = ''; });
+    if (!silent) setState(() { _loading = true; _error = ''; });
     try {
       final stats = await ApiService.getPlatformStats(auth.token!);
       if (!mounted) return;
-      setState(() => _stats = stats);
+      setState(() {
+        _stats = stats;
+        _error = '';
+      });
     } catch (e) {
       if (!mounted) return;
+      // Keep showing the last good data if a background refresh fails.
+      if (silent) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -1057,7 +1101,8 @@ class _ApprovalsPage extends StatefulWidget {
   State<_ApprovalsPage> createState() => _ApprovalsPageState();
 }
 
-class _ApprovalsPageState extends State<_ApprovalsPage> {
+class _ApprovalsPageState extends State<_ApprovalsPage>
+    with LiveRefresh<_ApprovalsPage> {
   List<Map<String, dynamic>> _pending = [];
   bool   _loading = true;
   String _error   = '';
@@ -1067,19 +1112,25 @@ class _ApprovalsPageState extends State<_ApprovalsPage> {
   void initState() {
     super.initState();
     _load();
+    startLiveRefresh(() => _load(silent: true));
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool silent = false}) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     if (auth.token == null) return;
-    setState(() { _loading = true; _error = ''; });
+    if (!silent) setState(() { _loading = true; _error = ''; });
     try {
       final list = await ApiService.getPendingRestaurants(auth.token!);
       if (!mounted) return;
-      setState(() => _pending = list);
+      setState(() {
+        _pending = list;
+        _error = '';
+      });
       await widget.onPendingCountChanged();
     } catch (e) {
       if (!mounted) return;
+      // Keep showing the last good data if a background refresh fails.
+      if (silent) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -1398,7 +1449,8 @@ class _RiderDeskPage extends StatefulWidget {
   State<_RiderDeskPage> createState() => _RiderDeskPageState();
 }
 
-class _RiderDeskPageState extends State<_RiderDeskPage> {
+class _RiderDeskPageState extends State<_RiderDeskPage>
+    with LiveRefresh<_RiderDeskPage> {
   List<Map<String, dynamic>> _riders = [];
   bool _loading = true;
   String _error = '';
@@ -1407,18 +1459,24 @@ class _RiderDeskPageState extends State<_RiderDeskPage> {
   void initState() {
     super.initState();
     _load();
+    startLiveRefresh(() => _load(silent: true));
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool silent = false}) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     if (auth.token == null) return;
-    setState(() { _loading = true; _error = ''; });
+    if (!silent) setState(() { _loading = true; _error = ''; });
     try {
       final users = await ApiService.getAllUsers(auth.token!);
       if (!mounted) return;
-      setState(() => _riders = users.where((u) => u['role'] == 'rider').toList());
+      setState(() {
+        _riders = users.where((u) => u['role'] == 'rider').toList();
+        _error = '';
+      });
     } catch (e) {
       if (!mounted) return;
+      // Keep showing the last good data if a background refresh fails.
+      if (silent) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -1549,7 +1607,8 @@ class _UsersPage extends StatefulWidget {
   State<_UsersPage> createState() => _UsersPageState();
 }
 
-class _UsersPageState extends State<_UsersPage> {
+class _UsersPageState extends State<_UsersPage>
+    with LiveRefresh<_UsersPage> {
   List<Map<String, dynamic>> _users = [];
   bool _loading = true;
   String _error = '';
@@ -1559,18 +1618,24 @@ class _UsersPageState extends State<_UsersPage> {
   void initState() {
     super.initState();
     _load();
+    startLiveRefresh(() => _load(silent: true));
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool silent = false}) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     if (auth.token == null) return;
-    setState(() { _loading = true; _error = ''; });
+    if (!silent) setState(() { _loading = true; _error = ''; });
     try {
       final users = await ApiService.getAllUsers(auth.token!);
       if (!mounted) return;
-      setState(() => _users = users);
+      setState(() {
+        _users = users;
+        _error = '';
+      });
     } catch (e) {
       if (!mounted) return;
+      // Keep showing the last good data if a background refresh fails.
+      if (silent) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -1842,7 +1907,8 @@ class _AdminOrdersScreen extends StatefulWidget {
   State<_AdminOrdersScreen> createState() => _AdminOrdersScreenState();
 }
 
-class _AdminOrdersScreenState extends State<_AdminOrdersScreen> {
+class _AdminOrdersScreenState extends State<_AdminOrdersScreen>
+    with LiveRefresh<_AdminOrdersScreen> {
   List<Map<String, dynamic>> _orders = [];
   bool _loading = true;
   String _error = '';
@@ -1852,18 +1918,24 @@ class _AdminOrdersScreenState extends State<_AdminOrdersScreen> {
   void initState() {
     super.initState();
     _load();
+    startLiveRefresh(() => _load(silent: true));
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool silent = false}) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     if (auth.token == null) return;
-    setState(() { _loading = true; _error = ''; });
+    if (!silent) setState(() { _loading = true; _error = ''; });
     try {
       final orders = await ApiService.getAllOrdersAdmin(auth.token!);
       if (!mounted) return;
-      setState(() => _orders = orders);
+      setState(() {
+        _orders = orders;
+        _error = '';
+      });
     } catch (e) {
       if (!mounted) return;
+      // Keep showing the last good data if a background refresh fails.
+      if (silent) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -2094,7 +2166,8 @@ class _AdminRevenueScreen extends StatefulWidget {
   State<_AdminRevenueScreen> createState() => _AdminRevenueScreenState();
 }
 
-class _AdminRevenueScreenState extends State<_AdminRevenueScreen> {
+class _AdminRevenueScreenState extends State<_AdminRevenueScreen>
+    with LiveRefresh<_AdminRevenueScreen> {
   Map<String, dynamic>? _data;
   bool _loading = true;
   String _error = '';
@@ -2103,18 +2176,24 @@ class _AdminRevenueScreenState extends State<_AdminRevenueScreen> {
   void initState() {
     super.initState();
     _load();
+    startLiveRefresh(() => _load(silent: true));
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool silent = false}) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     if (auth.token == null) return;
-    setState(() { _loading = true; _error = ''; });
+    if (!silent) setState(() { _loading = true; _error = ''; });
     try {
       final data = await ApiService.getRevenueDetails(auth.token!);
       if (!mounted) return;
-      setState(() => _data = data as Map<String, dynamic>?);
+      setState(() {
+        _data = data as Map<String, dynamic>?;
+        _error = '';
+      });
     } catch (e) {
       if (!mounted) return;
+      // Keep showing the last good data if a background refresh fails.
+      if (silent) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _loading = false);
