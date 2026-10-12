@@ -13,12 +13,14 @@ import 'screens/customer/cart_screen.dart';
 import 'screens/customer/customer_pages.dart';
 import 'screens/customer/food_feed_screen.dart';
 import 'screens/customer/order_tracking_screen.dart';
+import 'screens/customer/payment_return_screen.dart';
 import 'screens/customer/menu_detail_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/customer/order_chat_screen.dart';
 import 'screens/rider/rider_dashboard.dart';
 import 'screens/restaurant/restaurant_pending_approval_screen.dart';
 import 'screens/restaurants/restaurant_dashboard.dart';
+import 'services/api_service.dart';
 import 'services/providers.dart';
 
 GoRouter createAppRouter(
@@ -109,8 +111,8 @@ GoRouter createAppRouter(
       ),
       GoRoute(
         path: '/payment/callback',
-        builder: (_, state) => CartScreen(
-          paymentReference: state.uri.queryParameters['reference'] ??
+        builder: (_, state) => PaymentReturnScreen(
+          reference: state.uri.queryParameters['reference'] ??
               state.uri.queryParameters['trxref'],
         ),
       ),
@@ -131,7 +133,9 @@ GoRouter createAppRouter(
         builder: (_, state) {
           final order = state.extra;
           if (order is Order) return OrderTrackingScreen(order: order);
-          return const _MissingRouteDataScreen();
+          // Opened by link or after a page reload: look the order up.
+          return _OrderTrackingLoader(
+              orderId: int.tryParse(state.pathParameters['orderId'] ?? ''));
         },
       ),
       GoRoute(
@@ -319,6 +323,7 @@ bool _isCustomerRoute(String route) {
       route == '/profile' ||
       route == '/cart' ||
       route == '/checkout' ||
+      route.startsWith('/payment/callback') ||
       route.startsWith('/restaurants/');
 }
 
@@ -344,6 +349,40 @@ class _MissingRouteDataScreen extends StatelessWidget {
           child: const Text('Back to orders'),
         ),
       ),
+    );
+  }
+}
+
+class _OrderTrackingLoader extends StatefulWidget {
+  final int? orderId;
+  const _OrderTrackingLoader({required this.orderId});
+
+  @override
+  State<_OrderTrackingLoader> createState() => _OrderTrackingLoaderState();
+}
+
+class _OrderTrackingLoaderState extends State<_OrderTrackingLoader> {
+  late final Future<Order?> _order = _load();
+
+  Future<Order?> _load() async {
+    final token = context.read<AuthProvider>().token;
+    if (token == null || widget.orderId == null) return null;
+    final orders = await ApiService.getMyOrders(token);
+    return orders.where((o) => o.id == widget.orderId).firstOrNull;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Order?>(
+      future: _order,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const _LoadingScreen();
+        }
+        final order = snapshot.data;
+        if (order == null) return const _MissingRouteDataScreen();
+        return OrderTrackingScreen(order: order);
+      },
     );
   }
 }

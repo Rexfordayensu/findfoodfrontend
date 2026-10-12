@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -40,8 +41,14 @@ class OrderPayment {
 
   static Future<bool> _payWithPaystack(
       BuildContext context, String token, Order order, String provider) async {
+    // On the web, checkout replaces this page, so Paystack must send the
+    // customer back to this same site to confirm the payment.
     final init = await ApiService.initializePayment(
-        token: token, orderId: order.id, provider: provider);
+        token: token,
+        orderId: order.id,
+        provider: provider,
+        callbackUrl:
+            kIsWeb ? '${Uri.base.origin}/payment/callback' : null);
     final url = init['authorization_url'] as String?;
     final reference = init['reference'] as String?;
     if (url == null || reference == null) {

@@ -252,15 +252,18 @@ class PaymentProviderOption {
 class PaymentInitializationRequest {
   final int orderId;
   final String provider;
+  final String? callbackUrl;
 
   PaymentInitializationRequest({
     required this.orderId,
     required this.provider,
+    this.callbackUrl,
   });
 
   Map<String, dynamic> toJson() => {
         'order_id': orderId,
         'provider': provider,
+        if (callbackUrl != null) 'callback_url': callbackUrl,
       };
 }
 

@@ -571,10 +571,12 @@ class ApiService {
     required String token,
     required int orderId,
     required String provider,
+    String? callbackUrl,
   }) async {
     final request = PaymentInitializationRequest(
       orderId: orderId,
       provider: provider,
+      callbackUrl: callbackUrl,
     );
 
     final response = await _http.post(
