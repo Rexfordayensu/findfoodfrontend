@@ -31,6 +31,7 @@ void main() {
     var totalOrders = 3;
     var pending = <Map<String, dynamic>>[];
     var notifications = <Map<String, dynamic>>[];
+    var activity = <Map<String, dynamic>>[];
     final client = MockClient((request) async {
       switch (request.url.path) {
         case '/admin/stats':
@@ -45,6 +46,8 @@ void main() {
           return json(pending);
         case '/admin/notifications':
           return json(notifications);
+        case '/admin/activity':
+          return json(activity);
       }
       return json([]);
     });
@@ -60,8 +63,18 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('3'), findsWidgets);
       expect(find.byKey(const Key('admin-attention-badge')), findsNothing);
+      expect(find.textContaining('No activity yet'), findsOneWidget);
+      expect(find.text('Local preview'), findsNothing);
 
       totalOrders = 7;
+      activity = [
+        {
+          'kind': 'order',
+          'title': 'Order #42 placed',
+          'detail': "Mama's Kitchen",
+          'at': DateTime.now().toUtc().toIso8601String(),
+        },
+      ];
       pending = [
         {
           'id': 9,
@@ -89,7 +102,22 @@ void main() {
     final badge =
         tester.widget<Badge>(find.byKey(const Key('admin-attention-badge')));
     expect((badge.label as Text).data, '2');
+    expect(find.text('Order #42 placed'), findsOneWidget,
+        reason: 'recent activity refreshed live');
+    expect(find.text('Just now'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
+  });
+
+  test('relative activity times', () {
+    final now = DateTime(2026, 10, 12, 15, 30);
+    expect(relativeTime(now.subtract(const Duration(seconds: 20)), now),
+        'Just now');
+    expect(relativeTime(now.subtract(const Duration(minutes: 12)), now),
+        '12 min ago');
+    expect(
+        relativeTime(now.subtract(const Duration(hours: 3)), now), '3 h ago');
+    expect(relativeTime(DateTime(2026, 10, 11, 22), now), 'Yesterday');
+    expect(relativeTime(DateTime(2026, 9, 3, 9), now), '3 Sep');
   });
 }

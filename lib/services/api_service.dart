@@ -1271,6 +1271,19 @@ class ApiService {
     throw Exception(_errorDetail(response, 'Failed to update the account'));
   }
 
+  /// Recent platform events (orders, payments, ratings, sign-ups...).
+  static Future<List<Map<String, dynamic>>> getAdminActivity(String token,
+      {int limit = 20}) async {
+    final response = await _http.get(
+      Uri.parse('$baseUrl/admin/activity?limit=$limit'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(_decodeList(response));
+    }
+    throw Exception(_errorDetail(response, 'Failed to load activity'));
+  }
+
   static Future<List<Map<String, dynamic>>> getAdminNotifications(
       String token) async {
     final response = await _http.get(

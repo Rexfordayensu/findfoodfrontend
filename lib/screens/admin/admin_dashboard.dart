@@ -613,6 +613,8 @@ class _OverviewPage extends StatefulWidget {
 class _OverviewPageState extends State<_OverviewPage>
     with LiveRefresh<_OverviewPage> {
   Map<String, dynamic>? _stats;
+  List<Map<String, dynamic>> _activity = [];
+  bool _activityLoaded = false;
   bool _loading = true;
   String _error = '';
   final Set<String> _expandedStats = {};
@@ -629,7 +631,18 @@ class _OverviewPageState extends State<_OverviewPage>
     if (auth.token == null) return;
     if (!silent) setState(() { _loading = true; _error = ''; });
     try {
-      final stats = await ApiService.getPlatformStats(auth.token!);
+      final results = await Future.wait([
+        ApiService.getPlatformStats(auth.token!),
+        ApiService.getAdminActivity(auth.token!)
+            .then<Object?>((value) => value)
+            .catchError((Object _) => null), // activity is optional
+      ]);
+      final stats = results[0] as Map<String, dynamic>;
+      final activity = results[1] as List<Map<String, dynamic>>?;
+      if (activity != null) {
+        _activity = activity;
+        _activityLoaded = true;
+      }
       if (!mounted) return;
       setState(() {
         _stats = stats;
@@ -824,8 +837,7 @@ class _OverviewPageState extends State<_OverviewPage>
               children: [
                 Text('Recent activity', style: TextStyle(
                     color: textPri, fontSize: 18, fontWeight: FontWeight.w700)),
-                Text('Local preview', style: TextStyle(
-                    color: AppColors.textHint(context), fontSize: 11)),
+                const _LiveIndicator(),
               ],
             ),
             const SizedBox(height: 12),
@@ -870,29 +882,71 @@ class _OverviewPageState extends State<_OverviewPage>
     );
   }
 
+  static const _activityIcons = {
+    'order': (Icons.receipt_long_outlined, AppTheme.accent),
+    'completed': (Icons.check_circle_outline_rounded, AppTheme.success),
+    'payment': (Icons.payments_outlined, AppTheme.success),
+    'refund': (Icons.currency_exchange_rounded, Color(0xFF60A5FA)),
+    'refund_failed': (Icons.report_problem_outlined, AppTheme.danger),
+    'rating': (Icons.star_rounded, AppTheme.accent),
+    'signup': (Icons.person_add_alt_1_outlined, Color(0xFF60A5FA)),
+    'restaurant': (Icons.storefront_outlined, AppTheme.warning),
+    'promotion': (Icons.local_offer_outlined, AppTheme.accent),
+  };
+
   Widget _activityPanel(BuildContext context) {
-    const activity = [
-      ('Platform overview refreshed', 'Just now', Icons.refresh_rounded),
-      ('Approval queue checked', '12 min ago', Icons.fact_check_outlined),
-      ('Revenue report viewed', 'Today', Icons.payments_outlined),
-    ];
+    final decoration = BoxDecoration(
+      color: AppColors.card(context).withValues(alpha: 0.78),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppColors.border(context)),
+    );
+    if (!_activityLoaded || _activity.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: decoration,
+        child: Text(
+          _activityLoaded
+              ? 'No activity yet. New orders, payments, ratings and sign-ups will appear here as they happen.'
+              : 'Loading activity...',
+          style: TextStyle(color: AppColors.textHint(context), fontSize: 12),
+        ),
+      );
+    }
+    final now = DateTime.now();
     return Container(
+      key: const Key('admin-activity'),
       padding: const EdgeInsets.symmetric(vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.card(context).withValues(alpha: 0.78),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border(context)),
-      ),
+      decoration: decoration,
       child: Column(
-        children: activity.map((item) => ListTile(
-          dense: true,
-          leading: Icon(item.$3, color: AppTheme.accent, size: 19),
-          title: Text(item.$1, style: TextStyle(
-              color: AppColors.textPrimary(context), fontSize: 12,
-              fontWeight: FontWeight.w600)),
-          trailing: Text(item.$2, style: TextStyle(
-              color: AppColors.textHint(context), fontSize: 11)),
-        )).toList(),
+        children: _activity.map((item) {
+          final (icon, color) = _activityIcons[item['kind']] ??
+              (Icons.bolt_rounded, AppTheme.accent);
+          final at = DateTime.tryParse('${item['at']}')?.toLocal();
+          final detail = '${item['detail'] ?? ''}';
+          return ListTile(
+            dense: true,
+            leading: Icon(icon, color: color, size: 19),
+            title: Text('${item['title'] ?? ''}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: AppColors.textPrimary(context),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600)),
+            subtitle: detail.isEmpty
+                ? null
+                : Text(detail,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: AppColors.textSecondary(context), fontSize: 11)),
+            trailing: Text(at == null ? '' : relativeTime(at, now),
+                style: TextStyle(
+                    color: AppColors.textHint(context), fontSize: 11)),
+            onTap: item['kind'] == 'restaurant' ? () => widget.onNavigate(1) : null,
+          );
+        }).toList(),
       ),
     );
   }
@@ -2415,6 +2469,46 @@ class _AdminRevenueScreenState extends State<_AdminRevenueScreen>
                   fontSize: 13, fontWeight: FontWeight.w700)),
         ],
       ),
+    );
+  }
+}
+
+
+/// "Just now", "5 min ago", "3 h ago", "Yesterday", or a short date.
+String relativeTime(DateTime at, DateTime now) {
+  final diff = now.difference(at);
+  if (diff.inSeconds < 60) return 'Just now';
+  if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+  if (diff.inHours < 24 && at.day == now.day) return '${diff.inHours} h ago';
+  final yesterday = now.subtract(const Duration(days: 1));
+  if (at.year == yesterday.year && at.month == yesterday.month && at.day == yesterday.day) {
+    return 'Yesterday';
+  }
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return '${at.day} ${months[at.month - 1]}';
+}
+
+class _LiveIndicator extends StatelessWidget {
+  const _LiveIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 7,
+          height: 7,
+          decoration: const BoxDecoration(
+              color: AppTheme.success, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        const Text('Live',
+            style: TextStyle(
+                color: AppTheme.success,
+                fontSize: 11,
+                fontWeight: FontWeight.w700)),
+      ],
     );
   }
 }
