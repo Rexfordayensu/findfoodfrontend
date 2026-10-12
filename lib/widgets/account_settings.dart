@@ -73,7 +73,6 @@ class AccountSettingsSection extends StatelessWidget {
             subtitle: theme.isDark ? 'Dark mode' : 'Light mode',
             trailing: Switch(
               value: theme.isDark,
-              activeThumbColor: AppTheme.accent,
               onChanged: (_) => theme.toggle(),
             ),
             onTap: theme.toggle,
@@ -119,8 +118,7 @@ class AccountHeader extends StatelessWidget {
           backgroundColor: AppTheme.accentDim,
           child: Text(
             name[0].toUpperCase(),
-            style: const TextStyle(
-                color: AppTheme.accent, fontSize: 24, fontWeight: FontWeight.w800),
+            style: TextStyle(color: AppColors.accentText(context), fontSize: 24, fontWeight: FontWeight.w800),
           ),
         ),
         const SizedBox(width: 16),
@@ -756,7 +754,6 @@ class _NotificationPreferencesFormState
       key: Key(key),
       contentPadding: EdgeInsets.zero,
       value: value,
-      activeThumbColor: AppTheme.accent,
       onChanged: onChanged,
       title: Text(title,
           style: TextStyle(

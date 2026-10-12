@@ -84,7 +84,7 @@ class MenuItem {
     return '$normalizedBase$normalizedPath';
   }
 
-  String get displayPrice => 'GH₵ ${(price / 100).toStringAsFixed(2)}';
+  String get displayPrice => formatCedis(price);
 
   MenuItem copyWith({bool? isAvailable}) => MenuItem(
         id: id,
@@ -154,7 +154,7 @@ class Order {
   bool get isCancellableByCustomer =>
       status == 'awaiting_payment' || status == 'pending';
 
-  String get displayTotal => 'GH₵ ${(totalAmount / 100).toStringAsFixed(2)}';
+  String get displayTotal => formatCedis(totalAmount);
 
   factory Order.fromJson(Map<String, dynamic> json) => Order(
         id: json['id'],
@@ -227,7 +227,7 @@ class CartItem {
   CartItem({required this.menuItem, this.quantity = 1});
 
   int get subtotal => menuItem.price * quantity;
-  String get displaySubtotal => 'GH₵ ${(subtotal / 100).toStringAsFixed(2)}';
+  String get displaySubtotal => formatCedis(subtotal);
 }
 
 class PaymentProviderOption {
@@ -338,9 +338,9 @@ class RestaurantAnalytics {
     required this.dailyRevenue,
   });
 
-  String get displayRevenue => 'GH₵ ${(totalRevenue / 100).toStringAsFixed(2)}';
+  String get displayRevenue => formatCedis(totalRevenue);
   String get displayAvgOrder =>
-      'GH₵ ${(averageOrderValue / 100).toStringAsFixed(2)}';
+      formatCedis(averageOrderValue);
 
   factory RestaurantAnalytics.fromJson(Map<String, dynamic> json) =>
       RestaurantAnalytics(
@@ -385,7 +385,19 @@ class RiderDelivery {
       );
 }
 
-String formatCedis(int pesewas) => 'GH₵ ${(pesewas / 100).toStringAsFixed(2)}';
+/// "1,234" style grouping for whole numbers.
+String formatCount(num value) {
+  final digits = value.round().abs().toString();
+  final grouped = digits.replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
+  return value < 0 ? '-$grouped' : grouped;
+}
+
+/// Money in Ghana cedis from pesewas, e.g. "GH₵ 21,834.00".
+String formatCedis(int pesewas) {
+  final cedis = (pesewas.abs() / 100).toStringAsFixed(2).split('.');
+  return 'GH₵ ${pesewas < 0 ? '-' : ''}${formatCount(int.parse(cedis[0]))}.${cedis[1]}';
+}
 
 class RiderAnalytics {
   final int totalDeliveries;
@@ -413,9 +425,9 @@ class RiderAnalytics {
   });
 
   String get displayEarnings =>
-      'GH₵ ${(totalEarnings / 100).toStringAsFixed(2)}';
+      formatCedis(totalEarnings);
   String get displayAvg =>
-      'GH₵ ${(averageEarningPerDelivery / 100).toStringAsFixed(2)}';
+      formatCedis(averageEarningPerDelivery);
 
   factory RiderAnalytics.fromJson(Map<String, dynamic> json) => RiderAnalytics(
         totalDeliveries: json['total_deliveries'] ?? 0,

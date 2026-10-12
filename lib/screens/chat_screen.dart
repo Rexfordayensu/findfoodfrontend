@@ -203,8 +203,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 widget.otherPartyName.isNotEmpty
                     ? widget.otherPartyName[0].toUpperCase()
                     : '?',
-                style: const TextStyle(
-                    color: AppTheme.accent, fontWeight: FontWeight.w800),
+                style: TextStyle(color: AppColors.accentText(context), fontWeight: FontWeight.w800),
               ),
             ),
             const SizedBox(width: 10),

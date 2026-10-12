@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../theme.dart';
+import '../../widgets/glass.dart';
+import '../../utils/time_format.dart';
 import '../../widgets/widgets.dart';
 import '../../widgets/account_settings.dart';
 import '../../widgets/promotion_card.dart';
@@ -136,38 +138,35 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
     ];
 
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: pages,
+      extendBody: true,
+      body: GlassBody(
+        child: IndexedStack(
+          index: _selectedIndex,
+          children: pages,
+        ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface(context),
-          border: Border(top: BorderSide(color: AppColors.border(context))),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: (i) => context.go(
-              '/restaurant/${['orders', 'menu', 'earnings', 'settings'][i]}'),
-          items: const [
-            BottomNavigationBarItem(
-                icon: Icon(Icons.receipt_long_outlined),
-                activeIcon: Icon(Icons.receipt_long_rounded),
-                label: 'Orders'),
-            BottomNavigationBarItem(
-                icon: Icon(Icons.menu_book_outlined),
-                activeIcon: Icon(Icons.menu_book_rounded),
-                label: 'Menu'),
-            BottomNavigationBarItem(
-                icon: Icon(Icons.bar_chart_outlined),
-                activeIcon: Icon(Icons.bar_chart_rounded),
-                label: 'Earnings'),
-            BottomNavigationBarItem(
-                icon: Icon(Icons.settings_outlined),
-                activeIcon: Icon(Icons.settings_rounded),
-                label: 'Settings'),
-          ],
-        ),
+      bottomNavigationBar: GlassNavBar(
+        currentIndex: _selectedIndex,
+        onTap: (i) => context.go(
+            '/restaurant/${['orders', 'menu', 'earnings', 'settings'][i]}'),
+        items: const [
+          GlassNavItem(
+              icon: Icons.receipt_long_outlined,
+              activeIcon: Icons.receipt_long_rounded,
+              label: 'Orders'),
+          GlassNavItem(
+              icon: Icons.menu_book_outlined,
+              activeIcon: Icons.menu_book_rounded,
+              label: 'Menu'),
+          GlassNavItem(
+              icon: Icons.bar_chart_outlined,
+              activeIcon: Icons.bar_chart_rounded,
+              label: 'Earnings'),
+          GlassNavItem(
+              icon: Icons.settings_outlined,
+              activeIcon: Icons.settings_rounded,
+              label: 'Settings'),
+        ],
       ),
     );
   }
@@ -615,19 +614,23 @@ class _OrderCard extends StatelessWidget {
     final isCancelled = order.status == 'cancelled';
 
     String? actionLabel;
+    IconData? actionIcon;
     String? nextStatus;
     Color? actionColor;
 
     if (isPending) {
-      actionLabel = '🍳  Start preparing';
+      actionLabel = 'Start preparing';
+      actionIcon = Icons.soup_kitchen_rounded;
       nextStatus = 'preparing';
       actionColor = AppTheme.warning;
     } else if (isPreparing) {
-      actionLabel = '✅  Mark ready for pickup';
+      actionLabel = 'Mark ready for pickup';
+      actionIcon = Icons.check_circle_rounded;
       nextStatus = 'ready';
       actionColor = AppTheme.success;
     } else if (isReady && isPickup) {
-      actionLabel = '🛍️  Customer collected order';
+      actionLabel = 'Customer collected order';
+      actionIcon = Icons.shopping_bag_rounded;
       nextStatus = 'picked_up';
       actionColor = AppTheme.success;
     }
@@ -706,15 +709,17 @@ class _OrderCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(order.displayTotal,
-                        style: const TextStyle(
-                            color: AppTheme.accent,
+                        style: TextStyle(color: AppColors.accentText(context),
                             fontSize: 18,
                             fontWeight: FontWeight.w800)),
                     Row(children: [
                       Icon(Icons.access_time_rounded,
                           size: 13, color: AppColors.textHint(context)),
                       const SizedBox(width: 4),
-                      Text('Just now',
+                      Text(
+                          order.createdAt == null
+                              ? ''
+                              : relativeTime(order.createdAt!, DateTime.now()),
                           style: TextStyle(
                               color: AppColors.textHint(context),
                               fontSize: 12)),
@@ -763,10 +768,10 @@ class _OrderCard extends StatelessWidget {
                     onTap: () => onUpdateStatus(order, nextStatus!),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       decoration: BoxDecoration(
                         color: actionColor,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(14),
                         boxShadow: [
                           BoxShadow(
                             color: actionColor!.withValues(alpha: 0.3),
@@ -775,12 +780,22 @@ class _OrderCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: Center(
-                        child: Text(actionLabel,
-                            style: const TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 13)),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (actionIcon != null) ...[
+                            Icon(actionIcon, color: Colors.black, size: 18),
+                            const SizedBox(width: 8),
+                          ],
+                          Flexible(
+                            child: Text(actionLabel,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14)),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -1682,8 +1697,7 @@ class _ManagedMenuItemCard extends StatelessWidget {
                   ),
                 const SizedBox(height: 4),
                 Text(item.displayPrice,
-                    style: const TextStyle(
-                        color: AppTheme.accent,
+                    style: TextStyle(color: AppColors.accentText(context),
                         fontSize: 13,
                         fontWeight: FontWeight.w700)),
               ],
@@ -1891,8 +1905,7 @@ class _EarningsPageState extends State<_EarningsPage> {
                         const SizedBox(height: 6),
                         Text(
                           'GH₵ ${((_data?['total_revenue'] ?? 0) / 100).toStringAsFixed(2)}',
-                          style: const TextStyle(
-                              color: AppTheme.accent,
+                          style: TextStyle(color: AppColors.accentText(context),
                               fontSize: 34,
                               fontWeight: FontWeight.w900,
                               letterSpacing: -1),
@@ -2725,7 +2738,6 @@ class _SettingsPageState extends State<_SettingsPage> {
                           trailing: Switch(
                             key: const Key('kitchen-switch'),
                             value: _isOpen,
-                            activeThumbColor: AppTheme.accent,
                             onChanged: _savingOpen ? null : _setKitchenOpen,
                           ),
                           onTap: _savingOpen

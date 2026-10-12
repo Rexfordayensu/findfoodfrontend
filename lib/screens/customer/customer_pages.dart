@@ -219,10 +219,10 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen> {
               style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12),
             ),
             if (order.isRated)
-              const Padding(
-                padding: EdgeInsets.only(top: 6),
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
                 child: Text('★ Rated — thank you!',
-                    style: TextStyle(color: AppTheme.accent, fontSize: 12)),
+                    style: TextStyle(color: AppColors.accentText(context), fontSize: 12)),
               ),
             if (actions.isNotEmpty) ...[
               const SizedBox(height: 12),

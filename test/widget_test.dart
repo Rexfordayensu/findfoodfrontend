@@ -27,6 +27,6 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
 
-    expect(find.text('FINDFOOD'), findsWidgets);
+    expect(find.text('FindFood'), findsWidgets);
   });
 }

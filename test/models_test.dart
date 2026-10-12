@@ -70,4 +70,12 @@ void main() {
       expect(order.restaurantName, 'Test Kitchen');
     });
   });
+
+  test('formats counts and cedis with thousands separators', () {
+    expect(formatCount(1284), '1,284');
+    expect(formatCount(37), '37');
+    expect(formatCedis(2183400), 'GH₵ 21,834.00');
+    expect(formatCedis(450), 'GH₵ 4.50');
+    expect(formatCedis(123456789), 'GH₵ 1,234,567.89');
+  });
 }

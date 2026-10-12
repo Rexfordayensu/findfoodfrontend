@@ -26,14 +26,6 @@ class GreetingHeader extends StatelessWidget {
     return 'Good night';
   }
 
-  static IconData _iconForHour(int hour) {
-    if (hour < 5) return Icons.nightlight_round;
-    if (hour < 12) return Icons.wb_sunny_rounded;
-    if (hour < 17) return Icons.wb_cloudy_rounded;
-    if (hour < 21) return Icons.wb_twilight_rounded;
-    return Icons.nightlight_round;
-  }
-
   static String _subtitleForRole(String role) {
     switch (role) {
       case 'customer':
@@ -53,7 +45,6 @@ class GreetingHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final hour = DateTime.now().hour;
     final greeting = _greetingForHour(hour);
-    final icon = _iconForHour(hour);
     final firstName = name.trim().isNotEmpty
         ? name.trim().split(' ').first // first name only — feels more personal
         : null;
@@ -74,9 +65,9 @@ class GreetingHeader extends StatelessWidget {
                       : '$greeting 👋',
                   style: TextStyle(
                     color: AppColors.textPrimary(context),
-                    fontSize: 20,
+                    fontSize: 24,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: -0.4,
+                    letterSpacing: -0.6,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -84,19 +75,12 @@ class GreetingHeader extends StatelessWidget {
                   subtitle,
                   style: TextStyle(
                     color: AppColors.textSecondary(context),
-                    fontSize: 13,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppTheme.accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: AppTheme.accent, size: 22),
           ),
         ],
       ),

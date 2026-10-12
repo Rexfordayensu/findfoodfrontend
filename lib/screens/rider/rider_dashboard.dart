@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import '../../theme.dart';
+import '../../widgets/glass.dart';
 import '../../widgets/widgets.dart';
 import '../../widgets/account_settings.dart';
 import '../../models/models.dart';
@@ -30,38 +31,29 @@ class _RiderDashboardState extends State<RiderDashboard> {
     ];
 
     return Scaffold(
-      body: pages[_selectedIndex],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          border: Border(
-              top: BorderSide(color: AppColors.border(context))),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: (i) => setState(() => _selectedIndex = i),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.explore_outlined),
-              activeIcon: Icon(Icons.explore_rounded),
-              label: 'Available',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.electric_bike_outlined),
-              activeIcon: Icon(Icons.electric_bike_rounded),
-              label: 'My Deliveries',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.payments_outlined),
-              activeIcon: Icon(Icons.payments_rounded),
-              label: 'Earnings',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline_rounded),
-              activeIcon: Icon(Icons.person_rounded),
-              label: 'Profile',
-            ),
-          ],
-        ),
+      extendBody: true,
+      body: GlassBody(child: pages[_selectedIndex]),
+      bottomNavigationBar: GlassNavBar(
+        currentIndex: _selectedIndex,
+        onTap: (i) => setState(() => _selectedIndex = i),
+        items: const [
+          GlassNavItem(
+              icon: Icons.explore_outlined,
+              activeIcon: Icons.explore_rounded,
+              label: 'Available'),
+          GlassNavItem(
+              icon: Icons.electric_bike_outlined,
+              activeIcon: Icons.electric_bike_rounded,
+              label: 'My Deliveries'),
+          GlassNavItem(
+              icon: Icons.payments_outlined,
+              activeIcon: Icons.payments_rounded,
+              label: 'Earnings'),
+          GlassNavItem(
+              icon: Icons.person_outline_rounded,
+              activeIcon: Icons.person_rounded,
+              label: 'Profile'),
+        ],
       ),
     );
   }
@@ -534,7 +526,8 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
                           const SizedBox(width: 4),
                           Text('~15 min',
                               style: TextStyle(
-                                  color: AppColors.textHint(context), fontSize: 12)),
+                                  color: AppColors.textHint(context),
+                                  fontSize: 12)),
                         ],
                       ),
                     ),
@@ -771,8 +764,8 @@ class _MyDeliveriesPageState extends State<_MyDeliveriesPage> {
               height: 42,
               child: ElevatedButton.icon(
                 onPressed: () => _markDelivered(order),
-                icon:
-                    const Icon(Icons.check_rounded, color: Colors.black, size: 18),
+                icon: const Icon(Icons.check_rounded,
+                    color: Colors.black, size: 18),
                 label: const Text('Mark as delivered'),
               ),
             ),
@@ -843,7 +836,8 @@ class _RiderEarningsPageState extends State<_RiderEarningsPage> {
               else if (_error != null && data == null)
                 Column(children: [
                   Text(_error!,
-                      style: TextStyle(color: AppColors.textSecondary(context))),
+                      style:
+                          TextStyle(color: AppColors.textSecondary(context))),
                   TextButton(onPressed: _load, child: const Text('Retry')),
                 ])
               else if (data != null) ...[
@@ -863,8 +857,7 @@ class _RiderEarningsPageState extends State<_RiderEarningsPage> {
                       const SizedBox(height: 6),
                       Text(formatCedis(data.todayEarnings),
                           key: const Key('rider-today-earnings'),
-                          style: const TextStyle(
-                            color: AppTheme.accent,
+                          style: TextStyle(color: AppColors.accentText(context),
                             fontSize: 36,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -1,

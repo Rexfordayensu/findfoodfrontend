@@ -38,7 +38,12 @@ void showLogoutSuccess(BuildContext context) {
 
 // ─── THEME PROVIDER ───────────────────────────────────────────────────────────
 class ThemeProvider extends ChangeNotifier {
-  ThemeMode _mode = ThemeMode.dark;
+  // Start in the device's own light/dark setting.
+  ThemeMode _mode =
+      WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+              Brightness.dark
+          ? ThemeMode.dark
+          : ThemeMode.light;
   ThemeMode get mode => _mode;
   bool get isDark => _mode == ThemeMode.dark;
 

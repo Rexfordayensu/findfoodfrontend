@@ -6,8 +6,11 @@ import '../../theme.dart';
 import '../../widgets/account_settings.dart';
 import '../../widgets/greeting_header.dart';
 import '../../widgets/live_refresh.dart';
+import '../../widgets/glass.dart';
+import '../../utils/time_format.dart';
 import '../../services/providers.dart';
 import '../../services/api_service.dart';
+import '../../models/models.dart';
 
 int getPendingApprovalsCount(List<Map<String, dynamic>> restaurants) =>
     restaurants.length;
@@ -226,10 +229,9 @@ class _AdminDashboardState extends State<AdminDashboard>
                             style: TextStyle(color: textPri,
                                 fontWeight: FontWeight.w800, fontSize: 14,
                                 letterSpacing: 0.3)),
-                        const Text('Admin HQ',
+                        Text('Admin HQ',
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: AppTheme.accent, fontSize: 11,
+                            style: TextStyle(color: AppColors.accentText(context), fontSize: 11,
                                 fontWeight: FontWeight.w600)),
                       ],
                     ),
@@ -342,12 +344,12 @@ class _AdminDashboardState extends State<AdminDashboard>
                                   : textHint),
                           if (!_sidebarCollapsed || !isWide) ...[
                             const SizedBox(width: 12),
-                            Flexible(
+                            Expanded(
                               child: Text(item['label'] as String,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: active
-                                    ? AppTheme.accent
+                                    ? AppColors.accentText(context)
                                     : textHint,
                                 fontWeight: active
                                     ? FontWeight.w600
@@ -356,7 +358,6 @@ class _AdminDashboardState extends State<AdminDashboard>
                               ))),
                           ],
                           if (i == 1) ...[
-                            const Spacer(),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 7, vertical: 2),
@@ -406,8 +407,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                                   ? auth.name!.trim()
                                   : 'A')[0]
                               .toUpperCase(),
-                          style: const TextStyle(
-                              color: AppTheme.accent,
+                          style: TextStyle(color: AppColors.accentText(context),
                               fontWeight: FontWeight.w800),
                         ),
                       ),
@@ -521,7 +521,8 @@ class _AdminDashboardState extends State<AdminDashboard>
           children: [
             sidebar,
             Expanded(
-              child: SafeArea(
+              child: GlassBody(
+                child: SafeArea(
                 child: Column(
                   children: [
                     Row(
@@ -555,6 +556,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                   ],
                 ),
               ),
+              ),
             ),
           ],
         ),
@@ -563,9 +565,11 @@ class _AdminDashboardState extends State<AdminDashboard>
 
     return Scaffold(
       backgroundColor: bg,
+      extendBody: true,
       appBar: AppBar(
-        backgroundColor: surf,
-        title: Text(_navItems[_selectedIndex]['label'] as String),
+        backgroundColor: bg,
+        centerTitle: false,
+        title: const Text('FindFood Admin'),
         actions: [
           IconButton(
             tooltip: 'Notifications',
@@ -585,17 +589,46 @@ class _AdminDashboardState extends State<AdminDashboard>
         backgroundColor: surf,
         child: sidebar,
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            GreetingHeader(
-              name: auth.name?.trim().isNotEmpty == true ? auth.name! : 'Admin',
-              role: 'admin',
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
-            ),
-            Expanded(child: _buildPage()),
-          ],
+      body: GlassBody(
+        child: SafeArea(
+          child: Column(
+            children: [
+              GreetingHeader(
+                name: auth.name?.trim().isNotEmpty == true ? auth.name! : 'Admin',
+                role: 'admin',
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
+              ),
+              Expanded(child: _buildPage()),
+            ],
+          ),
         ),
+      ),
+      bottomNavigationBar: GlassNavBar(
+        currentIndex: _selectedIndex,
+        onTap: (i) => setState(() => _selectedIndex = i),
+        items: [
+          const GlassNavItem(
+              icon: Icons.grid_view_outlined,
+              activeIcon: Icons.grid_view_rounded,
+              label: 'Overview'),
+          GlassNavItem(
+              icon: Icons.storefront_outlined,
+              activeIcon: Icons.storefront_rounded,
+              label: 'Approvals',
+              badge: _pendingApprovalsCount),
+          const GlassNavItem(
+              icon: Icons.electric_bike_outlined,
+              activeIcon: Icons.electric_bike_rounded,
+              label: 'Riders'),
+          const GlassNavItem(
+              icon: Icons.people_outline_rounded,
+              activeIcon: Icons.people_rounded,
+              label: 'Users'),
+          const GlassNavItem(
+              icon: Icons.settings_outlined,
+              activeIcon: Icons.settings_rounded,
+              label: 'Settings'),
+        ],
       ),
     );
   }
@@ -767,7 +800,7 @@ class _OverviewPageState extends State<_OverviewPage>
                   runSpacing: 14,
                   children: [
                     _statCard(context, 'Total Orders',
-                        '${s['total_orders'] ?? 0}',
+                        formatCount(s['total_orders'] ?? 0),
                         'All time · tap to view', Icons.receipt_long_rounded,
                         AppTheme.accent, cardW,
                         expanded: _expandedStats.contains('Total Orders'),
@@ -776,14 +809,14 @@ class _OverviewPageState extends State<_OverviewPage>
                             MaterialPageRoute(
                                 builder: (_) => const _AdminOrdersScreen()))),
                     _statCard(context, 'Active Riders',
-                        '${s['active_riders'] ?? 0}',
+                        formatCount(s['active_riders'] ?? 0),
                         'Tap to view all', Icons.electric_bike_rounded,
                         AppTheme.success, cardW,
                         expanded: _expandedStats.contains('Active Riders'),
                         onToggle: () => setState(() => _toggleStat('Active Riders')),
                         onTap: () => widget.onNavigate(2)), // Riders tab
                     _statCard(context, 'Restaurants',
-                        '${s['total_restaurants'] ?? 0}',
+                        formatCount(s['total_restaurants'] ?? 0),
                         '${s['pending_approvals'] ?? 0} pending · tap to review',
                         Icons.storefront_rounded,
                         AppTheme.warning, cardW,
@@ -791,7 +824,7 @@ class _OverviewPageState extends State<_OverviewPage>
                         onToggle: () => setState(() => _toggleStat('Restaurants')),
                         onTap: () => widget.onNavigate(1)), // Approvals tab
                     _statCard(context, 'Revenue',
-                        'GH₵ ${((s['revenue_today'] ?? 0) / 100).toStringAsFixed(2)}',
+                        formatCedis(((s['revenue_today'] ?? 0) as num).round()),
                         'Delivered orders · tap to view', Icons.payments_rounded,
                         const Color(0xFF8B5CF6), cardW,
                         expanded: _expandedStats.contains('Revenue'),
@@ -918,7 +951,11 @@ class _OverviewPageState extends State<_OverviewPage>
       key: const Key('admin-activity'),
       padding: const EdgeInsets.symmetric(vertical: 4),
       decoration: decoration,
-      child: Column(
+      clipBehavior: Clip.antiAlias,
+      // Material layer so tappable rows show their ripple on the card.
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
         children: _activity.map((item) {
           final (icon, color) = _activityIcons[item['kind']] ??
               (Icons.bolt_rounded, AppTheme.accent);
@@ -947,6 +984,7 @@ class _OverviewPageState extends State<_OverviewPage>
             onTap: item['kind'] == 'restaurant' ? () => widget.onNavigate(1) : null,
           );
         }).toList(),
+        ),
       ),
     );
   }
@@ -1054,12 +1092,17 @@ class _OverviewPageState extends State<_OverviewPage>
             ],
           ),
           const SizedBox(height: 14),
-          Text(value,
-              style: TextStyle(
-                  color: AppColors.textPrimary(ctx),
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(value,
+                maxLines: 1,
+                style: TextStyle(
+                    color: AppColors.textPrimary(ctx),
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.6)),
+          ),
           const SizedBox(height: 4),
           Text(label,
               style: TextStyle(
@@ -1129,7 +1172,7 @@ class _OverviewPageState extends State<_OverviewPage>
             const SizedBox(width: 9),
             Expanded(
               child: Text(label,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       color: AppColors.textPrimary(ctx),
@@ -1616,8 +1659,7 @@ class _RiderDeskPageState extends State<_RiderDeskPage>
             radius: 22,
             backgroundColor: AppTheme.accent.withValues(alpha: 0.12),
             child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
-                style: const TextStyle(
-                    color: AppTheme.accent,
+                style: TextStyle(color: AppColors.accentText(context),
                     fontWeight: FontWeight.w800,
                     fontSize: 16)),
           ),
@@ -2202,8 +2244,7 @@ class _AdminOrdersScreenState extends State<_AdminOrdersScreen>
                     overflow: TextOverflow.ellipsis),
               ),
               Text('GH₵ ${amount.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                      color: AppTheme.accent, fontSize: 14, fontWeight: FontWeight.w800)),
+                  style: TextStyle(color: AppColors.accentText(context), fontSize: 14, fontWeight: FontWeight.w800)),
             ],
           ),
         ],
@@ -2429,8 +2470,7 @@ class _AdminRevenueScreenState extends State<_AdminRevenueScreen>
             ),
             child: Center(
               child: Text('$rank',
-                  style: const TextStyle(
-                      color: AppTheme.accent, fontWeight: FontWeight.w800, fontSize: 12)),
+                  style: TextStyle(color: AppColors.accentText(context), fontWeight: FontWeight.w800, fontSize: 12)),
             ),
           ),
           const SizedBox(width: 12),
@@ -2441,8 +2481,7 @@ class _AdminRevenueScreenState extends State<_AdminRevenueScreen>
                     fontSize: 14, fontWeight: FontWeight.w600)),
           ),
           Text('GH₵ ${revenue.toStringAsFixed(2)}',
-              style: const TextStyle(
-                  color: AppTheme.accent, fontSize: 13, fontWeight: FontWeight.w700)),
+              style: TextStyle(color: AppColors.accentText(context), fontSize: 13, fontWeight: FontWeight.w700)),
         ],
       ),
     );
@@ -2473,20 +2512,6 @@ class _AdminRevenueScreenState extends State<_AdminRevenueScreen>
   }
 }
 
-
-/// "Just now", "5 min ago", "3 h ago", "Yesterday", or a short date.
-String relativeTime(DateTime at, DateTime now) {
-  final diff = now.difference(at);
-  if (diff.inSeconds < 60) return 'Just now';
-  if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
-  if (diff.inHours < 24 && at.day == now.day) return '${diff.inHours} h ago';
-  final yesterday = now.subtract(const Duration(days: 1));
-  if (at.year == yesterday.year && at.month == yesterday.month && at.day == yesterday.day) {
-    return 'Yesterday';
-  }
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return '${at.day} ${months[at.month - 1]}';
-}
 
 class _LiveIndicator extends StatelessWidget {
   const _LiveIndicator();

@@ -208,7 +208,7 @@ class _SplashScreenState extends State<SplashScreen>
                       child: AnimatedBuilder(
                         animation: _outCtrl,
                         builder: (_, __) => Text(
-                          'FINDFOOD',
+                          'FindFood',
                           style: TextStyle(
                             color: _outCtrl.isAnimating
                                 ? Color.lerp(Colors.white, Colors.black,
@@ -216,7 +216,7 @@ class _SplashScreenState extends State<SplashScreen>
                                 : Colors.white,
                             fontSize: 34,
                             fontWeight: FontWeight.w900,
-                            letterSpacing: 3,
+                            letterSpacing: -1,
                           ),
                         ),
                       ),

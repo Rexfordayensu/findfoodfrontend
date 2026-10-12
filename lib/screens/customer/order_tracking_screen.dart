@@ -338,8 +338,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 const SizedBox(height: 6),
                 Text(
                   _headline,
-                  style: const TextStyle(
-                      color: AppTheme.accent,
+                  style: TextStyle(color: AppColors.accentText(context),
                       fontSize: 32,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.5,

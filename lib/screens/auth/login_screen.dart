@@ -310,12 +310,12 @@ class _LoginScreenState extends State<LoginScreen>
                         color: Colors.black, size: 34),
                   ),
                   const SizedBox(height: 14),
-                  Text('FINDFOOD',
+                  Text('FindFood',
                       style: TextStyle(
                           color: textPri,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.5)),
+                          fontSize: 32,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -1.0)),
                   const SizedBox(height: 4),
                   Text('Food delivery, done fast.',
                       style: TextStyle(color: textSec, fontSize: 14)),
@@ -473,9 +473,8 @@ class _LoginScreenState extends State<LoginScreen>
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: _showForgotPassword,
-                child: const Text('Forgot password?',
-                    style: TextStyle(
-                        color: AppTheme.accent,
+                child: Text('Forgot password?',
+                    style: TextStyle(color: AppColors.accentText(context),
                         fontSize: 13,
                         fontWeight: FontWeight.w600)),
               ),
@@ -485,9 +484,8 @@ class _LoginScreenState extends State<LoginScreen>
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: () => setState(() => _useOtpLogin = false),
-                child: const Text('Use password instead',
-                    style: TextStyle(
-                        color: AppTheme.accent,
+                child: Text('Use password instead',
+                    style: TextStyle(color: AppColors.accentText(context),
                         fontSize: 13,
                         fontWeight: FontWeight.w600)),
               ),
@@ -504,9 +502,8 @@ class _LoginScreenState extends State<LoginScreen>
           if (!_useOtpLogin)
             TextButton(
               onPressed: () => setState(() => _useOtpLogin = true),
-              child: const Text('Login using OTP',
-                  style: TextStyle(
-                      color: AppTheme.accent,
+              child: Text('Login using OTP',
+                  style: TextStyle(color: AppColors.accentText(context),
                       fontSize: 13,
                       fontWeight: FontWeight.w700)),
             ),
@@ -523,9 +520,8 @@ class _LoginScreenState extends State<LoginScreen>
                     _tabIndex = 1;
                     _tabController.animateTo(1);
                   }),
-                  child: const Text('Sign up',
-                      style: TextStyle(
-                          color: AppTheme.accent,
+                  child: Text('Sign up',
+                      style: TextStyle(color: AppColors.accentText(context),
                           fontWeight: FontWeight.w700,
                           fontSize: 13)),
                 ),
@@ -642,9 +638,8 @@ class _LoginScreenState extends State<LoginScreen>
                 _tabIndex = 0;
                 _tabController.animateTo(0);
               }),
-              child: const Text('Sign in',
-                  style: TextStyle(
-                      color: AppTheme.accent,
+              child: Text('Sign in',
+                  style: TextStyle(color: AppColors.accentText(context),
                       fontWeight: FontWeight.w700,
                       fontSize: 13)),
             ),

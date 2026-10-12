@@ -110,9 +110,8 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
                 );
                 _showAddedSnack(item.name);
               },
-              child: const Text('Clear & add',
-                  style: TextStyle(
-                      color: AppTheme.accent, fontWeight: FontWeight.w700)),
+              child: Text('Clear & add',
+                  style: TextStyle(color: AppColors.accentText(context), fontWeight: FontWeight.w700)),
             ),
           ],
         ),
@@ -716,8 +715,7 @@ class _MenuItemCardState extends State<_MenuItemCard>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(item.displayPrice,
-                              style: const TextStyle(
-                                  color: AppTheme.accent,
+                              style: TextStyle(color: AppColors.accentText(context),
                                   fontSize: 16,
                                   fontWeight: FontWeight.w800)),
 
@@ -785,8 +783,7 @@ class _MenuItemCardState extends State<_MenuItemCard>
                                       width: 34,
                                       alignment: Alignment.center,
                                       child: Text('$_qty',
-                                          style: const TextStyle(
-                                              color: AppTheme.accent,
+                                          style: TextStyle(color: AppColors.accentText(context),
                                               fontSize: 16,
                                               fontWeight: FontWeight.w900)),
                                     ),
@@ -825,8 +822,7 @@ class _MenuItemCardState extends State<_MenuItemCard>
                           fontSize: 12)),
                   Text(
                     'GH₵ ${(item.price * _qty / 100).toStringAsFixed(2)}',
-                    style: const TextStyle(
-                        color: AppTheme.accent,
+                    style: TextStyle(color: AppColors.accentText(context),
                         fontSize: 13,
                         fontWeight: FontWeight.w800),
                   ),
