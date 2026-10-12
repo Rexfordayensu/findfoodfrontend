@@ -9,6 +9,9 @@ class Restaurant {
   final int ownerId;
   final String? imageUrl;
   final String? bannerUrl;
+  final bool isOpen;
+  final double? averageRating;
+  final int ratingCount;
 
   Restaurant({
     required this.id,
@@ -21,7 +24,15 @@ class Restaurant {
     required this.ownerId,
     this.imageUrl,
     this.bannerUrl,
+    this.isOpen = true,
+    this.averageRating,
+    this.ratingCount = 0,
   });
+
+  /// "4.5 (12)" for rated restaurants, "New" otherwise.
+  String get ratingLabel => averageRating == null
+      ? 'New'
+      : '${averageRating!.toStringAsFixed(1)} ($ratingCount)';
 
   factory Restaurant.fromJson(Map<String, dynamic> json) => Restaurant(
         id: json['id'],
@@ -34,6 +45,9 @@ class Restaurant {
         ownerId: json['owner_id'] ?? 0,
         imageUrl: json['image_url'],
         bannerUrl: json['banner_url'],
+        isOpen: json['is_open'] ?? true,
+        averageRating: (json['average_rating'] as num?)?.toDouble(),
+        ratingCount: json['rating_count'] ?? 0,
       );
 }
 
@@ -108,6 +122,10 @@ class Order {
   final double? deliveryLatitude;
   final double? deliveryLongitude;
   final DateTime? scheduledFor;
+  final DateTime? createdAt;
+  final DateTime? completedAt;
+  final int? riderId;
+  final bool isRated;
 
   Order({
     required this.id,
@@ -124,7 +142,17 @@ class Order {
     this.deliveryLatitude,
     this.deliveryLongitude,
     this.scheduledFor,
+    this.createdAt,
+    this.completedAt,
+    this.riderId,
+    this.isRated = false,
   });
+
+  bool get isCompleted => status == 'delivered' || status == 'picked_up';
+
+  /// Customers can cancel until the kitchen starts cooking.
+  bool get isCancellableByCustomer =>
+      status == 'awaiting_payment' || status == 'pending';
 
   String get displayTotal => 'GH₵ ${(totalAmount / 100).toStringAsFixed(2)}';
 
@@ -142,10 +170,15 @@ class Order {
         deliveryAddress: json['delivery_address'],
         deliveryLatitude: (json['delivery_latitude'] as num?)?.toDouble(),
         deliveryLongitude: (json['delivery_longitude'] as num?)?.toDouble(),
-        scheduledFor: json['scheduled_for'] == null
-            ? null
-            : DateTime.tryParse(json['scheduled_for'].toString()),
+        scheduledFor: _parseDate(json['scheduled_for']),
+        createdAt: _parseDate(json['created_at']),
+        completedAt: _parseDate(json['completed_at']),
+        riderId: json['rider_id'],
+        isRated: json['is_rated'] ?? false,
       );
+
+  static DateTime? _parseDate(dynamic value) =>
+      value == null ? null : DateTime.tryParse(value.toString())?.toLocal();
 
   Order copyWith({
     int? id,
@@ -162,8 +195,7 @@ class Order {
     double? deliveryLatitude,
     double? deliveryLongitude,
     DateTime? scheduledFor,
-
-    // You can add other fields here if you need to copy them later
+    bool? isRated,
   }) {
     return Order(
       id: id ?? this.id,
@@ -180,8 +212,10 @@ class Order {
       deliveryLatitude: deliveryLatitude ?? this.deliveryLatitude,
       deliveryLongitude: deliveryLongitude ?? this.deliveryLongitude,
       scheduledFor: scheduledFor ?? this.scheduledFor,
-      // ... pass your other existing class fields here like:
-      // total: total,
+      createdAt: createdAt,
+      completedAt: completedAt,
+      riderId: riderId,
+      isRated: isRated ?? this.isRated,
     );
   }
 }
@@ -194,6 +228,25 @@ class CartItem {
 
   int get subtotal => menuItem.price * quantity;
   String get displaySubtotal => 'GH₵ ${(subtotal / 100).toStringAsFixed(2)}';
+}
+
+class PaymentProviderOption {
+  final String value;
+  final String label;
+  final bool requiresPhone;
+
+  const PaymentProviderOption({
+    required this.value,
+    required this.label,
+    this.requiresPhone = false,
+  });
+
+  factory PaymentProviderOption.fromJson(Map<String, dynamic> json) =>
+      PaymentProviderOption(
+        value: json['value'],
+        label: json['label'] ?? json['value'],
+        requiresPhone: json['requires_phone'] ?? false,
+      );
 }
 
 class PaymentInitializationRequest {
@@ -237,7 +290,7 @@ class ChatMessage {
         senderId: json['sender_id'],
         senderRole: json['sender_role'],
         content: json['content'] ?? json['message'] ?? '',
-        createdAt: DateTime.parse(json['created_at']),
+        createdAt: DateTime.parse(json['created_at']).toLocal(),
         isMine: json['is_mine'] ?? false,
       );
 
@@ -306,17 +359,57 @@ class RestaurantAnalytics {
       );
 }
 
+class RiderDelivery {
+  final int orderId;
+  final String? restaurantName;
+  final String? deliveryAddress;
+  final int earning;
+  final DateTime? completedAt;
+
+  RiderDelivery({
+    required this.orderId,
+    this.restaurantName,
+    this.deliveryAddress,
+    required this.earning,
+    this.completedAt,
+  });
+
+  factory RiderDelivery.fromJson(Map<String, dynamic> json) => RiderDelivery(
+        orderId: json['order_id'],
+        restaurantName: json['restaurant_name'],
+        deliveryAddress: json['delivery_address'],
+        earning: json['earning'] ?? 0,
+        completedAt: json['completed_at'] == null
+            ? null
+            : DateTime.tryParse(json['completed_at'].toString())?.toLocal(),
+      );
+}
+
+String formatCedis(int pesewas) => 'GH₵ ${(pesewas / 100).toStringAsFixed(2)}';
+
 class RiderAnalytics {
   final int totalDeliveries;
   final int completedDeliveries;
   final int totalEarnings;
   final int averageEarningPerDelivery;
+  final int todayEarnings;
+  final int todayDeliveries;
+  final int weekEarnings;
+  final int monthEarnings;
+  final double? averageRating;
+  final List<RiderDelivery> recentDeliveries;
 
   RiderAnalytics({
     required this.totalDeliveries,
     required this.completedDeliveries,
     required this.totalEarnings,
     required this.averageEarningPerDelivery,
+    this.todayEarnings = 0,
+    this.todayDeliveries = 0,
+    this.weekEarnings = 0,
+    this.monthEarnings = 0,
+    this.averageRating,
+    this.recentDeliveries = const [],
   });
 
   String get displayEarnings =>
@@ -332,6 +425,14 @@ class RiderAnalytics {
           json['avg_earning_per_delivery'] ??
             json['average_earning_per_delivery'] ??
             0,
+        todayEarnings: json['today_earnings'] ?? 0,
+        todayDeliveries: json['today_deliveries'] ?? 0,
+        weekEarnings: json['week_earnings'] ?? 0,
+        monthEarnings: json['month_earnings'] ?? 0,
+        averageRating: (json['average_rating'] as num?)?.toDouble(),
+        recentDeliveries: ((json['recent_deliveries'] ?? []) as List)
+            .map((d) => RiderDelivery.fromJson(d as Map<String, dynamic>))
+            .toList(),
       );
 }
 

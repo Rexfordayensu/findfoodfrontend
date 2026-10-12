@@ -7,6 +7,8 @@ import '../../widgets/widgets.dart';
 import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
+import '../../services/order_payment.dart';
+import '../../widgets/rating_sheet.dart';
 
 class OrderTrackingScreen extends StatefulWidget {
   final Order order;
@@ -19,7 +21,9 @@ class OrderTrackingScreen extends StatefulWidget {
 class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   late Order _order;
   Timer? _pollTimer;
-  
+  bool _confirmingPickup = false;
+  bool _busy = false;
+
 
   List<Map<String, Object>> get _steps => _order.fulfillmentMethod == 'pickup'
       ? const [
@@ -99,9 +103,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         final updated = orders.where((o) => o.id == _order.id).firstOrNull;
         if (updated != null && mounted && updated.status != _order.status) {
           setState(() => _order = updated);
-          if (updated.status == 'delivered' || updated.status == 'picked_up') {
+          if (updated.isCompleted) {
             _pollTimer?.cancel();
             _showOrderComplete();
+          } else if (updated.status == 'cancelled') {
+            _pollTimer?.cancel();
           }
         }
       } catch (_) {
@@ -150,17 +156,22 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               'Enjoy your meal! How was your experience?',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.textSecondary(context))),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(5, (i) => const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 3),
-                child: Icon(Icons.star_rounded,
-                    color: AppTheme.accent, size: 32),
-              )),
-            ),
             const SizedBox(height: 24),
-            PrimaryButton(
+            if (!_order.isRated) ...[
+              PrimaryButton(
+                key: const Key('complete-rate-order'),
+                label: 'Rate order',
+                icon: Icons.star_rounded,
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  if (await showRateOrderSheet(context, _order) && mounted) {
+                    setState(() => _order = _order.copyWith(isRated: true));
+                  }
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+            GhostButton(
               label: 'Back to home',
               onPressed: () => context.go('/'),
             ),
@@ -168,6 +179,103 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _payNow() async {
+    setState(() => _busy = true);
+    try {
+      final paid = await OrderPayment.start(context, _order);
+      if (!mounted) return;
+      if (paid) setState(() => _order = _order.copyWith(status: 'pending'));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppTheme.danger,
+        content: Text(e.toString().replaceAll('Exception: ', ''),
+            style: const TextStyle(color: Colors.white)),
+      ));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _cancelOrder() async {
+    final paid = _order.status != 'awaiting_payment';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Cancel order #${_order.id}?'),
+        content: Text(paid
+            ? 'The restaurant has not started it yet. You will be refunded in full.'
+            : 'This order has not been paid yet.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Keep order')),
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Cancel order',
+                  style: TextStyle(color: AppTheme.danger))),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      final updated = await ApiService.cancelOrder(
+          context.read<AuthProvider>().token!, _order.id);
+      if (!mounted) return;
+      _pollTimer?.cancel();
+      setState(() => _order = updated);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppTheme.success,
+        content: Text(paid ? 'Order cancelled and refunded.' : 'Order cancelled.'),
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppTheme.danger,
+        content: Text(e.toString().replaceAll('Exception: ', ''),
+            style: const TextStyle(color: Colors.white)),
+      ));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _confirmPickup() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    if (auth.token == null) return;
+    setState(() => _confirmingPickup = true);
+    try {
+      final updated =
+          await ApiService.updateOrderStatus(auth.token!, _order.id, 'picked_up');
+      if (!mounted) return;
+      _pollTimer?.cancel();
+      setState(() => _order = updated);
+      _showOrderComplete();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppTheme.danger,
+        content: Text(e.toString().replaceAll('Exception: ', ''),
+            style: const TextStyle(color: Colors.white)),
+      ));
+    } finally {
+      if (mounted) setState(() => _confirmingPickup = false);
+    }
+  }
+
+  String get _headline {
+    if (_order.status == 'awaiting_payment') return 'Awaiting payment';
+    if (_order.status == 'cancelled') return 'Cancelled';
+    if (_order.isCompleted) {
+      return _order.fulfillmentMethod == 'pickup' ? 'Picked up' : 'Delivered';
+    }
+    if (_order.fulfillmentMethod == 'pickup') {
+      return _order.status == 'ready' ? 'Ready for pickup' : 'Preparing';
+    }
+    return '25–35 min';
   }
 
   int get _currentStep {
@@ -229,11 +337,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                     style: TextStyle(color: AppColors.textSecondary(context))),
                 const SizedBox(height: 6),
                 Text(
-                  _order.fulfillmentMethod == 'pickup'
-                    ? (_order.status == 'ready'
-                      ? 'Ready for pickup'
-                      : 'Preparing')
-                    : '25–35 min',
+                  _headline,
                   style: const TextStyle(
                       color: AppTheme.accent,
                       fontSize: 32,
@@ -341,6 +445,48 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               ],
             );
           }),
+
+          if (_order.status == 'awaiting_payment') ...[
+            PrimaryButton(
+              key: const Key('tracking-pay-now'),
+              label: 'Pay now',
+              icon: Icons.payments_outlined,
+              isLoading: _busy,
+              onPressed: _busy ? null : _payNow,
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (_order.isCancellableByCustomer) ...[
+            GhostButton(
+              key: const Key('tracking-cancel-order'),
+              label: 'Cancel order',
+              onPressed: _busy ? null : _cancelOrder,
+            ),
+            const SizedBox(height: 24),
+          ],
+          if (_order.isCompleted && !_order.isRated) ...[
+            PrimaryButton(
+              key: const Key('tracking-rate-order'),
+              label: 'Rate order',
+              icon: Icons.star_rounded,
+              onPressed: () async {
+                if (await showRateOrderSheet(context, _order) && mounted) {
+                  setState(() => _order = _order.copyWith(isRated: true));
+                }
+              },
+            ),
+            const SizedBox(height: 24),
+          ],
+          if (_order.fulfillmentMethod == 'pickup' &&
+              _order.status == 'ready') ...[
+            PrimaryButton(
+              label: "I've collected my order",
+              icon: Icons.storefront_outlined,
+              isLoading: _confirmingPickup,
+              onPressed: _confirmingPickup ? null : _confirmPickup,
+            ),
+            const SizedBox(height: 24),
+          ],
 
           // ── Order summary ─────────────────────────────────
           Divider(color: AppColors.border(context)),

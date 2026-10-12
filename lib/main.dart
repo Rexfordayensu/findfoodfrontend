@@ -67,10 +67,15 @@ class _FindFoodAppState extends State<FindFoodApp> {
     _router = createAppRouter(auth, navigatorKey: _navigatorKey);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await auth.initializeFromSecureStorage();
-      await GoogleOAuthFlowService.initializeDeepLinkHandling(
-        authProvider: auth,
-        navigatorKey: _navigatorKey,
-      );
+      try {
+        await GoogleOAuthFlowService.initializeDeepLinkHandling(
+          authProvider: auth,
+          navigatorKey: _navigatorKey,
+        );
+      } catch (error) {
+        // Deep links are optional; a platform without the plugin must still start.
+        debugPrint('Deep link handling unavailable: $error');
+      }
       await _handleDeepLink();
     });
   }

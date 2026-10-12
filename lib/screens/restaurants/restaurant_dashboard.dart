@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../theme.dart';
 import '../../widgets/widgets.dart';
+import '../../widgets/account_settings.dart';
 import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
@@ -29,6 +30,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
   String _restaurantName = '';
   String? _restaurantBannerUrl;
   int _restaurantId = 0;
+  Restaurant? _restaurant;
   String _checkError = '';
 
   @override
@@ -47,17 +49,24 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
     });
     try {
       final restaurant = await ApiService.getMyRestaurant(auth.token!);
-      setState(() {
-        _isApproved = restaurant.isApproved;
-        _restaurantName = restaurant.name;
-        _restaurantBannerUrl = restaurant.bannerUrl;
-        _restaurantId = restaurant.id;
-      });
+      if (!mounted) return;
+      _applyRestaurant(restaurant);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _checkError = e.toString().replaceAll('Exception: ', ''));
     } finally {
-      setState(() => _checking = false);
+      if (mounted) setState(() => _checking = false);
     }
+  }
+
+  void _applyRestaurant(Restaurant restaurant) {
+    setState(() {
+      _restaurant = restaurant;
+      _isApproved = restaurant.isApproved;
+      _restaurantName = restaurant.name;
+      _restaurantBannerUrl = restaurant.bannerUrl;
+      _restaurantId = restaurant.id;
+    });
   }
 
   @override
@@ -120,6 +129,8 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       _SettingsPage(
         restaurantId: _restaurantId,
         bannerUrl: _restaurantBannerUrl,
+        restaurant: _restaurant,
+        onRestaurantChanged: _applyRestaurant,
       )
     ];
 
@@ -267,7 +278,14 @@ class _OrdersPageState extends State<_OrdersPage> {
   String _filter = 'all';
   Timer? _pollTimer;
 
-  final _filters = ['all', 'pending', 'preparing', 'ready', 'delivered'];
+  final _filters = [
+    'all',
+    'pending',
+    'preparing',
+    'ready',
+    'delivered',
+    'cancelled'
+  ];
 
   @override
   void initState() {
@@ -292,11 +310,13 @@ class _OrdersPageState extends State<_OrdersPage> {
     });
     try {
       final orders = await ApiService.getMyOrders(auth.token!);
+      if (!mounted) return;
       setState(() => _orders = orders);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -307,6 +327,7 @@ class _OrdersPageState extends State<_OrdersPage> {
       final orders = await ApiService.getMyOrders(auth.token!);
       final prevCount = _orders.where((o) => o.status == 'pending').length;
       final newCount = orders.where((o) => o.status == 'pending').length;
+      if (!mounted) return;
       setState(() => _orders = orders);
       // Notify if new pending orders arrived
       if (newCount > prevCount && mounted) {
@@ -343,18 +364,20 @@ class _OrdersPageState extends State<_OrdersPage> {
         order.id,
         newStatus,
       );
+      if (!mounted) return;
       setState(() {
         final idx = _orders.indexWhere((o) => o.id == order.id);
         if (idx != -1) _orders[idx] = updated;
       });
-      if (!mounted) return;
+      final message = newStatus == 'cancelled'
+          ? 'Order #${order.id} rejected. The customer has been refunded.'
+          : 'Order #${order.id} → ${newStatus.replaceAll('_', ' ')} ✓';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: AppTheme.success,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        content: Text('Order #${order.id} → $newStatus ✓',
-            style: const TextStyle(color: Colors.white)),
+        content: Text(message, style: const TextStyle(color: Colors.white)),
       ));
     } catch (e) {
       if (!mounted) return;
@@ -366,9 +389,25 @@ class _OrdersPageState extends State<_OrdersPage> {
     }
   }
 
+  int get _ordersToday {
+    final now = DateTime.now();
+    return _orders.where((o) {
+      final placed = o.createdAt;
+      return placed != null &&
+          placed.year == now.year &&
+          placed.month == now.month &&
+          placed.day == now.day;
+    }).length;
+  }
+
   List<Order> get _filtered => _filter == 'all'
       ? _orders
-      : _orders.where((o) => o.status == _filter).toList();
+      : _orders
+          .where((o) =>
+              o.status == _filter ||
+              // Collected pickup orders are completed just like deliveries.
+              (_filter == 'delivered' && o.status == 'picked_up'))
+          .toList();
 
   @override
   Widget build(BuildContext context) {
@@ -445,23 +484,27 @@ class _OrdersPageState extends State<_OrdersPage> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Row(children: [
-                _StatChip(
-                    'Pending',
-                    '${_orders.where((o) => o.status == 'pending').length}',
-                    AppTheme.accent),
+                Expanded(
+                    child: _StatChip(
+                        'Pending',
+                        '${_orders.where((o) => o.status == 'pending').length}',
+                        AppTheme.accent)),
                 const SizedBox(width: 8),
-                _StatChip(
-                    'Preparing',
-                    '${_orders.where((o) => o.status == 'preparing').length}',
-                    AppTheme.warning),
+                Expanded(
+                    child: _StatChip(
+                        'Preparing',
+                        '${_orders.where((o) => o.status == 'preparing').length}',
+                        AppTheme.warning)),
                 const SizedBox(width: 8),
-                _StatChip(
-                    'Ready',
-                    '${_orders.where((o) => o.status == 'ready').length}',
-                    AppTheme.success),
+                Expanded(
+                    child: _StatChip(
+                        'Ready',
+                        '${_orders.where((o) => o.status == 'ready').length}',
+                        AppTheme.success)),
                 const SizedBox(width: 8),
-                _StatChip('Today', '${_orders.length}',
-                    AppColors.textSecondary(context)),
+                Expanded(
+                    child: _StatChip('Today', '$_ordersToday',
+                        AppColors.textSecondary(context))),
               ]),
             ),
 
@@ -566,7 +609,9 @@ class _OrderCard extends StatelessWidget {
     final isPending = order.status == 'pending';
     final isPreparing = order.status == 'preparing';
     final isReady = order.status == 'ready';
-    final isDone = order.status == 'delivered';
+    final isPickup = order.fulfillmentMethod == 'pickup';
+    final isDone = order.status == 'delivered' || order.status == 'picked_up';
+    final isCancelled = order.status == 'cancelled';
 
     String? actionLabel;
     String? nextStatus;
@@ -579,6 +624,10 @@ class _OrderCard extends StatelessWidget {
     } else if (isPreparing) {
       actionLabel = '✅  Mark ready for pickup';
       nextStatus = 'ready';
+      actionColor = AppTheme.success;
+    } else if (isReady && isPickup) {
+      actionLabel = '🛍️  Customer collected order';
+      nextStatus = 'picked_up';
       actionColor = AppTheme.success;
     }
 
@@ -765,6 +814,19 @@ class _OrderCard extends StatelessWidget {
                 ),
               ),
             ),
+          ] else if (isCancelled) ...[
+            Divider(height: 1, color: AppColors.border(context)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(children: [
+                const Icon(Icons.cancel_outlined,
+                    color: AppTheme.danger, size: 16),
+                const SizedBox(width: 8),
+                Text('Cancelled · customer refunded',
+                    style: TextStyle(
+                        color: AppColors.textHint(context), fontSize: 12)),
+              ]),
+            ),
           ] else if (isDone) ...[
             Divider(height: 1, color: AppColors.border(context)),
             Padding(
@@ -773,7 +835,10 @@ class _OrderCard extends StatelessWidget {
                 const Icon(Icons.check_circle_rounded,
                     color: AppTheme.success, size: 16),
                 const SizedBox(width: 8),
-                Text('Delivered successfully',
+                Text(
+                    order.status == 'picked_up'
+                        ? 'Collected by customer'
+                        : 'Delivered successfully',
                     style: TextStyle(
                         color: AppColors.textHint(context), fontSize: 12)),
               ]),
@@ -795,7 +860,7 @@ class _OrderCard extends StatelessWidget {
                 color: AppColors.textPrimary(context),
                 fontWeight: FontWeight.w700)),
         content: Text(
-          'This will cancel the order. The customer will be notified.',
+          'This cancels the order and refunds the customer.',
           style: TextStyle(color: AppColors.textSecondary(context)),
         ),
         actions: [
@@ -807,7 +872,7 @@ class _OrderCard extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              // TODO: add reject endpoint
+              onUpdateStatus(order, 'cancelled');
             },
             child: const Text('Reject',
                 style: TextStyle(
@@ -882,6 +947,8 @@ class _StatChip extends StatelessWidget {
             style: TextStyle(
                 color: color, fontSize: 16, fontWeight: FontWeight.w800)),
         Text(label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(color: AppColors.textHint(context), fontSize: 10)),
       ]),
     );
@@ -928,9 +995,10 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
       if (!mounted) return;
       setState(() => _items = items);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -1400,6 +1468,7 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
         auth.token!,
         item.id,
       );
+      if (!mounted) return;
       setState(() => _items.removeWhere((m) => m.id == item.id));
       if (!mounted) return;
       messenger?.showSnackBar(const SnackBar(
@@ -1728,11 +1797,13 @@ class _EarningsPageState extends State<_EarningsPage> {
     });
     try {
       final data = await ApiService.getRestaurantAnalytics(auth.token!);
+      if (!mounted) return;
       setState(() => _data = data);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -2102,9 +2173,9 @@ class _PromotionManagerState extends State<_PromotionManager> {
       _error = null;
     });
     try {
-     final promotions = await ApiService.getMyPromotions(
-        token: widget.token,                       
-        restaurantId: widget.restaurantId,     
+      final promotions = await ApiService.getMyPromotions(
+        token: widget.token,
+        restaurantId: widget.restaurantId,
       );
       if (mounted) setState(() => _promotions = promotions);
     } catch (error) {
@@ -2344,13 +2415,21 @@ class _PromotionManagerState extends State<_PromotionManager> {
 class _SettingsPage extends StatefulWidget {
   final int restaurantId;
   final String? bannerUrl;
-  const _SettingsPage({required this.restaurantId, this.bannerUrl});
+  final Restaurant? restaurant;
+  final ValueChanged<Restaurant> onRestaurantChanged;
+  const _SettingsPage({
+    required this.restaurantId,
+    this.bannerUrl,
+    this.restaurant,
+    required this.onRestaurantChanged,
+  });
   @override
   State<_SettingsPage> createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<_SettingsPage> {
   bool _isOpen = true;
+  bool _savingOpen = false;
   Uint8List? _pendingBannerBytes;
   String? _pendingBannerFilename;
   String? _bannerUrl;
@@ -2360,6 +2439,55 @@ class _SettingsPageState extends State<_SettingsPage> {
   void initState() {
     super.initState();
     _bannerUrl = widget.bannerUrl;
+    _isOpen = widget.restaurant?.isOpen ?? true;
+  }
+
+  @override
+  void didUpdateWidget(covariant _SettingsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.restaurant != oldWidget.restaurant && !_savingOpen) {
+      _isOpen = widget.restaurant?.isOpen ?? _isOpen;
+    }
+  }
+
+  Future<void> _setKitchenOpen(bool open) async {
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
+    setState(() {
+      _isOpen = open;
+      _savingOpen = true;
+    });
+    try {
+      final restaurant =
+          await ApiService.updateMyRestaurant(token: token, isOpen: open);
+      if (!mounted) return;
+      widget.onRestaurantChanged(restaurant);
+      showSettingsMessage(
+          context,
+          open
+              ? 'Kitchen is open for orders.'
+              : 'Kitchen closed. New orders are paused.');
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isOpen = !open);
+      showSettingsMessage(
+          context, error.toString().replaceAll('Exception: ', ''),
+          isError: true);
+    } finally {
+      if (mounted) setState(() => _savingOpen = false);
+    }
+  }
+
+  void _editRestaurantProfile() {
+    final restaurant = widget.restaurant;
+    if (restaurant == null) return;
+    showSettingsSheet(
+      context,
+      _RestaurantProfileForm(
+        restaurant: restaurant,
+        onSaved: widget.onRestaurantChanged,
+      ),
+    );
   }
 
   Future<void> _chooseBanner() async {
@@ -2570,6 +2698,8 @@ class _SettingsPageState extends State<_SettingsPage> {
                 child: ListView(
                   padding: const EdgeInsets.only(bottom: 20),
                   children: [
+                    const AccountHeader(subtitle: 'Restaurant owner'),
+                    const SizedBox(height: 20),
                     _buildBannerSection(context, auth),
                     const SizedBox(height: 16),
                     if (auth.token != null) ...[
@@ -2579,65 +2709,39 @@ class _SettingsPageState extends State<_SettingsPage> {
                       ),
                       const SizedBox(height: 16),
                     ],
-
-                    // Kitchen toggle
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.card(context),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.border(context)),
-                      ),
-                      child: Row(children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Kitchen status',
-                                  style: TextStyle(
-                                      color: AppColors.textPrimary(context),
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15)),
-                              Text(
-                                _isOpen
-                                    ? 'Accepting orders'
-                                    : 'Closed for orders',
-                                style: TextStyle(
-                                    color: _isOpen
-                                        ? AppTheme.success
-                                        : AppColors.textHint(context),
-                                    fontSize: 12),
-                              ),
-                            ],
+                    AccountSettingsSection(
+                      role: 'restaurant',
+                      businessRows: [
+                        SettingsTile(
+                          key: const Key('settings-kitchen'),
+                          icon: Icons.soup_kitchen_outlined,
+                          title: 'Kitchen status',
+                          subtitle: _isOpen
+                              ? 'Open · accepting orders'
+                              : 'Closed · new orders paused',
+                          trailing: Switch(
+                            key: const Key('kitchen-switch'),
+                            value: _isOpen,
+                            activeThumbColor: AppTheme.accent,
+                            onChanged: _savingOpen ? null : _setKitchenOpen,
                           ),
+                          onTap: _savingOpen
+                              ? null
+                              : () => _setKitchenOpen(!_isOpen),
                         ),
-                        Switch(
-                          value: _isOpen,
-                          onChanged: (v) => setState(() => _isOpen = v),
-                          activeThumbColor: AppTheme.accent,
+                        SettingsTile(
+                          key: const Key('settings-restaurant-profile'),
+                          icon: Icons.storefront_outlined,
+                          title: 'Restaurant profile',
+                          subtitle: widget.restaurant == null
+                              ? 'Edit your restaurant details'
+                              : '${widget.restaurant!.name} · ${widget.restaurant!.cuisineType}',
+                          onTap: _editRestaurantProfile,
                         ),
-                      ]),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    _row(context, Icons.storefront_outlined,
-                        'Restaurant profile', 'Edit your restaurant details'),
-                    _row(context, Icons.notifications_outlined, 'Notifications',
-                        'Manage alert preferences'),
-                    _row(context, Icons.lock_outline_rounded, 'Change password',
-                        'Update your password'),
-                    const SizedBox(height: 8),
-                    GhostButton(
-                      label: 'Sign out',
-                      onPressed: () async {
-                        if (!await confirmLogout(context) || !context.mounted) {
-                          return;
-                        }
-                        await auth.logout();
-                        if (!context.mounted) return;
-                        showLogoutSuccess(context);
-                        context.go('/');
-                      },
-                    ),
+                    const SizedBox(height: 20),
+                    const SignOutButton(),
                   ],
                 ),
               ),
@@ -2647,37 +2751,102 @@ class _SettingsPageState extends State<_SettingsPage> {
       ),
     );
   }
+}
 
-  Widget _row(BuildContext ctx, IconData icon, String label, String sub) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card(ctx),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border(ctx)),
-      ),
-      child: Row(children: [
-        Icon(icon, color: AppColors.textHint(ctx), size: 20),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label,
-                  style: TextStyle(
-                      color: AppColors.textPrimary(ctx),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14)),
-              Text(sub,
-                  style:
-                      TextStyle(color: AppColors.textHint(ctx), fontSize: 12)),
-            ],
-          ),
+class _RestaurantProfileForm extends StatefulWidget {
+  final Restaurant restaurant;
+  final ValueChanged<Restaurant> onSaved;
+  const _RestaurantProfileForm(
+      {required this.restaurant, required this.onSaved});
+
+  @override
+  State<_RestaurantProfileForm> createState() => _RestaurantProfileFormState();
+}
+
+class _RestaurantProfileFormState extends State<_RestaurantProfileForm> {
+  late final _nameCtrl = TextEditingController(text: widget.restaurant.name);
+  late final _cuisineCtrl =
+      TextEditingController(text: widget.restaurant.cuisineType);
+  late final _addressCtrl =
+      TextEditingController(text: widget.restaurant.address);
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _cuisineCtrl.dispose();
+    _addressCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if ([_nameCtrl, _cuisineCtrl, _addressCtrl]
+        .any((c) => c.text.trim().isEmpty)) {
+      showSettingsMessage(context, 'Please fill in every field.',
+          isError: true);
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      final updated = await ApiService.updateMyRestaurant(
+        token: context.read<AuthProvider>().token!,
+        name: _nameCtrl.text,
+        cuisineType: _cuisineCtrl.text,
+        address: _addressCtrl.text,
+      );
+      if (!mounted) return;
+      widget.onSaved(updated);
+      Navigator.of(context).pop();
+      showSettingsMessage(context, 'Restaurant profile updated.');
+    } catch (error) {
+      if (mounted) {
+        showSettingsMessage(
+            context, error.toString().replaceAll('Exception: ', ''),
+            isError: true);
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SheetHeader(
+          title: 'Restaurant profile',
+          subtitle: 'This is what customers see in the app.',
         ),
-        Icon(Icons.arrow_forward_ios_rounded,
-            color: AppColors.textHint(ctx), size: 13),
-      ]),
+        AppTextField(
+          key: const Key('restaurant-name-field'),
+          controller: _nameCtrl,
+          hint: 'Restaurant name',
+          prefixIcon: Icons.storefront_outlined,
+        ),
+        const SizedBox(height: 12),
+        AppTextField(
+          key: const Key('restaurant-cuisine-field'),
+          controller: _cuisineCtrl,
+          hint: 'Cuisine type',
+          prefixIcon: Icons.restaurant_menu_rounded,
+        ),
+        const SizedBox(height: 12),
+        AppTextField(
+          key: const Key('restaurant-address-field'),
+          controller: _addressCtrl,
+          hint: 'Address',
+          prefixIcon: Icons.location_on_outlined,
+        ),
+        const SizedBox(height: 20),
+        PrimaryButton(
+          key: const Key('restaurant-profile-save'),
+          label: 'Save changes',
+          isLoading: _saving,
+          onPressed: _saving ? null : _save,
+        ),
+      ],
     );
   }
 }

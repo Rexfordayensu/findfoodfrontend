@@ -143,9 +143,10 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
       });
       _staggerCtrl.forward(from: 0);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -505,7 +506,8 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
               radius: 34,
               backgroundColor: AppTheme.accentDim,
               child: Text(
-                (auth.role ?? 'U')[0].toUpperCase(),
+                ((auth.name?.trim().isNotEmpty ?? false) ? auth.name! : 'U')[0]
+                    .toUpperCase(),
                 style: const TextStyle(
                     color: AppTheme.accent,
                     fontSize: 26,
@@ -513,7 +515,10 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
               ),
             ),
             const SizedBox(height: 12),
-            Text(auth.role?.toUpperCase() ?? 'USER',
+            Text(
+                (auth.name?.trim().isNotEmpty ?? false)
+                    ? auth.name!
+                    : 'Your account',
                 style: TextStyle(
                     color: AppColors.textPrimary(ctx),
                     fontSize: 17,
@@ -525,13 +530,33 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
                 color: AppTheme.accent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Text(auth.role ?? '',
+              child: Text(auth.email ?? auth.role ?? '',
                   style: const TextStyle(
                       color: AppTheme.accent,
                       fontSize: 12,
                       fontWeight: FontWeight.w700)),
             ),
             const SizedBox(height: 28),
+            _SheetBtn(
+              icon: Icons.manage_accounts_outlined,
+              label: 'Account settings',
+              color: AppTheme.accent,
+              onTap: () {
+                Navigator.pop(ctx);
+                context.push('/profile');
+              },
+            ),
+            const SizedBox(height: 10),
+            _SheetBtn(
+              icon: Icons.receipt_long_outlined,
+              label: 'My orders',
+              color: AppTheme.accent,
+              onTap: () {
+                Navigator.pop(ctx);
+                context.push('/orders');
+              },
+            ),
+            const SizedBox(height: 10),
             // Theme toggle
             _SheetBtn(
               icon: themeP.isDark
@@ -617,19 +642,16 @@ class _Header extends StatelessWidget {
                     color: Colors.black, size: 19),
               ),
               const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('FINDFOOD',
-                      style: TextStyle(
-                          color: textPri,
-                          fontFamily: 'Georgia',
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                          letterSpacing: 0.6)),
-                ],
+              Expanded(
+                child: Text('FINDFOOD',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: textPri,
+                        fontFamily: 'Georgia',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        letterSpacing: 0.6)),
               ),
-              const Spacer(),
               _IconBtn(
                 icon: themeP.isDark
                     ? Icons.wb_sunny_rounded
@@ -663,6 +685,10 @@ class _Header extends StatelessWidget {
                 onTap: () {
                   if (!auth.isLoggedIn) {
                     context.go('/login');
+                  } else if (auth.isCustomer) {
+                    context.push('/profile');
+                  } else {
+                    context.go('/');
                   }
                 },
                 tooltip: auth.isLoggedIn ? 'Profile' : 'Sign in',
@@ -1243,17 +1269,29 @@ class _RestaurantCardState extends State<_RestaurantCard>
                                   overflow: TextOverflow.ellipsis),
                             ),
                             const SizedBox(width: 8),
+                            if (!r.isOpen)
+                              Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.danger.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Text('Closed',
+                                    style: TextStyle(
+                                        color: AppTheme.danger,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700)),
+                              ),
                             const Icon(Icons.star_rounded,
                                 color: AppTheme.accent, size: 14),
                             const SizedBox(width: 3),
-                            const Text('4.8',
-                                style: TextStyle(
+                            Text(r.ratingLabel,
+                                style: const TextStyle(
                                     color: AppTheme.accent,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700)),
-                            Text(' (120+)',
-                                style:
-                                    TextStyle(color: textHint, fontSize: 11)),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -1281,14 +1319,7 @@ class _RestaurantCardState extends State<_RestaurantCard>
                           ],
                         ),
                         const SizedBox(height: 12),
-                        // Pills row
-                        Row(
-                          children: [
-                            const _Pill('Free delivery', AppTheme.success),
-                            const SizedBox(width: 8),
-                            _Pill('Min GH₵ 20', textHint),
-                          ],
-                        ),
+                        const _Pill('Free delivery', AppTheme.success),
                         // CTA button — full width, always visible
                         if (widget.onTap != null) ...[
                           const SizedBox(height: 14),

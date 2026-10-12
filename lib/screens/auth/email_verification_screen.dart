@@ -96,10 +96,13 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
           token: loginToken,
           userId: userId,
           role: role,
-          email: widget.email,
+          name: loginData['name']?.toString(),
+          email: loginData['email']?.toString() ?? widget.email,
           isEmailVerified: true,
           isRestaurantApproved: isApproved,
         );
+
+        if (!mounted) return;
 
         setState(() {
           _showSuccess = true;
@@ -136,7 +139,8 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
           token: token,
           userId: userId,
           role: role,
-          email: widget.email,
+          name: data['name']?.toString(),
+          email: data['email']?.toString() ?? widget.email,
           isEmailVerified: true,
           isRestaurantApproved: isApproved,
         );

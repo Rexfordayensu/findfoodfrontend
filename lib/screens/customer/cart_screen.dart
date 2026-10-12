@@ -7,8 +7,7 @@ import '../../theme.dart';
 import '../../widgets/widgets.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
-import '../../models/models.dart';
-import 'package:url_launcher/url_launcher_string.dart';
+import '../../services/order_payment.dart';
 
 
 class CartScreen extends StatefulWidget {
@@ -22,8 +21,6 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   bool _isLoading = false;
-  Timer? _paymentVerificationTimer;
-  bool _hasNavigatedToTracking = false;
   bool _isDelivery = true;
   bool _isDetectingLocation = false;
   double? _deliveryLatitude;
@@ -34,12 +31,6 @@ class _CartScreenState extends State<CartScreen> {
   final TextEditingController _pickupNameController = TextEditingController();
   final TextEditingController _pickupPhoneController = TextEditingController();
   final TextEditingController _kitchenNoteController = TextEditingController();
-
-
-  final List<PaymentProviderOption> _providers = const [
-    PaymentProviderOption(value: 'paystack', label: 'Paystack'),
-    PaymentProviderOption(value: 'mtn_momo', label: 'MTN Mobile Money'),
-  ];
 
 
   @override
@@ -57,7 +48,6 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   void dispose() {
-    _paymentVerificationTimer?.cancel();
     _deliveryAddressController.dispose();
     _pickupNameController.dispose();
     _pickupPhoneController.dispose();
@@ -156,50 +146,6 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
-  void _startPaymentVerification(
-      {required String reference, required Order order}) {
-    if (_paymentVerificationTimer != null) return;
-
-    _hasNavigatedToTracking = false;
-    _paymentVerificationTimer =
-        Timer.periodic(const Duration(seconds: 5), (_) async {
-      if (!mounted || _hasNavigatedToTracking) return;
-
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      if (!auth.isLoggedIn || auth.token == null) return;
-
-      try {
-        final verification = await ApiService.verifyPayment(
-          token: auth.token!,
-          reference: reference,
-        );
-
-        final status = verification['status']?.toString().toLowerCase();
-        if (status == 'success') {
-          _paymentVerificationTimer?.cancel();
-          _paymentVerificationTimer = null;
-          if (!mounted) return;
-
-          setState(() => _hasNavigatedToTracking = true);
-          context.go('/order-tracking/${order.id}', extra: order);
-        }
-      } catch (_) {
-        // Keep polling until the backend confirms payment success.
-      }
-    });
-
-    Future.delayed(const Duration(minutes: 2), () {
-      if (!mounted || _hasNavigatedToTracking) return;
-      _paymentVerificationTimer?.cancel();
-      _paymentVerificationTimer = null;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                'Payment verification timed out. Please check your order status.')),
-      );
-    });
-  }
-
   Future<void> _placeOrderAndInitializePayment() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final cart = Provider.of<CartProvider>(context, listen: false);
@@ -257,36 +203,24 @@ class _CartScreenState extends State<CartScreen> {
         kitchenNote: _kitchenNoteController.text.trim().isNotEmpty ? _kitchenNoteController.text.trim() : null,
       );
 
-      final init = await ApiService.initializePayment(
-        token: auth.token!,
-        orderId: order.id,
-        provider: 'paystack',
-      );
-
+      // The order now exists (awaiting payment), so the cart is done with;
+      // an unfinished payment can be completed later from Orders.
+      cart.clearCart();
       if (!mounted) return;
-
-      final authorizationUrl = init['authorization_url'] as String?;
-      final reference = init['reference'] as String?;
-
-      if (authorizationUrl == null || reference == null) {
-        throw Exception('Invalid payment initialization response.');
+      final paid = await OrderPayment.start(context, order);
+      if (!mounted) return;
+      if (paid) {
+        context.go('/order-tracking/${order.id}',
+            extra: order.copyWith(status: 'pending'));
+      } else {
+        _showCheckoutMessage(
+            'Payment not completed. Your order is saved under Orders - tap "Pay now" to finish.');
+        context.go('/orders');
       }
-
-      await launchUrlString(
-        authorizationUrl,
-        mode: LaunchMode.platformDefault,
-        webOnlyWindowName: '_self',
-      );
-
-      if (!mounted) return;
-      _startPaymentVerification(reference: reference, order: order);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Opening checkout for reference $reference...'),
-      ));
     } catch (e) {
       if (!mounted) return;
       final errorMsg = e.toString().replaceAll('Exception: ', '');
-        debugPrint('Payment initialization error: $errorMsg | Provider: paystack');
+      debugPrint('Checkout error: $errorMsg');
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: AppTheme.danger,
         content: Text(errorMsg, style: const TextStyle(color: Colors.white)),
@@ -336,7 +270,7 @@ class _CartScreenState extends State<CartScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppTheme.card,
+                  color: AppColors.card(context),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: AppTheme.darkBorder),
                 ),
@@ -386,7 +320,7 @@ class _CartScreenState extends State<CartScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.card,
+              color: AppColors.card(context),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppTheme.darkBorder),
             ),
@@ -424,7 +358,7 @@ class _CartScreenState extends State<CartScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.card,
+              color: AppColors.card(context),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppTheme.darkBorder),
             ),
@@ -500,7 +434,7 @@ class _CartScreenState extends State<CartScreen> {
             Icon(
               _isDelivery ? Icons.location_on_outlined : Icons.store_outlined,
               size: 17,
-              color: AppTheme.textSecond,
+              color: AppColors.textSecondary(context),
             ),
             const SizedBox(width: 6),
             Expanded(
@@ -508,7 +442,7 @@ class _CartScreenState extends State<CartScreen> {
                 _isDelivery
                     ? 'Delivered to your address or current location'
                     : 'Collect from ${cart.restaurantName ?? 'the restaurant'}',
-                style: AppText.caption.copyWith(color: AppTheme.textSecond),
+                style: AppText.caption.copyWith(color: AppColors.textSecondary(context)),
               ),
             ),
           ],
@@ -524,11 +458,11 @@ class _CartScreenState extends State<CartScreen> {
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-          color: AppTheme.surface,
+          color: AppColors.surface(context),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: AppTheme.darkBorder),
         ),
-        child: Icon(icon, size: 16, color: AppTheme.textPrimary),
+        child: Icon(icon, size: 16, color: AppColors.textPrimary(context)),
       ),
     );
   }
@@ -547,7 +481,7 @@ class _CartScreenState extends State<CartScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.card,
+        color: AppColors.card(context),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.darkBorder),
       ),
@@ -598,7 +532,7 @@ class _CartScreenState extends State<CartScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.card,
+        color: AppColors.card(context),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.darkBorder),
       ),
@@ -647,14 +581,5 @@ class _CartScreenState extends State<CartScreen> {
       ),
     );
   }
-}
-class PaymentProviderOption {
-  final String value;
-  final String label;
-
-  const PaymentProviderOption({
-    required this.value,
-    required this.label,
-  });
 }
 

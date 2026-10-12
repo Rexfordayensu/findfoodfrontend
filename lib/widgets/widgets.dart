@@ -141,22 +141,28 @@ class StatusBadge extends StatelessWidget {
 
   Color get _color {
     switch (status.toLowerCase()) {
+      case 'awaiting_payment': return const Color(0xFF9E9E9E);
       case 'pending':          return AppTheme.warning;
       case 'preparing':        return AppTheme.accent;
       case 'ready':            return AppTheme.success;
       case 'out_for_delivery': return AppTheme.accent;
       case 'delivered':        return AppTheme.success;
+      case 'picked_up':        return AppTheme.success;
+      case 'cancelled':        return AppTheme.danger;
       default:                 return const Color(0xFF9E9E9E);
     }
   }
 
   String get _label {
     switch (status.toLowerCase()) {
+      case 'awaiting_payment': return 'Awaiting payment';
       case 'pending':          return 'Pending';
       case 'preparing':        return 'Preparing';
       case 'ready':            return 'Ready';
       case 'out_for_delivery': return 'On the way';
       case 'delivered':        return 'Delivered';
+      case 'picked_up':        return 'Picked up';
+      case 'cancelled':        return 'Cancelled';
       default:                 return status;
     }
   }
@@ -173,129 +179,6 @@ class StatusBadge extends StatelessWidget {
       child: Text(_label,
           style: TextStyle(color: _color, fontSize: 12,
               fontWeight: FontWeight.w600)),
-    );
-  }
-}
-
-// ─── RESTAURANT CARD ──────────────────────────────────────────────────────────
-class RestaurantCard extends StatelessWidget {
-  final String name, cuisine, address;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const RestaurantCard({
-    super.key, required this.name, required this.cuisine,
-    required this.address, required this.isActive, required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cardColor   = AppColors.card(context);
-    final borderColor = AppColors.border(context);
-    final textPri     = AppColors.textPrimary(context);
-    final textSec     = AppColors.textSecondary(context);
-    final textHint    = AppColors.textHint(context);
-    final surfColor   = AppColors.surface(context);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10, offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image placeholder
-            Container(
-              height: 130,
-              decoration: BoxDecoration(
-                color: surfColor,
-                borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16)),
-              ),
-              child: Center(
-                child: Icon(Icons.storefront_rounded,
-                    size: 48, color: textHint),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(name,
-                            style: AppText.title.copyWith(color: textPri),
-                            overflow: TextOverflow.ellipsis),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: isActive
-                              ? AppTheme.success.withValues(alpha: 0.12)
-                              : textHint.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          isActive ? 'Open' : 'Closed',
-                          style: TextStyle(
-                            color: isActive ? AppTheme.success : textHint,
-                            fontSize: 11, fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(cuisine,
-                      style: AppText.body.copyWith(color: textSec)),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Icon(Icons.location_on_outlined,
-                          size: 13, color: textHint),
-                      const SizedBox(width: 3),
-                      Expanded(
-                        child: Text(address,
-                            style: AppText.caption.copyWith(color: textHint),
-                            overflow: TextOverflow.ellipsis),
-                      ),
-                      const SizedBox(width: 10),
-                      const Icon(Icons.star_rounded,
-                          size: 13, color: AppTheme.accent),
-                      const SizedBox(width: 2),
-                      const Text('4.8',
-                          style: TextStyle(
-                              color: AppTheme.accent, fontSize: 12,
-                              fontWeight: FontWeight.w600)),
-                      const SizedBox(width: 10),
-                      Icon(Icons.access_time_rounded,
-                          size: 13, color: textHint),
-                      const SizedBox(width: 2),
-                      Text('25 min',
-                          style: AppText.caption.copyWith(color: textHint)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

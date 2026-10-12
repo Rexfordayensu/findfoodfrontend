@@ -29,7 +29,10 @@ Future<void> verifyPaymentAndRedirect({
     if (status == 'success') {
       if (!context.mounted) return;
       final latestOrders = await ApiService.getMyOrders(auth.token!);
-      final latestOrder = latestOrders.isNotEmpty ? latestOrders.first : null;
+      final orderId = verification['order_id']?.toString();
+      final latestOrder = orderId == null
+          ? (latestOrders.isNotEmpty ? latestOrders.first : null)
+          : latestOrders.where((o) => o.id.toString() == orderId).firstOrNull;
 
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

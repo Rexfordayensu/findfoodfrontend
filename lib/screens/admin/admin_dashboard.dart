@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../theme.dart';
-import '../../widgets/widgets.dart';
+import '../../widgets/account_settings.dart';
 import '../../widgets/greeting_header.dart';
 import '../../services/providers.dart';
 import '../../services/api_service.dart';
@@ -23,11 +23,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
   String _navQuery = '';
   bool _sidebarCollapsed = false;
 
-  final _localNotifications = const [
-    {'title': 'New approval request', 'detail': 'A restaurant is waiting for review.', 'icon': Icons.storefront_outlined},
-    {'title': 'System check complete', 'detail': 'All payment services are responding.', 'icon': Icons.check_circle_outline},
-    {'title': 'Weekly summary ready', 'detail': 'Your platform activity has been updated.', 'icon': Icons.insights_outlined},
-  ];
+  static const _notificationIcons = {
+    'approval': Icons.storefront_outlined,
+    'refund': Icons.report_problem_outlined,
+    'orders': Icons.receipt_long_outlined,
+  };
 
   final _navItems = [
     {'icon': Icons.grid_view_rounded,           'label': 'Overview'},
@@ -58,44 +58,75 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   void _showNotifications() {
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.card(context),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => SafeArea(
+      builder: (sheetContext) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(child: Container(width: 36, height: 4,
-                  decoration: BoxDecoration(color: AppColors.border(context),
-                      borderRadius: BorderRadius.circular(4)))),
-              const SizedBox(height: 18),
-              Text('Notifications', style: TextStyle(
-                  color: AppColors.textPrimary(context), fontSize: 20,
-                  fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              ..._localNotifications.map((item) => ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(9),
-                      decoration: BoxDecoration(
-                          color: AppTheme.accent.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(10)),
-                      child: Icon(item['icon'] as IconData,
-                          color: AppTheme.accent, size: 19),
-                    ),
-                    title: Text(item['title'] as String,
-                        style: TextStyle(color: AppColors.textPrimary(context),
-                            fontWeight: FontWeight.w700, fontSize: 13)),
-                    subtitle: Text(item['detail'] as String,
-                        style: TextStyle(color: AppColors.textSecondary(context),
-                            fontSize: 12)),
-                  )),
-            ],
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+            future: ApiService.getAdminNotifications(token),
+            builder: (context, snapshot) {
+              final items = snapshot.data ?? const [];
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(child: Container(width: 36, height: 4,
+                      decoration: BoxDecoration(color: AppColors.border(context),
+                          borderRadius: BorderRadius.circular(4)))),
+                  const SizedBox(height: 18),
+                  Text('Notifications', style: TextStyle(
+                      color: AppColors.textPrimary(context), fontSize: 20,
+                      fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 12),
+                  if (snapshot.connectionState != ConnectionState.done)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: CircularProgressIndicator(color: AppTheme.accent)),
+                    )
+                  else if (snapshot.hasError)
+                    Text(snapshot.error.toString().replaceAll('Exception: ', ''),
+                        style: TextStyle(color: AppColors.textSecondary(context)))
+                  else if (items.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text("You're all caught up.",
+                          style: TextStyle(color: AppColors.textSecondary(context))),
+                    )
+                  else
+                    ...items.map((item) => ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Container(
+                            padding: const EdgeInsets.all(9),
+                            decoration: BoxDecoration(
+                                color: AppTheme.accent.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10)),
+                            child: Icon(
+                                _notificationIcons[item['kind']] ??
+                                    Icons.notifications_outlined,
+                                color: AppTheme.accent, size: 19),
+                          ),
+                          title: Text(item['title']?.toString() ?? '',
+                              style: TextStyle(color: AppColors.textPrimary(context),
+                                  fontWeight: FontWeight.w700, fontSize: 13)),
+                          subtitle: Text(item['detail']?.toString() ?? '',
+                              style: TextStyle(color: AppColors.textSecondary(context),
+                                  fontSize: 12)),
+                          onTap: item['kind'] == 'approval'
+                              ? () {
+                                  Navigator.pop(sheetContext);
+                                  setState(() => _selectedIndex = 1);
+                                }
+                              : null,
+                        )),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -149,16 +180,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
                 if (!_sidebarCollapsed || !isWide) ...[
                   const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('FindFood', style: TextStyle(color: textPri,
-                          fontWeight: FontWeight.w800, fontSize: 14,
-                          letterSpacing: 0.3)),
-                      const Text('Admin HQ', style: TextStyle(
-                          color: AppTheme.accent, fontSize: 11,
-                          fontWeight: FontWeight.w600)),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('FindFood',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: textPri,
+                                fontWeight: FontWeight.w800, fontSize: 14,
+                                letterSpacing: 0.3)),
+                        const Text('Admin HQ',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: AppTheme.accent, fontSize: 11,
+                                fontWeight: FontWeight.w600)),
+                      ],
+                    ),
                   ),
                 ],
                 if (_sidebarCollapsed && isWide) const Spacer(),
@@ -268,7 +305,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                   : textHint),
                           if (!_sidebarCollapsed || !isWide) ...[
                             const SizedBox(width: 12),
-                            Text(item['label'] as String,
+                            Flexible(
+                              child: Text(item['label'] as String,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: active
                                     ? AppTheme.accent
@@ -277,7 +316,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                     ? FontWeight.w600
                                     : FontWeight.w400,
                                 fontSize: 14,
-                              )),
+                              ))),
                           ],
                           if (i == 1) ...[
                             const Spacer(),
@@ -448,12 +487,32 @@ class _AdminDashboardState extends State<AdminDashboard> {
               child: SafeArea(
                 child: Column(
                   children: [
-                    GreetingHeader(
-                      name: auth.name?.trim().isNotEmpty == true
-                          ? auth.name!
-                          : 'Admin',
-                      role: 'admin',
-                      padding: const EdgeInsets.fromLTRB(24, 18, 24, 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: GreetingHeader(
+                            name: auth.name?.trim().isNotEmpty == true
+                                ? auth.name!
+                                : 'Admin',
+                            role: 'admin',
+                            padding: const EdgeInsets.fromLTRB(24, 18, 12, 12),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Notifications',
+                          icon: const Icon(Icons.notifications_none_rounded),
+                          onPressed: _showNotifications,
+                        ),
+                        IconButton(
+                          tooltip: 'Toggle theme',
+                          icon: Icon(theme.isDark
+                              ? Icons.light_mode_rounded
+                              : Icons.dark_mode_rounded,
+                              color: AppTheme.accent),
+                          onPressed: theme.toggle,
+                        ),
+                        const SizedBox(width: 16),
+                      ],
                     ),
                     Expanded(child: _buildPage()),
                   ],
@@ -532,11 +591,13 @@ class _OverviewPageState extends State<_OverviewPage> {
     setState(() { _loading = true; _error = ''; });
     try {
       final stats = await ApiService.getPlatformStats(auth.token!);
+      if (!mounted) return;
       setState(() => _stats = stats);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -1014,12 +1075,14 @@ class _ApprovalsPageState extends State<_ApprovalsPage> {
     setState(() { _loading = true; _error = ''; });
     try {
       final list = await ApiService.getPendingRestaurants(auth.token!);
+      if (!mounted) return;
       setState(() => _pending = list);
       await widget.onPendingCountChanged();
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -1028,6 +1091,7 @@ class _ApprovalsPageState extends State<_ApprovalsPage> {
     setState(() => _processingIds.add(id));
     try {
       await ApiService.approveRestaurant(auth.token!, id);
+      if (!mounted) return;
       setState(() => _pending.removeWhere((r) => r['id'] == id));
       await widget.onPendingCountChanged();
       if (!mounted) return;
@@ -1080,6 +1144,7 @@ class _ApprovalsPageState extends State<_ApprovalsPage> {
     setState(() => _processingIds.add(id));
     try {
       await ApiService.rejectRestaurant(auth.token!, id);
+      if (!mounted) return;
       setState(() => _pending.removeWhere((r) => r['id'] == id));
       await widget.onPendingCountChanged();
       if (!mounted) return;
@@ -1350,11 +1415,13 @@ class _RiderDeskPageState extends State<_RiderDeskPage> {
     setState(() { _loading = true; _error = ''; });
     try {
       final users = await ApiService.getAllUsers(auth.token!);
+      if (!mounted) return;
       setState(() => _riders = users.where((u) => u['role'] == 'rider').toList());
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -1500,16 +1567,62 @@ class _UsersPageState extends State<_UsersPage> {
     setState(() { _loading = true; _error = ''; });
     try {
       final users = await ApiService.getAllUsers(auth.token!);
+      if (!mounted) return;
       setState(() => _users = users);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _setActive(Map<String, dynamic> user, bool isActive) async {
+    final auth = context.read<AuthProvider>();
+    final name = user['name'] ?? 'this user';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(isActive ? 'Reactivate $name?' : 'Suspend $name?'),
+        content: Text(isActive
+            ? 'They will be able to sign in again.'
+            : 'They will be signed out and cannot sign in until reactivated.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(isActive ? 'Reactivate' : 'Suspend',
+                  style: TextStyle(
+                      color: isActive ? AppTheme.success : AppTheme.danger))),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ApiService.setUserActive(
+          token: auth.token!, userId: user['id'] as int, isActive: isActive);
+      if (!mounted) return;
+      setState(() => user['is_active'] = isActive);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppTheme.success,
+        content: Text('$name ${isActive ? 'reactivated' : 'suspended'}.'),
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppTheme.danger,
+        content: Text(e.toString().replaceAll('Exception: ', '')),
+      ));
     }
   }
 
   List<Map<String, dynamic>> get _filtered {
     if (_filter == 'all') return _users;
+    if (_filter == 'suspended') {
+      return _users.where((u) => u['is_active'] == false).toList();
+    }
     return _users.where((u) => u['role'] == _filter).toList();
   }
 
@@ -1554,6 +1667,7 @@ class _UsersPageState extends State<_UsersPage> {
                   _filterChip('Restaurants', 'restaurant'),
                   _filterChip('Riders', 'rider'),
                   _filterChip('Admins', 'admin'),
+                  _filterChip('Suspended', 'suspended'),
                 ],
               ),
             ),
@@ -1629,6 +1743,8 @@ class _UsersPageState extends State<_UsersPage> {
     final color = _roleColors[role] ?? AppColors.textHint(ctx);
     final name = u['name'] ?? '';
     final email = u['email'] ?? '';
+    final isActive = u['is_active'] != false;
+    final isMe = u['id'] == context.read<AuthProvider>().userId;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1657,6 +1773,11 @@ class _UsersPageState extends State<_UsersPage> {
                         fontSize: 15, fontWeight: FontWeight.w700)),
                 Text(email,
                     style: TextStyle(color: AppColors.textSecondary(ctx), fontSize: 12)),
+                if (!isActive)
+                  const Text('Suspended',
+                      style: TextStyle(
+                          color: AppTheme.danger, fontSize: 11,
+                          fontWeight: FontWeight.w700)),
               ],
             ),
           ),
@@ -1669,24 +1790,29 @@ class _UsersPageState extends State<_UsersPage> {
             child: Text(role,
                 style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
           ),
+          if (!isMe)
+            PopupMenuButton<bool>(
+              key: Key('user-actions-${u['id']}'),
+              icon: Icon(Icons.more_vert_rounded, color: AppColors.textHint(ctx)),
+              onSelected: (active) => _setActive(u, active),
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: !isActive,
+                  child: Text(isActive ? 'Suspend account' : 'Reactivate account'),
+                ),
+              ],
+            ),
         ],
       ),
     );
   }
 }
 
-class _AdminSettingsPage extends StatefulWidget {
+class _AdminSettingsPage extends StatelessWidget {
   const _AdminSettingsPage();
 
   @override
-  State<_AdminSettingsPage> createState() => _AdminSettingsPageState();
-}
-
-class _AdminSettingsPageState extends State<_AdminSettingsPage> {
-  @override
   Widget build(BuildContext context) {
-    final textPri = AppColors.textPrimary(context);
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(28),
       child: Column(
@@ -1694,658 +1820,14 @@ class _AdminSettingsPageState extends State<_AdminSettingsPage> {
         children: [
           Text('Settings',
               style: TextStyle(
-                  color: textPri, fontSize: 26,
+                  color: AppColors.textPrimary(context), fontSize: 26,
                   fontWeight: FontWeight.w800, letterSpacing: -0.5)),
           const SizedBox(height: 24),
-          _section(context, 'Account', [
-            _row(context, Icons.person_outline_rounded,
-                'Edit profile', 'Update your admin details',
-                onTap: () => _showEditProfileSheet(context)),
-            _row(context, Icons.lock_outline_rounded,
-                'Change password', 'Update your password',
-                onTap: () => _showChangePasswordSheet(context)),
-          ]),
-          const SizedBox(height: 20),
-          _section(context, 'Platform', [
-            _row(context, Icons.notifications_outlined,
-                'Notifications', 'Manage alert preferences',
-                onTap: () => _showNotificationsSheet(context)),
-            _row(context, Icons.policy_outlined,
-                'Terms & policies', 'View platform policies',
-                onTap: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const _TermsPolicyScreen()))),
-            _row(context, Icons.help_outline_rounded,
-                'Help & support', 'Get help from our team',
-                onTap: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const _HelpSupportScreen()))),
-          ]),
-        ],
-      ),
-    );
-  }
-
-  // ── EDIT PROFILE ──────────────────────────────────────────────────────────
-  void _showEditProfileSheet(BuildContext context) {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final nameCtrl = TextEditingController();
-    var email = auth.email ?? '';
-    bool loading = true;
-    bool saving = false;
-    String error = '';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.card(context),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, set) {
-          // Load current profile once
-          if (loading && error.isEmpty) {
-            ApiService.getMyProfile(auth.token!).then((data) {
-              nameCtrl.text = data['name'] ?? '';
-              email = data['email']?.toString() ?? email;
-              set(() => loading = false);
-            }).catchError((e) {
-              set(() {
-                error = e.toString().replaceAll('Exception: ', '');
-                loading = false;
-              });
-            });
-          }
-
-          return Padding(
-            padding: EdgeInsets.fromLTRB(
-                20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.border(ctx),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const SizedBox(height: 20),
-                const SizedBox(height: 20),
-                if (loading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 30),
-                    child: Center(
-                        child: CircularProgressIndicator(color: AppTheme.accent)),
-                  )
-                else if (error.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    child: Text(error,
-                        style: TextStyle(color: AppColors.textSecondary(ctx))),
-                  )
-                else ...[
-                  AppTextField(
-                      controller: nameCtrl, hint: 'Full name',
-                      prefixIcon: Icons.person_outline_rounded),
-                  const SizedBox(height: 12),
-                  InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'Verified email',
-                      prefixIcon: Icon(Icons.verified_user_outlined),
-                    ),
-                    child: Text(email),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Changing your email requires a separate verification flow.',
-                    style: TextStyle(
-                        color: AppColors.textHint(ctx), fontSize: 12),
-                  ),
-                  const SizedBox(height: 20),
-                  PrimaryButton(
-                    label: 'Save changes',
-                    isLoading: saving,
-                    onPressed: () async {
-                      if (nameCtrl.text.trim().isEmpty) {
-                        return;
-                      }
-                      set(() => saving = true);
-                      try {
-                        await ApiService.updateMyProfile(
-                          token: auth.token!,
-                          name: nameCtrl.text.trim(),
-                        );
-                        await auth.updateName(nameCtrl.text.trim());
-                        if (!context.mounted) return;
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                          backgroundColor: AppTheme.success,
-                          content: Text('Profile updated!',
-                              style: TextStyle(color: Colors.white)),
-                        ));
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          backgroundColor: AppTheme.danger,
-                          content: Text(e.toString().replaceAll('Exception: ', ''),
-                              style: const TextStyle(color: Colors.white)),
-                        ));
-                      } finally {
-                        set(() => saving = false);
-                      }
-                    },
-                  ),
-                ],
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  // ── CHANGE PASSWORD ───────────────────────────────────────────────────────
-  void _showChangePasswordSheet(BuildContext context) {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final currentCtrl = TextEditingController();
-    final newCtrl = TextEditingController();
-    final confirmCtrl = TextEditingController();
-    bool saving = false;
-    bool obscure1 = true, obscure2 = true, obscure3 = true;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.card(context),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, set) => Padding(
-          padding: EdgeInsets.fromLTRB(
-              20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40, height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.border(ctx),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text('Change password',
-                  style: TextStyle(
-                      color: AppColors.textPrimary(ctx),
-                      fontSize: 18, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 20),
-              AppTextField(
-                controller: currentCtrl,
-                hint: 'Current password',
-                prefixIcon: Icons.lock_outline_rounded,
-                obscure: obscure1,
-                suffixIcon: IconButton(
-                  icon: Icon(obscure1 ? Icons.visibility_off : Icons.visibility,
-                      color: AppColors.textHint(ctx), size: 20),
-                  onPressed: () => set(() => obscure1 = !obscure1),
-                ),
-              ),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: newCtrl,
-                hint: 'New password (min 8 characters)',
-                prefixIcon: Icons.lock_reset_rounded,
-                obscure: obscure2,
-                suffixIcon: IconButton(
-                  icon: Icon(obscure2 ? Icons.visibility_off : Icons.visibility,
-                      color: AppColors.textHint(ctx), size: 20),
-                  onPressed: () => set(() => obscure2 = !obscure2),
-                ),
-              ),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: confirmCtrl,
-                hint: 'Confirm new password',
-                prefixIcon: Icons.lock_reset_rounded,
-                obscure: obscure3,
-                suffixIcon: IconButton(
-                  icon: Icon(obscure3 ? Icons.visibility_off : Icons.visibility,
-                      color: AppColors.textHint(ctx), size: 20),
-                  onPressed: () => set(() => obscure3 = !obscure3),
-                ),
-              ),
-              const SizedBox(height: 20),
-              PrimaryButton(
-                label: 'Update password',
-                isLoading: saving,
-                onPressed: () async {
-                  if (currentCtrl.text.isEmpty || newCtrl.text.length < 8) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      backgroundColor: AppTheme.danger,
-                      content: Text('Fill in all fields (min 8 characters)',
-                          style: TextStyle(color: Colors.white)),
-                    ));
-                    return;
-                  }
-                  if (newCtrl.text != confirmCtrl.text) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      backgroundColor: AppTheme.danger,
-                      content: Text('New passwords do not match',
-                          style: TextStyle(color: Colors.white)),
-                    ));
-                    return;
-                  }
-                  set(() => saving = true);
-                  try {
-                    await ApiService.changeMyPassword(
-                      token: auth.token!,
-                      currentPassword: currentCtrl.text,
-                      newPassword: newCtrl.text,
-                    );
-                    if (!context.mounted) return;
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      backgroundColor: AppTheme.success,
-                      content: Text('Password changed successfully!',
-                          style: TextStyle(color: Colors.white)),
-                    ));
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      backgroundColor: AppTheme.danger,
-                      content: Text(e.toString().replaceAll('Exception: ', ''),
-                          style: const TextStyle(color: Colors.white)),
-                    ));
-                  } finally {
-                    set(() => saving = false);
-                  }
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── NOTIFICATIONS ─────────────────────────────────────────────────────────
-  void _showNotificationsSheet(BuildContext context) {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    bool loading = true;
-    bool loadStarted = false;
-    bool saving = false;
-    String error = '';
-    bool emailNotif = true, pushNotif = true, orderAlerts = true;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.card(context),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, set) {
-          if (loading && error.isEmpty && !loadStarted) {
-            loadStarted = true;
-            ApiService.getNotificationPrefs(auth.token!).then((data) {
-              set(() {
-                emailNotif = data['email_notifications'] ?? true;
-                pushNotif = data['push_notifications'] ?? true;
-                orderAlerts = data['order_alerts'] ?? true;
-                loading = false;
-              });
-            }).catchError((e) {
-              set(() {
-                error = e.toString().replaceAll('Exception: ', '');
-                loading = false;
-              });
-            });
-          }
-
-          Future<void> save() async {
-            set(() => saving = true);
-            try {
-              await ApiService.updateNotificationPrefs(
-                token: auth.token!,
-                emailNotifications: emailNotif,
-                pushNotifications: pushNotif,
-                orderAlerts: orderAlerts,
-              );
-              if (!ctx.mounted) return;
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                backgroundColor: AppTheme.success,
-                content: Text('Notification preferences saved.'),
-              ));
-            } catch (e) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  backgroundColor: AppTheme.danger,
-                  content: Text(e.toString().replaceAll('Exception: ', ''),
-                      style: const TextStyle(color: Colors.white)),
-                ));
-              }
-            } finally {
-              if (ctx.mounted) set(() => saving = false);
-            }
-          }
-
-          return Padding(
-            padding: EdgeInsets.fromLTRB(
-                20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40, height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.border(ctx),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text('Notifications',
-                    style: TextStyle(
-                        color: AppColors.textPrimary(ctx),
-                        fontSize: 18, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 20),
-                if (loading)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 30),
-                    child: Center(
-                        child: CircularProgressIndicator(color: AppTheme.accent)),
-                  )
-                else if (error.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    child: Text(error,
-                        style: TextStyle(color: AppColors.textSecondary(ctx))),
-                  )
-                else ...[
-                  _notifSwitch(ctx, 'Email notifications',
-                      'Get order and platform updates via email',
-                      emailNotif, (v) => set(() => emailNotif = v)),
-                  _notifSwitch(ctx, 'Push notifications',
-                      'Get real-time alerts on this device',
-                      pushNotif, (v) => set(() => pushNotif = v)),
-                  _notifSwitch(ctx, 'Order alerts',
-                      'Notify me about new and updated orders',
-                      orderAlerts, (v) => set(() => orderAlerts = v)),
-                  if (saving)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 12),
-                      child: Center(
-                        child: SizedBox(
-                          width: 16, height: 16,
-                          child: CircularProgressIndicator(
-                              color: AppTheme.accent, strokeWidth: 2),
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 12),
-                  PrimaryButton(
-                    label: 'Save preferences',
-                    isLoading: saving,
-                    onPressed: saving ? null : save,
-                  ),
-                ],
-                const SizedBox(height: 8),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _notifSwitch(BuildContext ctx, String title, String subtitle,
-      bool value, ValueChanged<bool> onChanged) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                    style: TextStyle(
-                        color: AppColors.textPrimary(ctx),
-                        fontSize: 14, fontWeight: FontWeight.w600)),
-                Text(subtitle,
-                    style: TextStyle(
-                        color: AppColors.textHint(ctx), fontSize: 12)),
-              ],
-            ),
-          ),
-          Switch(
-            value: value,
-            activeThumbColor: AppTheme.accent,
-            onChanged: onChanged,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _section(BuildContext ctx, String title, List<Widget> rows) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Text(title,
-              style: TextStyle(
-                  color: AppColors.textHint(ctx),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8)),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.card(ctx),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border(ctx)),
-          ),
-          child: Column(children: rows),
-        ),
-      ],
-    );
-  }
-
-  Widget _row(BuildContext ctx, IconData icon, String label, String sub,
-      {required VoidCallback onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.border(ctx))),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.surface(ctx),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: AppColors.textSecondary(ctx), size: 17),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label,
-                      style: TextStyle(
-                          color: AppColors.textPrimary(ctx),
-                          fontSize: 14, fontWeight: FontWeight.w600)),
-                  Text(sub,
-                      style: TextStyle(color: AppColors.textHint(ctx), fontSize: 12)),
-                ],
-              ),
-            ),
-            Icon(Icons.arrow_forward_ios_rounded,
-                color: AppColors.textHint(ctx), size: 13),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── TERMS & POLICIES SCREEN ──────────────────────────────────────────────────
-class _TermsPolicyScreen extends StatelessWidget {
-  const _TermsPolicyScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg(context),
-      appBar: AppBar(title: const Text('Terms & Policies')),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          _policySection(context, 'Terms of Service',
-              'By using FindFood as an admin, you agree to manage the '
-              'platform responsibly, protect user data, and enforce '
-              'restaurant and rider guidelines fairly and consistently.'),
-          _policySection(context, 'Privacy Policy',
-              'FindFood collects user, restaurant, and rider data solely '
-              'to operate the delivery platform. Data is never sold to '
-              'third parties and is stored securely.'),
-          _policySection(context, 'Restaurant Approval Guidelines',
-              'Restaurants must provide accurate business details, a valid '
-              'address, and comply with local food safety standards before '
-              'approval. Admins reserve the right to reject or suspend '
-              'any restaurant that violates platform policies.'),
-          _policySection(context, 'Rider Conduct Policy',
-              'Riders are expected to deliver orders promptly, communicate '
-              'professionally with customers, and follow all traffic laws. '
-              'Repeated violations may result in account suspension.'),
-          _policySection(context, 'Data Retention',
-              'Order history, chat messages, and payment records are '
-              'retained for as long as the account remains active, and '
-              'for a reasonable period afterward for legal compliance.'),
-        ],
-      ),
-    );
-  }
-
-  Widget _policySection(BuildContext ctx, String title, String body) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title,
-              style: TextStyle(
-                  color: AppColors.textPrimary(ctx),
-                  fontSize: 16, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          Text(body,
-              style: TextStyle(
-                  color: AppColors.textSecondary(ctx),
-                  fontSize: 14, height: 1.6)),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── HELP & SUPPORT SCREEN ────────────────────────────────────────────────────
-class _HelpSupportScreen extends StatelessWidget {
-  const _HelpSupportScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg(context),
-      appBar: AppBar(title: const Text('Help & Support')),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          Text('Frequently asked questions',
-              style: TextStyle(
-                  color: AppColors.textPrimary(context),
-                  fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 20),
-          _faqItem(context, 'How do I approve a restaurant?',
-              'Go to the Approvals tab, review the restaurant\'s details, '
-              'then tap Approve or Reject. Approved restaurants immediately '
-              'gain access to their dashboard.'),
-          _faqItem(context, 'How do I remove a rider or user?',
-              'User removal is currently done directly through the database. '
-              'A dedicated admin action is planned for a future update.'),
-          _faqItem(context, 'Why don\'t I see live order data?',
-              'Make sure your backend server is running and that you\'ve '
-              'applied the latest backend endpoints from your project files.'),
-          _faqItem(context, 'How do platform stats update?',
-              'Stats on the Overview tab are calculated live from your '
-              'database each time you open or refresh that tab.'),
-          const SizedBox(height: 32),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppTheme.accentDim,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.accent.withValues(alpha: 0.3)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.support_agent_rounded,
-                        color: AppTheme.accent, size: 22),
-                    const SizedBox(width: 10),
-                    Text('Need more help?',
-                        style: TextStyle(
-                            color: AppColors.textPrimary(context),
-                            fontSize: 15, fontWeight: FontWeight.w700)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Reach the FindFood engineering team at '
-                  'support@findfood.app for anything not covered here.',
-                  style: TextStyle(
-                      color: AppColors.textSecondary(context),
-                      fontSize: 13, height: 1.5),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _faqItem(BuildContext ctx, String question, String answer) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(question,
-              style: TextStyle(
-                  color: AppColors.textPrimary(ctx),
-                  fontSize: 14, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 6),
-          Text(answer,
-              style: TextStyle(
-                  color: AppColors.textSecondary(ctx),
-                  fontSize: 13, height: 1.5)),
+          const AccountHeader(subtitle: 'Administrator'),
+          const SizedBox(height: 24),
+          const AccountSettingsSection(role: 'admin'),
+          const SizedBox(height: 24),
+          const SignOutButton(),
         ],
       ),
     );
@@ -2378,11 +1860,13 @@ class _AdminOrdersScreenState extends State<_AdminOrdersScreen> {
     setState(() { _loading = true; _error = ''; });
     try {
       final orders = await ApiService.getAllOrdersAdmin(auth.token!);
+      if (!mounted) return;
       setState(() => _orders = orders);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -2392,12 +1876,15 @@ class _AdminOrdersScreenState extends State<_AdminOrdersScreen> {
   }
 
   static const Map<String, Color> _statusColors = {
+    'awaiting_payment': Color(0xFF9E9E9E),
     'pending':          AppTheme.warning,
     'scheduled':        AppTheme.warning,
     'preparing':        AppTheme.accent,
     'ready':            AppTheme.success,
     'out_for_delivery': AppTheme.accent,
     'delivered':        AppTheme.success,
+    'picked_up':        AppTheme.success,
+    'cancelled':        AppTheme.danger,
   };
 
   @override
@@ -2438,11 +1925,14 @@ class _AdminOrdersScreenState extends State<_AdminOrdersScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 children: [
                   _chip('All', 'all'),
+                  _chip('Awaiting payment', 'awaiting_payment'),
                   _chip('Pending', 'pending'),
                   _chip('Preparing', 'preparing'),
                   _chip('Ready', 'ready'),
                   _chip('On the way', 'out_for_delivery'),
                   _chip('Delivered', 'delivered'),
+                  _chip('Picked up', 'picked_up'),
+                  _chip('Cancelled', 'cancelled'),
                 ],
               ),
             ),
@@ -2621,11 +2111,13 @@ class _AdminRevenueScreenState extends State<_AdminRevenueScreen> {
     setState(() { _loading = true; _error = ''; });
     try {
       final data = await ApiService.getRevenueDetails(auth.token!);
+      if (!mounted) return;
       setState(() => _data = data as Map<String, dynamic>?);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 

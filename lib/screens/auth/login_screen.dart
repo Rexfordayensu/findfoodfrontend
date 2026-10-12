@@ -99,6 +99,7 @@ class _LoginScreenState extends State<LoginScreen>
         token: token,
         userId: userId,
         role: role,
+        name: data['name']?.toString(),
         email: data['email']?.toString() ?? _loginEmail.text.trim(),
         isEmailVerified: data['is_verified'] == true ||
             data['email_verified'] == true ||
@@ -260,24 +261,6 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  void _showComingSoon(String feature) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.card(context),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(feature,
-            style: TextStyle(color: AppColors.textPrimary(context))),
-        content: Text('This feature is coming soon.',
-            style: TextStyle(color: AppColors.textSecondary(context))),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context), child: const Text('OK')),
-        ],
-      ),
-    );
-  }
-
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       backgroundColor: AppTheme.danger,
@@ -386,34 +369,10 @@ class _LoginScreenState extends State<LoginScreen>
                   Row(children: [
                     Expanded(
                       child: _SocialBtn(
-                        label: 'Google',
+                        label: 'Continue with Google',
                         icon: Icons.g_mobiledata_rounded,
                         color: const Color(0xFFEA4335),
                         onTap: _googleSignIn,
-                        surf: surf,
-                        border: border,
-                        textPri: textPri,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _SocialBtn(
-                        label: 'Apple',
-                        icon: Icons.apple_rounded,
-                        color: textPri,
-                        onTap: () => _showComingSoon('Apple Sign-In'),
-                        surf: surf,
-                        border: border,
-                        textPri: textPri,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _SocialBtn(
-                        label: 'Facebook',
-                        icon: Icons.facebook_rounded,
-                        color: const Color(0xFF1877F2),
-                        onTap: () => _showComingSoon('Facebook Sign-In'),
                         surf: surf,
                         border: border,
                         textPri: textPri,
@@ -552,22 +511,25 @@ class _LoginScreenState extends State<LoginScreen>
                       fontWeight: FontWeight.w700)),
             ),
           const SizedBox(height: 8),
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Text("Don't have an account? ",
-                style: TextStyle(
-                    color: AppColors.textSecondary(context), fontSize: 13)),
-            GestureDetector(
-              onTap: () => setState(() {
-                _tabIndex = 1;
-                _tabController.animateTo(1);
-              }),
-              child: const Text('Sign up',
-                  style: TextStyle(
-                      color: AppTheme.accent,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13)),
-            ),
-          ]),
+          Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text("Don't have an account? ",
+                    style: TextStyle(
+                        color: AppColors.textSecondary(context), fontSize: 13)),
+                GestureDetector(
+                  onTap: () => setState(() {
+                    _tabIndex = 1;
+                    _tabController.animateTo(1);
+                  }),
+                  child: const Text('Sign up',
+                      style: TextStyle(
+                          color: AppTheme.accent,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13)),
+                ),
+              ]),
         ],
       ),
     );

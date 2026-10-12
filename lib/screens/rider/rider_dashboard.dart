@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import '../../theme.dart';
 import '../../widgets/widgets.dart';
+import '../../widgets/account_settings.dart';
 import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
@@ -33,7 +34,7 @@ class _RiderDashboardState extends State<RiderDashboard> {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           border: Border(
-              top: BorderSide(color: AppTheme.cardBorder ?? Colors.grey)),
+              top: BorderSide(color: AppColors.border(context))),
         ),
         child: BottomNavigationBar(
           currentIndex: _selectedIndex,
@@ -79,6 +80,16 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
   List<Order> _orders = [];
   bool _loading = true;
   bool _isOnline = true;
+  RiderAnalytics? _today;
+
+  Future<void> _loadTodayStats(String token) async {
+    try {
+      final json = await ApiService.getRiderAnalytics(token);
+      if (mounted) setState(() => _today = RiderAnalytics.fromJson(json));
+    } catch (_) {
+      // Stats are secondary; the job list still works without them.
+    }
+  }
 
   Future<void> _openDeliveryMap(Order order) async {
     final destination =
@@ -129,6 +140,7 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
       _loading = true;
       _error = '';
     });
+    unawaited(_loadTodayStats(auth.token!));
     try {
       final response = await ApiService.getAvailableDeliveries(auth.token!);
       if (!mounted) return;
@@ -211,7 +223,7 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.black,
+      backgroundColor: AppColors.bg(context),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,14 +234,19 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Available jobs', style: AppText.display),
-                      SizedBox(height: 2),
-                      Text('Tap a job to accept it', style: AppText.body),
-                    ],
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Available jobs',
+                            style: AppText.display,
+                            overflow: TextOverflow.ellipsis),
+                        SizedBox(height: 2),
+                        Text('Tap a job to accept it', style: AppText.body),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   // Online / Offline toggle
                   GestureDetector(
                     onTap: () => setState(() => _isOnline = !_isOnline),
@@ -240,12 +257,12 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
                       decoration: BoxDecoration(
                         color: _isOnline
                             ? AppTheme.success.withValues(alpha: 0.12)
-                            : AppTheme.surface,
+                            : AppColors.surface(context),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: _isOnline
                               ? AppTheme.success.withValues(alpha: 0.5)
-                              : AppTheme.cardBorder ?? Colors.grey,
+                              : AppColors.border(context),
                         ),
                       ),
                       child: Row(
@@ -257,7 +274,7 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
                             decoration: BoxDecoration(
                               color: _isOnline
                                   ? AppTheme.success
-                                  : AppTheme.textHint,
+                                  : AppColors.textHint(context),
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -267,7 +284,7 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
                             style: TextStyle(
                               color: _isOnline
                                   ? AppTheme.success
-                                  : AppTheme.textHint,
+                                  : AppColors.textHint(context),
                               fontWeight: FontWeight.w600,
                               fontSize: 13,
                             ),
@@ -290,9 +307,10 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
                 children: [
                   _statPill(Icons.electric_bike_rounded, '${_orders.length}',
                       'Available'),
-                  _statPill(Icons.check_circle_outline_rounded, '7',
-                      'Completed today'),
-                  _statPill(Icons.payments_outlined, 'GH₵ 84', 'Earned today'),
+                  _statPill(Icons.check_circle_outline_rounded,
+                      '${_today?.todayDeliveries ?? 0}', 'Completed today'),
+                  _statPill(Icons.payments_outlined,
+                      formatCedis(_today?.todayEarnings ?? 0), 'Earned today'),
                 ],
               ),
             ),
@@ -349,9 +367,9 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
       margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppTheme.card,
+        color: AppColors.card(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.cardBorder ?? Colors.grey),
+        border: Border.all(color: AppColors.border(context)),
       ),
       child: Row(
         children: [
@@ -363,7 +381,7 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
             children: [
               Text(value,
                   style: TextStyle(
-                      color: AppTheme.textPrimary,
+                      color: AppColors.textPrimary(context),
                       fontSize: 18,
                       fontWeight: FontWeight.w800)),
               Text(label, style: AppText.caption),
@@ -378,7 +396,7 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: AppTheme.card,
+        color: AppColors.card(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.accent.withValues(alpha: 0.25)),
       ),
@@ -437,12 +455,12 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
                         children: [
                           Text('Pickup',
                               style: TextStyle(
-                                  color: AppTheme.textHint,
+                                  color: AppColors.textHint(context),
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500)),
                           Text('Restaurant location',
                               style: TextStyle(
-                                  color: AppTheme.textPrimary,
+                                  color: AppColors.textPrimary(context),
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500)),
                         ],
@@ -457,7 +475,7 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
                   child: Container(
                     width: 2,
                     height: 20,
-                    color: AppTheme.cardBorder,
+                    color: AppColors.border(context),
                   ),
                 ),
 
@@ -481,12 +499,12 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
                         children: [
                           Text('Dropoff',
                               style: TextStyle(
-                                  color: AppTheme.textHint,
+                                  color: AppColors.textHint(context),
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500)),
                           Text(order.deliveryAddress ?? 'Customer address',
                               style: TextStyle(
-                                  color: AppTheme.textPrimary,
+                                  color: AppColors.textPrimary(context),
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500),
                               maxLines: 2,
@@ -506,17 +524,17 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppTheme.surface,
+                        color: AppColors.surface(context),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         children: [
                           Icon(Icons.access_time_rounded,
-                              size: 12, color: AppTheme.textHint),
+                              size: 12, color: AppColors.textHint(context)),
                           const SizedBox(width: 4),
                           Text('~15 min',
                               style: TextStyle(
-                                  color: AppTheme.textHint, fontSize: 12)),
+                                  color: AppColors.textHint(context), fontSize: 12)),
                         ],
                       ),
                     ),
@@ -526,7 +544,7 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
             ),
           ),
 
-          Divider(height: 1, color: AppTheme.cardBorder),
+          Divider(height: 1, color: AppColors.border(context)),
 
           // ── Accept button ───────────────────────────────────
           Padding(
@@ -536,8 +554,8 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
               height: 44,
               child: ElevatedButton.icon(
                 onPressed: () => _acceptDelivery(order),
-                icon: Icon(Icons.electric_bike_rounded,
-                    color: AppTheme.black, size: 18),
+                icon: const Icon(Icons.electric_bike_rounded,
+                    color: Colors.black, size: 18),
                 label: const Text('Accept delivery'),
               ),
             ),
@@ -697,12 +715,12 @@ class _MyDeliveriesPageState extends State<_MyDeliveriesPage> {
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.card,
+        color: AppColors.card(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isActive
               ? AppTheme.accent.withValues(alpha: 0.4)
-              : AppTheme.cardBorder ?? Colors.grey,
+              : AppColors.border(context),
         ),
       ),
       child: Column(
@@ -754,7 +772,7 @@ class _MyDeliveriesPageState extends State<_MyDeliveriesPage> {
               child: ElevatedButton.icon(
                 onPressed: () => _markDelivered(order),
                 icon:
-                    Icon(Icons.check_rounded, color: AppTheme.black, size: 18),
+                    const Icon(Icons.check_rounded, color: Colors.black, size: 18),
                 label: const Text('Mark as delivered'),
               ),
             ),
@@ -766,74 +784,130 @@ class _MyDeliveriesPageState extends State<_MyDeliveriesPage> {
 }
 
 // ─── RIDER EARNINGS PAGE ──────────────────────────────────────────────────────
-class _RiderEarningsPage extends StatelessWidget {
+class _RiderEarningsPage extends StatefulWidget {
   const _RiderEarningsPage();
 
   @override
+  State<_RiderEarningsPage> createState() => _RiderEarningsPageState();
+}
+
+class _RiderEarningsPageState extends State<_RiderEarningsPage> {
+  RiderAnalytics? _data;
+  String? _error;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final json = await ApiService.getRiderAnalytics(token);
+      if (!mounted) return;
+      setState(() => _data = RiderAnalytics.fromJson(json));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final data = _data;
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
+        child: RefreshIndicator(
+          color: AppTheme.accent,
+          onRefresh: _load,
           child: ListView(
+            padding: const EdgeInsets.all(20),
             children: [
               const Text('Earnings', style: AppText.display),
               const SizedBox(height: 20),
-
-              // Balance card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: AppTheme.accentDim,
-                  borderRadius: BorderRadius.circular(16),
-                  border:
-                      Border.all(color: AppTheme.accent.withValues(alpha: 0.3)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Total earned today', style: AppText.label),
-                    const SizedBox(height: 6),
-                    const Text('GH₵ 84.00',
-                        style: TextStyle(
-                          color: AppTheme.accent,
-                          fontSize: 36,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -1,
-                        )),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
+              if (_loading && data == null)
+                const Padding(
+                  padding: EdgeInsets.only(top: 60),
+                  child: Center(
+                      child: CircularProgressIndicator(color: AppTheme.accent)),
+                )
+              else if (_error != null && data == null)
+                Column(children: [
+                  Text(_error!,
+                      style: TextStyle(color: AppColors.textSecondary(context))),
+                  TextButton(onPressed: _load, child: const Text('Retry')),
+                ])
+              else if (data != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentDim,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                        color: AppTheme.accent.withValues(alpha: 0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Earned today', style: AppText.label),
+                      const SizedBox(height: 6),
+                      Text(formatCedis(data.todayEarnings),
+                          key: const Key('rider-today-earnings'),
+                          style: const TextStyle(
+                            color: AppTheme.accent,
+                            fontSize: 36,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -1,
+                          )),
+                      const SizedBox(height: 10),
+                      Row(children: [
                         Icon(Icons.local_shipping_outlined,
-                            color: AppTheme.textSecond, size: 14),
+                            color: AppColors.textSecondary(context), size: 14),
                         const SizedBox(width: 6),
-                        Text('7 deliveries completed',
-                            style: AppText.caption
-                                .copyWith(color: AppTheme.textSecond)),
-                      ],
-                    ),
-                  ],
+                        Text(
+                            '${data.todayDeliveries} '
+                            'deliver${data.todayDeliveries == 1 ? 'y' : 'ies'} completed today',
+                            style: AppText.caption.copyWith(
+                                color: AppColors.textSecondary(context))),
+                      ]),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-
-              Row(
-                children: [
-                  _miniStat('This week', 'GH₵ 420'),
+                const SizedBox(height: 14),
+                Row(children: [
+                  _miniStat('This week', formatCedis(data.weekEarnings)),
                   const SizedBox(width: 14),
-                  _miniStat('This month', 'GH₵ 1,840'),
-                ],
-              ),
-              const SizedBox(height: 24),
-              const Text('Recent deliveries', style: AppText.heading),
-              const SizedBox(height: 14),
-
-              ...[
-                ('Order #2841', 'GH₵ 12.00', 'Delivered'),
-                ('Order #2839', 'GH₵ 15.00', 'Delivered'),
-                ('Order #2836', 'GH₵ 10.00', 'Delivered'),
-              ].map((r) => _recentRow(r.$1, r.$2, r.$3)),
+                  _miniStat('This month', formatCedis(data.monthEarnings)),
+                ]),
+                const SizedBox(height: 14),
+                Row(children: [
+                  _miniStat('All time', formatCedis(data.totalEarnings)),
+                  const SizedBox(width: 14),
+                  _miniStat(
+                      'Rating',
+                      data.averageRating == null
+                          ? 'No ratings yet'
+                          : '★ ${data.averageRating!.toStringAsFixed(1)}'),
+                ]),
+                const SizedBox(height: 24),
+                const Text('Recent deliveries', style: AppText.heading),
+                const SizedBox(height: 14),
+                if (data.recentDeliveries.isEmpty)
+                  Text('Completed deliveries will appear here.',
+                      style: TextStyle(color: AppColors.textHint(context)))
+                else
+                  ...data.recentDeliveries.map(_recentRow),
+              ],
             ],
           ),
         ),
@@ -846,9 +920,9 @@ class _RiderEarningsPage extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.card,
+          color: AppColors.card(context),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.cardBorder ?? Colors.grey),
+          border: Border.all(color: AppColors.border(context)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -862,21 +936,37 @@ class _RiderEarningsPage extends StatelessWidget {
     );
   }
 
-  Widget _recentRow(String id, String amount, String status) {
+  Widget _recentRow(RiderDelivery delivery) {
+    final when = delivery.completedAt;
+    final details = [
+      if (delivery.restaurantName != null) delivery.restaurantName!,
+      if (when != null)
+        '${when.day}/${when.month} '
+            '${when.hour.toString().padLeft(2, '0')}:'
+            '${when.minute.toString().padLeft(2, '0')}',
+    ].join(' · ');
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppTheme.card,
+        color: AppColors.card(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.cardBorder ?? Colors.grey),
+        border: Border.all(color: AppColors.border(context)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(id, style: AppText.label),
-          StatusBadge(status: status.toLowerCase()),
-          Text(amount,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Order #${delivery.orderId}', style: AppText.label),
+                Text(details,
+                    style: AppText.caption
+                        .copyWith(color: AppColors.textHint(context))),
+              ],
+            ),
+          ),
+          Text(formatCedis(delivery.earning),
               style: AppText.label.copyWith(
                   color: AppTheme.accent, fontWeight: FontWeight.w700)),
         ],
@@ -891,87 +981,20 @@ class _RiderSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = Provider.of<AuthProvider>(context);
-
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: ListView(
           padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Profile', style: AppText.display),
-              const SizedBox(height: 24),
-
-              // Avatar row
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundColor: AppTheme.accentDim,
-                    child: Text(
-                      (auth.name ?? 'R')[0].toUpperCase(),
-                      style: const TextStyle(
-                          color: AppTheme.accent,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(auth.name ?? 'Rider', style: AppText.heading),
-                      const Text('Active rider',
-                          style: TextStyle(
-                              color: AppTheme.success,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 28),
-
-              _settingsRow(Icons.person_outline_rounded, 'Edit profile'),
-              _settingsRow(Icons.notifications_outlined, 'Notifications'),
-              _settingsRow(Icons.help_outline_rounded, 'Help & support'),
-              _settingsRow(Icons.lock_outline_rounded, 'Change password'),
-              const Spacer(),
-              GhostButton(
-                label: 'Sign out',
-                onPressed: () async {
-                  if (!await confirmLogout(context) || !context.mounted) return;
-                  await auth.logout();
-                  if (!context.mounted) return;
-                  showLogoutSuccess(context);
-                  context.go('/');
-                },
-              ),
-            ],
-          ),
+          children: const [
+            Text('Profile', style: AppText.display),
+            SizedBox(height: 24),
+            AccountHeader(subtitle: 'Rider'),
+            SizedBox(height: 28),
+            AccountSettingsSection(role: 'rider'),
+            SizedBox(height: 24),
+            SignOutButton(),
+          ],
         ),
-      ),
-    );
-  }
-
-  Widget _settingsRow(IconData icon, String label) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.cardBorder ?? Colors.grey),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: AppTheme.textHint, size: 20),
-          const SizedBox(width: 14),
-          Expanded(child: Text(label, style: AppText.title)),
-          Icon(Icons.arrow_forward_ios_rounded,
-              color: AppTheme.textHint, size: 14),
-        ],
       ),
     );
   }

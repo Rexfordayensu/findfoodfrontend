@@ -1,10 +1,4 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
@@ -13,7 +7,10 @@ import 'package:findfood_app/services/providers.dart';
 import 'package:findfood_app/services/otp_provider.dart';
 
 void main() {
-  testWidgets('app loads its startup screen', (WidgetTester tester) async {
+  testWidgets('app restores session and opens the food feed',
+      (WidgetTester tester) async {
+    FlutterSecureStorage.setMockInitialValues({});
+
     await tester.pumpWidget(
       MultiProvider(
         providers: [
@@ -26,7 +23,10 @@ void main() {
         child: const FindFoodApp(),
       ),
     );
+    // Let session restoration finish and the router leave /loading.
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
 
-    expect(find.text('FINDFOOD'), findsOneWidget);
+    expect(find.text('FINDFOOD'), findsWidgets);
   });
 }

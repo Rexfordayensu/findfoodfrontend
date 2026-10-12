@@ -109,24 +109,6 @@ class AppTheme {
     ),
     dividerColor: lightBorder, cardColor: lightCard,
   );
-
-  static Color? get black => null;
-
-  static get surface => null;
-
-  static get textHint => null;
-
-  static Color? get card => null;
-
-  static Color? get textSecond => null;
-
-  static Color? get textPrimary => null;
-
-  static get body => null;
-
-  static get display => null;
-
-  static Color? get cardBorder => null;
 }
 
 // --- DYNAMIC COLORS (reads current brightness) ---

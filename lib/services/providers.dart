@@ -56,6 +56,18 @@ class AuthProvider extends ChangeNotifier {
   static const String _roleKey = 'auth_role';
   static const String _nameKey = 'auth_name';
   static const String _emailKey = 'auth_email';
+  static const String _approvedKey = 'auth_restaurant_approved';
+
+  /// How often a signed-in session is renewed (tokens expire after 30 min on
+  /// the server). Tests set this to null to avoid background timers.
+  static Duration? refreshInterval = const Duration(minutes: 10);
+
+  AuthProvider() {
+    ApiService.onSessionInvalid = _handleSessionInvalid;
+  }
+
+  Timer? _refreshTimer;
+  bool _handlingInvalidSession = false;
 
   String? _token;
   int? _userId;
@@ -98,8 +110,65 @@ class AuthProvider extends ChangeNotifier {
     _isLoggedIn = true;
     _isEmailVerified = isEmailVerified ?? false;
     _isRestaurantApproved = isRestaurantApproved ?? false;
+    _startTokenRefresh();
     notifyListeners();
     await _persistSession();
+  }
+
+  void _startTokenRefresh() {
+    _refreshTimer?.cancel();
+    final interval = refreshInterval;
+    if (interval == null) return;
+    _refreshTimer = Timer.periodic(interval, (_) => refreshSession());
+  }
+
+  /// Swaps the current token for a fresh one so active users stay signed in.
+  Future<void> refreshSession() async {
+    final current = _token;
+    if (current == null) return;
+    try {
+      final data = await ApiService.refreshToken(current);
+      final fresh = data['access_token']?.toString();
+      if (fresh == null || fresh.isEmpty || _token != current) return;
+      _token = fresh;
+      if (data['is_approved'] != null) {
+        _isRestaurantApproved = data['is_approved'] == true;
+      }
+      await _persistSession();
+      notifyListeners();
+    } catch (error) {
+      // A 401 is handled by _handleSessionInvalid; network errors just wait
+      // for the next attempt.
+      debugPrint('Session refresh failed: $error');
+    }
+  }
+
+  Future<void> _handleSessionInvalid(String message) async {
+    if (!_isLoggedIn || _handlingInvalidSession) return;
+    _handlingInvalidSession = true;
+    try {
+      await logout();
+      appScaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } finally {
+      _handlingInvalidSession = false;
+    }
+  }
+
+  Future<void> updateEmail(String email) async {
+    _email = email.trim();
+    await _persistSession();
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    if (ApiService.onSessionInvalid == _handleSessionInvalid) {
+      ApiService.onSessionInvalid = null;
+    }
+    super.dispose();
   }
 
   void setEmailVerified(bool verified) {
@@ -110,6 +179,7 @@ class AuthProvider extends ChangeNotifier {
   void setRestaurantApproved(bool approved) {
     _isRestaurantApproved = approved;
     notifyListeners();
+    unawaited(_persistSession());
   }
 
   void setEmail(String? emailAddr) {
@@ -124,8 +194,9 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> initializeFromSecureStorage() async {
+    String? token;
     try {
-      final token = await _secureStorage.read(key: _tokenKey);
+      token = await _secureStorage.read(key: _tokenKey);
       if (token == null || token.isEmpty) return;
 
       final user = await ApiService.getCurrentUser(token);
@@ -144,13 +215,38 @@ class AuthProvider extends ChangeNotifier {
           user['is_email_verified'] == true;
       _isRestaurantApproved = user['is_approved'] == true;
       _isLoggedIn = true;
+      _startTokenRefresh();
       await _persistSession();
-    } catch (error) {
-      debugPrint('Unable to restore auth session: $error');
+      unawaited(refreshSession());
+    } on SessionExpiredException catch (error) {
+      debugPrint('Stored auth session was rejected: $error');
       await clearPersistedSession();
+    } catch (error) {
+      // The backend could not be reached; keep the stored session so the user
+      // is not signed out by a temporary network or server problem.
+      debugPrint('Unable to verify auth session: $error');
+      if (token != null && token.isNotEmpty) await _restoreCachedSession(token);
     } finally {
       _isInitialized = true;
       notifyListeners();
+    }
+  }
+
+  Future<void> _restoreCachedSession(String token) async {
+    try {
+      final role = await _secureStorage.read(key: _roleKey);
+      if (role == null || role.isEmpty) return;
+      _token = token;
+      _role = role;
+      _userId = int.tryParse(await _secureStorage.read(key: _userIdKey) ?? '');
+      _name = await _secureStorage.read(key: _nameKey);
+      _email = await _secureStorage.read(key: _emailKey);
+      _isRestaurantApproved =
+          await _secureStorage.read(key: _approvedKey) == 'true';
+      _isLoggedIn = true;
+      _startTokenRefresh();
+    } catch (error) {
+      debugPrint('Unable to read cached auth session: $error');
     }
   }
 
@@ -162,6 +258,8 @@ class AuthProvider extends ChangeNotifier {
     await _secureStorage.write(key: _roleKey, value: _role ?? 'customer');
     await _secureStorage.write(key: _nameKey, value: _name ?? '');
     await _secureStorage.write(key: _emailKey, value: _email ?? '');
+    await _secureStorage.write(
+        key: _approvedKey, value: _isRestaurantApproved.toString());
   }
 
   Future<void> clearPersistedSession() async {
@@ -170,9 +268,12 @@ class AuthProvider extends ChangeNotifier {
     await _secureStorage.delete(key: _roleKey);
     await _secureStorage.delete(key: _nameKey);
     await _secureStorage.delete(key: _emailKey);
+    await _secureStorage.delete(key: _approvedKey);
   }
 
   Future<void> logout() async {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
     _token = null;
     _userId = null;
     _role = null;

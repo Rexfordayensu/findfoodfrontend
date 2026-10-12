@@ -1,0 +1,292 @@
+// End-to-end tests: the real app UI talking over real HTTP to a running
+// backend seeded with backend/tools/seed_e2e.py.
+//
+// Skipped unless run with:
+//   flutter test test/e2e_live_test.dart --dart-define=LIVE_E2E=true
+// against a backend listening on http://localhost:8000 (ApiService.baseUrl).
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+
+import 'package:findfood_app/main.dart';
+import 'package:findfood_app/services/api_service.dart';
+import 'package:findfood_app/services/otp_provider.dart';
+import 'package:findfood_app/services/providers.dart';
+import 'package:findfood_app/widgets/widgets.dart';
+
+const bool live = bool.fromEnvironment('LIVE_E2E');
+const password = 'Password123!';
+
+// IDs created by backend/tools/seed_e2e.py on a fresh database.
+const riderId = 2;
+const unpaidOrderId = 1;
+const paidOrderId = 2;
+const deliveredOrderId = 3;
+
+late ThemeProvider theme;
+
+Future<void> startApp(WidgetTester tester, {Size size = const Size(430, 932)}) async {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
+  FlutterSecureStorage.setMockInitialValues({});
+  theme = ThemeProvider();
+  await tester.pumpWidget(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: theme),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => OtpProvider()),
+        ChangeNotifierProvider(create: (_) => OrderPollingProvider()),
+      ],
+      child: const FindFoodApp(),
+    ),
+  );
+}
+
+/// Lets real network I/O progress while pumping frames until [finder] matches.
+Future<void> waitFor(WidgetTester tester, Finder finder,
+    {Duration timeout = const Duration(seconds: 25)}) async {
+  final end = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(end)) {
+    await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 100)));
+    await tester.pump(const Duration(milliseconds: 100));
+    if (finder.evaluate().isNotEmpty) return;
+  }
+  final onScreen = find
+      .byType(Text)
+      .evaluate()
+      .map((e) => (e.widget as Text).data)
+      .whereType<String>()
+      .where((t) => t.trim().isNotEmpty)
+      .take(40)
+      .join(' | ');
+  throw TestFailure('Timed out waiting for $finder\nOn screen: $onScreen');
+}
+
+Future<void> settle(WidgetTester tester, [int frames = 8]) async {
+  for (var i = 0; i < frames; i++) {
+    await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 60)));
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
+Future<void> tapAndSettle(WidgetTester tester, Finder finder) async {
+  await tester.ensureVisible(finder);
+  await tester.pump();
+  await tester.tap(finder);
+  await settle(tester);
+}
+
+Future<T> api<T>(WidgetTester tester, Future<T> Function() call) async =>
+    (await tester.runAsync(call)) as T;
+
+/// Signs in through the real login screen.
+Future<void> signIn(WidgetTester tester, String email, String pass) async {
+  await waitFor(tester, find.byTooltip('Sign in'));
+  await settle(tester, 15); // let the route transition finish before tapping
+  await tapAndSettle(tester, find.byTooltip('Sign in'));
+  await waitFor(tester, find.widgetWithText(TextFormField, 'Email address'));
+  await tester.enterText(find.widgetWithText(TextFormField, 'Email address').first, email);
+  await tester.enterText(find.widgetWithText(TextFormField, 'Password').first, pass);
+  await tapAndSettle(tester, find.widgetWithText(PrimaryButton, 'Sign in'));
+}
+
+String tokenOf(WidgetTester tester) =>
+    Provider.of<AuthProvider>(tester.element(find.byType(FindFoodApp)), listen: false)
+        .token!;
+
+Future<void> editProfileName(WidgetTester tester, String name) async {
+  await tapAndSettle(tester, find.byKey(const Key('settings-edit-profile')));
+  await waitFor(tester, find.byKey(const Key('profile-name-field')));
+  await tester.enterText(find.byKey(const Key('profile-name-field')), name);
+  await tapAndSettle(tester, find.byKey(const Key('profile-save')));
+  await waitFor(tester, find.text('Profile updated.'));
+  final me = await api(tester, () => ApiService.getMyProfile(tokenOf(tester)));
+  expect(me['name'], name);
+  final auth = Provider.of<AuthProvider>(
+      tester.element(find.byType(FindFoodApp)), listen: false);
+  expect(auth.name, name, reason: 'the signed-in session shows the new name');
+}
+
+Future<void> finish(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox());
+  await settle(tester, 3);
+}
+
+void main() {
+  if (!live) {
+    test('live end-to-end tests', () {},
+        skip: 'Run with --dart-define=LIVE_E2E=true against a seeded backend.');
+    return;
+  }
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(() {
+    HttpOverrides.global = null; // use the real network for these tests
+    AuthProvider.refreshInterval = null;
+  });
+
+  testWidgets('customer: profile settings, orders, cancel, rate, sign out',
+      (tester) async {
+    await startApp(tester);
+    await signIn(tester, 'customer@e2e-findfood.com', password);
+    await waitFor(tester, find.text("Mama's Kitchen"));
+    expect(find.text('New'), findsWidgets, reason: 'unrated restaurant shows "New"');
+
+    // Header profile button → account settings page.
+    await tapAndSettle(tester, find.byTooltip('Profile'));
+    await waitFor(tester, find.byKey(const Key('settings-edit-profile')));
+    expect(find.text('Ama Customer'), findsOneWidget);
+    expect(find.text('customer@e2e-findfood.com'), findsOneWidget);
+
+    await editProfileName(tester, 'Ama Mensah');
+
+    // Notification preferences persist.
+    await tapAndSettle(tester, find.byKey(const Key('settings-notifications')));
+    await waitFor(tester, find.byKey(const Key('notif-email')));
+    await tapAndSettle(tester, find.byKey(const Key('notif-email')));
+    await tapAndSettle(tester, find.byKey(const Key('notif-save')));
+    await waitFor(tester, find.text('Notification preferences saved.'));
+    final prefs = await api(tester, () => ApiService.getNotificationPrefs(tokenOf(tester)));
+    expect(prefs['email_notifications'], false);
+
+    // Change password, then prove the new one works.
+    await tapAndSettle(tester, find.byKey(const Key('settings-change-password')));
+    await tester.enterText(find.byKey(const Key('password-current-field')), password);
+    await tester.enterText(find.byKey(const Key('password-new-field')), 'NewPassword456!');
+    await tester.enterText(find.byKey(const Key('password-confirm-field')), 'NewPassword456!');
+    await tapAndSettle(tester, find.byKey(const Key('password-save')));
+    await waitFor(tester, find.text('Password changed.'));
+    final relogin = await api(tester, () => ApiService.login('customer@e2e-findfood.com', 'NewPassword456!'));
+    expect(relogin['access_token'], isNotNull);
+
+    // Appearance toggle.
+    final wasDark = theme.isDark;
+    await tapAndSettle(tester, find.byKey(const Key('settings-appearance')));
+    expect(theme.isDark, !wasDark);
+
+    // Help page opens.
+    await tapAndSettle(tester, find.byKey(const Key('settings-help')));
+    await waitFor(tester, find.text('Frequently asked questions'));
+    await tapAndSettle(tester, find.byTooltip('Back'));
+
+    // Orders: cancel the unpaid one, cancel the paid one, rate the delivered one.
+    await tapAndSettle(tester, find.byKey(const Key('settings-my-orders')));
+    await waitFor(tester, find.byKey(const Key('pay-order-$unpaidOrderId')));
+
+    await tapAndSettle(tester, find.byKey(const Key('cancel-order-$unpaidOrderId')));
+    await tapAndSettle(tester, find.byKey(const Key('confirm-cancel-order')));
+    await waitFor(tester, find.text('Order cancelled.'));
+
+    await tapAndSettle(tester, find.byKey(const Key('cancel-order-$paidOrderId')));
+    await tapAndSettle(tester, find.byKey(const Key('confirm-cancel-order')));
+    await waitFor(tester, find.text('Order cancelled and refunded.'));
+
+    await tapAndSettle(tester, find.byKey(const Key('rate-order-$deliveredOrderId')));
+    await waitFor(tester, find.byKey(const Key('rate-restaurant-5')));
+    await tapAndSettle(tester, find.byKey(const Key('rate-restaurant-5')));
+    await tapAndSettle(tester, find.byKey(const Key('rate-rider-4')));
+    await tapAndSettle(tester, find.byKey(const Key('rate-submit')));
+    await waitFor(tester, find.text('★ Rated — thank you!'));
+
+    final orders = await api(tester, () => ApiService.getMyOrders(tokenOf(tester)));
+    final statuses = {for (final o in orders) o.id: o.status};
+    expect(statuses[unpaidOrderId], 'cancelled');
+    expect(statuses[paidOrderId], 'cancelled');
+    expect(orders.firstWhere((o) => o.id == deliveredOrderId).isRated, isTrue);
+    final restaurants = await api(tester, ApiService.getRestaurants);
+    expect(restaurants.single.averageRating, 5.0);
+
+    await finish(tester);
+  });
+
+  testWidgets('rider: real earnings and profile settings', (tester) async {
+    await startApp(tester);
+    await signIn(tester, 'rider@e2e-findfood.com', password);
+    await waitFor(tester, find.text('Earnings'));
+
+    await tapAndSettle(tester, find.text('Earnings').last);
+    await waitFor(tester, find.byKey(const Key('rider-today-earnings')));
+    expect(find.text('GH₵ 4.00'), findsWidgets, reason: '10% of a GH₵ 40 order');
+    expect(find.text('★ 4.0'), findsOneWidget, reason: 'customer rated the rider 4');
+    expect(find.text('Order #$deliveredOrderId'), findsOneWidget);
+
+    await tapAndSettle(tester, find.text('Profile').last);
+    await waitFor(tester, find.byKey(const Key('settings-edit-profile')));
+    expect(find.text('Kofi Rider'), findsOneWidget);
+    await editProfileName(tester, 'Kofi Mensah');
+
+    await finish(tester);
+  });
+
+  testWidgets('restaurant: kitchen status and restaurant profile', (tester) async {
+    await startApp(tester);
+    await signIn(tester, 'owner@e2e-findfood.com', password);
+    await waitFor(tester, find.text('Settings'));
+
+    await tapAndSettle(tester, find.text('Settings').last);
+    await waitFor(tester, find.byKey(const Key('kitchen-switch')));
+
+    await tapAndSettle(tester, find.byKey(const Key('kitchen-switch')));
+    await waitFor(tester, find.text('Kitchen closed. New orders are paused.'));
+    var mine = await api(tester, () => ApiService.getMyRestaurant(tokenOf(tester)));
+    expect(mine.isOpen, isFalse);
+
+    await tapAndSettle(tester, find.byKey(const Key('settings-restaurant-profile')));
+    await waitFor(tester, find.byKey(const Key('restaurant-name-field')));
+    await tester.enterText(find.byKey(const Key('restaurant-name-field')), "Mama's Place");
+    await tapAndSettle(tester, find.byKey(const Key('restaurant-profile-save')));
+    await waitFor(tester, find.text('Restaurant profile updated.'));
+    mine = await api(tester, () => ApiService.getMyRestaurant(tokenOf(tester)));
+    expect(mine.name, "Mama's Place");
+    expect(mine.averageRating, 5.0);
+
+    await editProfileName(tester, 'Esi Mensah');
+
+    // Reopen so other flows keep working.
+    await tapAndSettle(tester, find.byKey(const Key('kitchen-switch')));
+    await waitFor(tester, find.text('Kitchen is open for orders.'));
+
+    await finish(tester);
+  });
+
+  testWidgets('admin: notifications, suspend a user, settings', (tester) async {
+    await startApp(tester, size: const Size(1280, 900));
+    await signIn(tester, 'admin@e2e-findfood.com', password);
+    await waitFor(tester, find.byTooltip('Notifications'));
+
+    // The customer's paid order was cancelled without a configured Paystack
+    // key, so the refund is flagged for the admin.
+    await tapAndSettle(tester, find.byTooltip('Notifications'));
+    await waitFor(tester, find.text('Refund needs attention'));
+    await tester.tapAt(const Offset(10, 10));
+    await settle(tester);
+
+    await tapAndSettle(tester, find.text('Users').first);
+    await waitFor(tester, find.byKey(const Key('user-actions-$riderId')));
+    await tapAndSettle(tester, find.byKey(const Key('user-actions-$riderId')));
+    await tapAndSettle(tester, find.text('Suspend account'));
+    await tapAndSettle(tester, find.text('Suspend'));
+    await waitFor(tester, find.textContaining('suspended.'));
+
+    final riderLogin = await api(tester, () async {
+      try {
+        await ApiService.login('rider@e2e-findfood.com', password);
+        return 'signed in';
+      } catch (e) {
+        return e.toString();
+      }
+    });
+    expect(riderLogin, contains('suspended'));
+
+    await tapAndSettle(tester, find.text('Settings').first);
+    await waitFor(tester, find.byKey(const Key('settings-edit-profile')));
+    await editProfileName(tester, 'Ade Mensah');
+
+    await finish(tester);
+  });
+}

@@ -221,7 +221,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       Container(
                         width: 6, height: 6,
                         decoration: BoxDecoration(
-                          color: _connected ? AppTheme.success : AppTheme.textHint,
+                          color: _connected ? AppTheme.success : AppColors.textHint(context),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -230,7 +230,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         _connected ? 'Live' : 'Reconnecting...',
                         style: TextStyle(
                           fontSize: 11,
-                          color: _connected ? AppTheme.success : AppTheme.textHint,
+                          color: _connected ? AppTheme.success : AppColors.textHint(context),
                         ),
                       ),
                     ],

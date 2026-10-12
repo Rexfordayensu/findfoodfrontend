@@ -54,6 +54,14 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
   }
 
   void _addToCart(MenuItem item) {
+    if (!widget.restaurant.isOpen) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppTheme.danger,
+        content: Text('${widget.restaurant.name} is closed right now.',
+            style: const TextStyle(color: Colors.white)),
+      ));
+      return;
+    }
     final cart = Provider.of<CartProvider>(context, listen: false);
     if (cart.restaurantId != null &&
         cart.restaurantId != widget.restaurant.id &&
@@ -308,13 +316,30 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
                   const SizedBox(height: 6),
                   Text(r.cuisineType,
                       style: TextStyle(color: textSec, fontSize: 14)),
+                  if (!r.isOpen) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      key: const Key('restaurant-closed-banner'),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.danger.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Text(
+                          'Closed right now — you can browse the menu, but ordering is paused.',
+                          style: TextStyle(
+                              color: AppTheme.danger,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                  ],
                   const SizedBox(height: 12),
 
                   // Stats row
                   Row(
                     children: [
-                      _statChip(
-                          Icons.star_rounded, '4.8 (120+)', AppTheme.accent),
+                      _statChip(Icons.star_rounded,
+                          widget.restaurant.ratingLabel, AppTheme.accent),
                       const SizedBox(width: 10),
                       _statChip(
                           Icons.access_time_rounded, '25–35 min', textHint),

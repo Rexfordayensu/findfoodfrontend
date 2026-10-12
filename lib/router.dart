@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -28,11 +29,17 @@ GoRouter createAppRouter(
 
   return GoRouter(
     navigatorKey: navigatorKey,
-    initialLocation: Uri(
-      path: Uri.base.path.isEmpty ? '/' : Uri.base.path,
-      queryParameters:
-          Uri.base.queryParameters.isEmpty ? null : Uri.base.queryParameters,
-    ).toString(),
+    // On web the browser URL is the starting route (deep links, payment and
+    // OAuth callbacks). Elsewhere Uri.base is the process working directory,
+    // which is not an app route.
+    initialLocation: kIsWeb
+        ? Uri(
+            path: Uri.base.path.isEmpty ? '/' : Uri.base.path,
+            queryParameters: Uri.base.queryParameters.isEmpty
+                ? null
+                : Uri.base.queryParameters,
+          ).toString()
+        : '/',
     refreshListenable: auth,
     routes: [
       GoRoute(
