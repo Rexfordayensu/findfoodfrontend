@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:findfood_app/screens/customer/food_feed_screen.dart';
 import 'package:findfood_app/services/providers.dart';
+import 'package:findfood_app/widgets/promotion_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,7 +28,10 @@ Map<String, dynamic> restaurant(int id, String name,
     };
 
 void main() {
-  setUpAll(() => AuthProvider.refreshInterval = null);
+  setUpAll(() {
+    AuthProvider.refreshInterval = null;
+    PromotionCarousel.autoAdvanceEvery = null; // this test only checks sizing
+  });
 
   for (final signedIn in [false, true]) {
     for (final width in [320.0, 375.0, 430.0, 1280.0]) {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';
@@ -134,8 +136,14 @@ class _PromotionFallback extends StatelessWidget {
   }
 }
 
-/// Horizontally scrolling row of promotion cards with a section title.
-class PromotionCarousel extends StatelessWidget {
+/// Promotion cards that slide to the next offer on their own.
+///
+/// Auto-advance pauses while the user touches or swipes the carousel, and is
+/// off when there is a single promotion or the device asks for reduced motion.
+class PromotionCarousel extends StatefulWidget {
+  /// Time each promotion stays on screen. Tests may set this to null.
+  static Duration? autoAdvanceEvery = const Duration(seconds: 4);
+
   final String title;
   final List<Promotion> promotions;
   final ValueChanged<Promotion>? onTap;
@@ -152,49 +160,182 @@ class PromotionCarousel extends StatelessWidget {
   });
 
   @override
+  State<PromotionCarousel> createState() => _PromotionCarouselState();
+}
+
+class _PromotionCarouselState extends State<PromotionCarousel> {
+  static const _slideDuration = Duration(milliseconds: 600);
+  static const _resumeAfterTouch = Duration(seconds: 6);
+
+  PageController? _controller;
+  double? _viewportFraction;
+  Timer? _timer;
+  Timer? _resumeTimer;
+  int _page = 0;
+  bool _showingEnd = false;
+
+  int get _count => widget.promotions.length;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _restartTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant PromotionCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_page >= _count) _page = 0;
+    _restartTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _resumeTimer?.cancel();
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  bool get _canAutoAdvance =>
+      _count > 1 &&
+      PromotionCarousel.autoAdvanceEvery != null &&
+      !(MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+
+  void _restartTimer() {
+    _timer?.cancel();
+    if (!_canAutoAdvance) return;
+    _timer = Timer.periodic(PromotionCarousel.autoAdvanceEvery!, (_) => _next());
+  }
+
+  bool _atEnd(PageController controller) {
+    final position = controller.position;
+    return position.pixels >= position.maxScrollExtent - 1;
+  }
+
+  void _next() {
+    final controller = _controller;
+    if (!mounted || controller == null || !controller.hasClients) return;
+    final position = controller.position;
+    if (position.maxScrollExtent <= 0) return; // every offer is already visible
+    // On wide screens several cards fit at once, so the last pages cannot
+    // scroll to the front; loop back once the end is reached.
+    final target = _atEnd(controller) ? 0 : (_page + 1) % _count;
+    controller.animateToPage(target,
+        duration: _slideDuration, curve: Curves.easeInOutCubic);
+  }
+
+  void _onScroll() {
+    final controller = _controller;
+    if (controller == null || !controller.hasClients) return;
+    final atEnd = _atEnd(controller) && controller.position.maxScrollExtent > 0;
+    if (atEnd != _showingEnd) setState(() => _showingEnd = atEnd);
+  }
+
+  /// Stop auto-advancing while the user is interacting, then resume.
+  void _pauseForUser() {
+    _timer?.cancel();
+    _resumeTimer?.cancel();
+    _resumeTimer = Timer(_resumeAfterTouch, () {
+      if (mounted) _restartTimer();
+    });
+  }
+
+  PageController _controllerFor(double fraction) {
+    if (_controller == null || _viewportFraction != fraction) {
+      _controller?.dispose();
+      _viewportFraction = fraction;
+      _controller = PageController(viewportFraction: fraction, initialPage: _page)
+        ..addListener(_onScroll);
+    }
+    return _controller!;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (promotions.isEmpty) return const SizedBox.shrink();
+    if (_count == 0) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: padding,
+          padding: widget.padding,
           child: Row(children: [
             const Icon(Icons.local_offer_rounded,
                 color: AppTheme.accent, size: 18),
             const SizedBox(width: 6),
-            Text(title,
-                style: TextStyle(
-                    color: AppColors.textPrimary(context),
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800)),
+            Expanded(
+              child: Text(widget.title,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: AppColors.textPrimary(context),
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800)),
+            ),
+            if (_count > 1)
+              _PageDots(count: _count, active: _showingEnd ? _count - 1 : _page),
           ]),
         ),
         const SizedBox(height: 10),
         SizedBox(
           height: 150,
           child: LayoutBuilder(builder: (context, constraints) {
-            final width = promotions.length == 1
-                ? constraints.maxWidth - padding.horizontal
-                : (constraints.maxWidth * 0.82).clamp(240.0, 420.0);
-            return ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: padding,
-              itemCount: promotions.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (_, i) => SizedBox(
-                width: width,
-                child: PromotionCard(
-                  key: Key('promotion-${promotions[i].id}'),
-                  promotion: promotions[i],
-                  showRestaurant: showRestaurant,
-                  onTap: onTap == null ? null : () => onTap!(promotions[i]),
+            final available = constraints.maxWidth - widget.padding.horizontal;
+            final cardWidth =
+                _count == 1 ? available : (available * 0.86).clamp(240.0, 420.0);
+            final fraction = ((cardWidth + 12) / constraints.maxWidth).clamp(0.1, 1.0);
+            return Listener(
+              onPointerDown: (_) => _pauseForUser(),
+              child: PageView.builder(
+                key: const Key('promotion-carousel'),
+                controller: _controllerFor(fraction),
+                padEnds: false,
+                itemCount: _count,
+                onPageChanged: (page) => setState(() => _page = page),
+                itemBuilder: (_, i) => Padding(
+                  padding: EdgeInsets.only(
+                    left: i == 0 ? widget.padding.left : 0,
+                    right: 12,
+                  ),
+                  child: PromotionCard(
+                    key: Key('promotion-${widget.promotions[i].id}'),
+                    promotion: widget.promotions[i],
+                    showRestaurant: widget.showRestaurant,
+                    onTap: widget.onTap == null
+                        ? null
+                        : () => widget.onTap!(widget.promotions[i]),
+                  ),
                 ),
               ),
             );
           }),
         ),
       ],
+    );
+  }
+}
+
+class _PageDots extends StatelessWidget {
+  final int count;
+  final int active;
+  const _PageDots({required this.count, required this.active});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(count.clamp(0, 8), (i) {
+        final selected = i == active;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          margin: const EdgeInsets.only(left: 4),
+          width: selected ? 16 : 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: selected ? AppTheme.accent : AppColors.border(context),
+            borderRadius: BorderRadius.circular(3),
+          ),
+        );
+      }),
     );
   }
 }
