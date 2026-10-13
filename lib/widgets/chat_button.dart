@@ -31,36 +31,13 @@ class ChatButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final fg = AppColors.textPrimary(context);
     final border = BorderSide(color: AppColors.border(context));
-    final fill = Theme.of(context).brightness == Brightness.dark
-        ? const Color(0x14FFFFFF)
-        : AppColors.card(context);
 
     if (!_wide) {
-      return Semantics(
-        button: true,
-        label: 'Chat with $withWhom',
-        excludeSemantics: true,
-        child: Material(
-          color: fill,
-          shape: StadiumBorder(side: border),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: onPressed,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.chat_bubble_outline_rounded, size: 16, color: fg),
-                  const SizedBox(width: 6),
-                  Text('Chat',
-                      style: TextStyle(
-                          color: fg, fontSize: 13, fontWeight: FontWeight.w600)),
-                ],
-              ),
-            ),
-          ),
-        ),
+      return ActionPill(
+        icon: Icons.chat_bubble_outline_rounded,
+        label: 'Chat',
+        semanticLabel: 'Chat with $withWhom',
+        onPressed: onPressed,
       );
     }
 
@@ -111,6 +88,57 @@ class ChatButton extends StatelessWidget {
                 ),
                 Icon(Icons.chevron_right_rounded,
                     color: AppColors.textSecondary(context)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A small labelled action on a card (e.g. Chat, Directions): icon + word in
+/// a bordered pill, so it is obvious it can be tapped.
+class ActionPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String semanticLabel;
+  final VoidCallback onPressed;
+
+  const ActionPill({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.semanticLabel,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = AppColors.textPrimary(context);
+    final fill = Theme.of(context).brightness == Brightness.dark
+        ? const Color(0x14FFFFFF)
+        : AppColors.card(context);
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      excludeSemantics: true,
+      child: Material(
+        color: fill,
+        shape: StadiumBorder(side: BorderSide(color: AppColors.border(context))),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 16, color: fg),
+                const SizedBox(width: 6),
+                Text(label,
+                    style: TextStyle(
+                        color: fg, fontSize: 13, fontWeight: FontWeight.w600)),
               ],
             ),
           ),

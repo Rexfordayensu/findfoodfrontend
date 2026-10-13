@@ -479,7 +479,7 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
                                   color: AppColors.textHint(context),
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500)),
-                          Text(order.deliveryAddress ?? 'Customer address',
+                          Text(order.deliveryPlace,
                               style: TextStyle(
                                   color: AppColors.textPrimary(context),
                                   fontSize: 14,
@@ -489,33 +489,16 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
                         ],
                       ),
                     ),
-                    if (order.deliveryLatitude != null &&
-                        order.deliveryLongitude != null)
-                      IconButton(
-                        tooltip: 'Open delivery location in maps',
+                    if (order.hasDestination) ...[
+                      const SizedBox(width: 8),
+                      ActionPill(
+                        key: Key('available-directions-${order.id}'),
+                        icon: Icons.near_me_outlined,
+                        label: 'Directions',
+                        semanticLabel: 'Directions to the drop-off',
                         onPressed: () => _openDeliveryMap(order),
-                        icon: const Icon(Icons.map_outlined,
-                            color: AppTheme.accent),
                       ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface(context),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.access_time_rounded,
-                              size: 12, color: AppColors.textHint(context)),
-                          const SizedBox(width: 4),
-                          Text('~15 min',
-                              style: TextStyle(
-                                  color: AppColors.textHint(context),
-                                  fontSize: 12)),
-                        ],
-                      ),
-                    ),
+                    ],
                   ],
                 ),
               ],
@@ -785,27 +768,38 @@ class _MyDeliveriesPageState extends State<_MyDeliveriesPage> with LiveRefresh {
               order.deliveryLatitude != null) ...[
             const SizedBox(height: 12),
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Icon(Icons.location_on_outlined,
                     color: AppTheme.success, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    order.deliveryAddress ?? 'GPS delivery destination',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppText.label,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        order.deliveryPlace,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.label,
+                      ),
+                      if (order.isPinnedLocation)
+                        Text("Shared from the customer's phone",
+                            style: TextStyle(
+                                color: AppColors.textSecondary(context),
+                                fontSize: 12)),
+                    ],
                   ),
                 ),
-                IconButton(
-                  tooltip: 'Open delivery destination in maps',
-                  onPressed: () => _openDeliveryMap(order),
-                  icon: const Icon(Icons.directions_outlined,
-                      color: AppTheme.accent),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
+                if (order.hasDestination) ...[
+                  const SizedBox(width: 8),
+                  ActionPill(
+                    key: Key('rider-directions-${order.id}'),
+                    icon: Icons.near_me_outlined,
+                    label: 'Directions',
+                    semanticLabel: 'Directions to the drop-off',
+                    onPressed: () => _openDeliveryMap(order),
+                  ),
+                ],
               ],
             ),
           ],

@@ -168,6 +168,20 @@ class Order {
     this.pickupCode,
   });
 
+  /// "Use my current location" at checkout stores raw coordinates as the
+  /// address; show those as a pinned location instead of numbers.
+  bool get isPinnedLocation =>
+      deliveryAddress == null ||
+      deliveryAddress!.trim().isEmpty ||
+      deliveryAddress!.startsWith('Current location (');
+
+  String get deliveryPlace =>
+      isPinnedLocation ? 'Pinned location' : deliveryAddress!.trim();
+
+  bool get hasDestination =>
+      (deliveryLatitude != null && deliveryLongitude != null) ||
+      !isPinnedLocation;
+
   /// A rider has accepted but not yet collected the food.
   bool get awaitingRiderPickup =>
       riderId != null &&

@@ -67,6 +67,8 @@ Map<String, dynamic> order(int id, String status,
       if (status == 'preparing') ...{
         'rider_id': 2, 'rider_name': 'Kofi',
         'delivery_code': '4821', 'pickup_code': '7302',
+        'delivery_address': 'Current location (5.623550, -0.148901)',
+        'delivery_latitude': 5.62355, 'delivery_longitude': -0.148901,
       },
       'items': [
         {'id': id, 'menu_item_id': 1, 'quantity': 1, 'name': 'Jollof',
