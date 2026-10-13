@@ -250,7 +250,8 @@ GoRouter createAppRouter(
           location == '/login' ||
           location == '/email-verification' ||
           location == '/forgot-password' ||
-          location == '/reset-password';
+          location == '/reset-password' ||
+          location == '/google-oauth';
       if (location == '/login' && auth.isLoggedIn) {
         final returnTo = state.uri.queryParameters['returnTo'];
         if (auth.isCustomer && returnTo != null && _isCustomerRoute(returnTo)) {

@@ -5,6 +5,7 @@ import '../../theme.dart';
 import '../../widgets/widgets.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
+import 'google_oauth_flow.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
@@ -40,6 +41,7 @@ class _LoginScreenState extends State<LoginScreen>
   bool _obscureLogin = true;
   bool _obscureSignup = true;
   bool _isLoading = false;
+  bool _googleLoading = false;
   bool _isRequestingOtp = false;
   bool _useOtpLogin = false;
   int _tabIndex = 0;
@@ -249,15 +251,23 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   // ── GOOGLE SIGN IN ───────────────────────────────────────────────────────
+  /// Hands over to Google (the browser leaves the app on the web and comes
+  /// back to /auth/callback when Google is done).
   Future<void> _googleSignIn() async {
+    if (_googleLoading) return;
+    setState(() => _googleLoading = true);
     try {
-      if (!mounted) return;
-      await context.push(
-        '/google-oauth?returnTo=${Uri.encodeComponent(widget.returnRoute)}',
+      await GoogleOAuthFlowService.startGoogleAuth(
+        context: context,
+        route: widget.returnRoute,
       );
     } catch (e) {
       if (!mounted) return;
-      _showError(e.toString().replaceAll('Exception: ', ''));
+      _showError('Could not open Google sign-in. Please try again.');
+    } finally {
+      // On the web the page is already navigating to Google; elsewhere the
+      // browser has opened, so the button can be used again.
+      if (mounted) setState(() => _googleLoading = false);
     }
   }
 
@@ -366,19 +376,10 @@ class _LoginScreenState extends State<LoginScreen>
                   const SizedBox(height: 16),
 
                   // ── Social buttons ────────────────────────
-                  Row(children: [
-                    Expanded(
-                      child: _SocialBtn(
-                        label: 'Continue with Google',
-                        icon: Icons.g_mobiledata_rounded,
-                        color: const Color(0xFFEA4335),
-                        onTap: _googleSignIn,
-                        surf: surf,
-                        border: border,
-                        textPri: textPri,
-                      ),
-                    ),
-                  ]),
+                  _GoogleSignInButton(
+                    loading: _googleLoading,
+                    onPressed: _googleSignIn,
+                  ),
                 ],
               ),
             ),
@@ -681,65 +682,57 @@ class _LoginScreenState extends State<LoginScreen>
 }
 
 // ─── SOCIAL BUTTON ────────────────────────────────────────────────────────────
-class _SocialBtn extends StatefulWidget {
-  final String label;
-  final IconData icon;
-  final Color color, surf, border, textPri;
-  final VoidCallback onTap;
+/// "Continue with Google" in Google's own button style: the official G,
+/// a neutral surface and a thin outline (see Google's sign-in branding).
+class _GoogleSignInButton extends StatelessWidget {
+  final bool loading;
+  final VoidCallback onPressed;
 
-  const _SocialBtn({
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-    required this.surf,
-    required this.border,
-    required this.textPri,
-  });
-
-  @override
-  State<_SocialBtn> createState() => _SocialBtnState();
-}
-
-class _SocialBtnState extends State<_SocialBtn> {
-  bool _pressed = false;
+  const _GoogleSignInButton({required this.loading, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) {
-        setState(() => _pressed = false);
-        widget.onTap();
-      },
-      onTapCancel: () => setState(() => _pressed = false),
-      child: Transform.scale(
-        scale: _pressed ? 0.95 : 1.0,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(vertical: 13),
-          decoration: BoxDecoration(
-            color:
-                _pressed ? widget.color.withValues(alpha: 0.08) : widget.surf,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: _pressed
-                  ? widget.color.withValues(alpha: 0.4)
-                  : widget.border,
-              width: _pressed ? 1.5 : 1,
-            ),
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final background = dark ? const Color(0xFF131314) : Colors.white;
+    final outline = dark ? const Color(0xFF8E918F) : const Color(0xFF747775);
+    final text = dark ? const Color(0xFFE3E3E3) : const Color(0xFF1F1F1F);
+
+    return Semantics(
+      button: true,
+      label: 'Continue with Google',
+      excludeSemantics: true,
+      child: SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: Material(
+          key: const Key('google-sign-in'),
+          color: background,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: outline),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(widget.icon, color: widget.color, size: 24),
-              const SizedBox(height: 4),
-              Text(widget.label,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: loading ? null : onPressed,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (loading)
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: text),
+                  )
+                else
+                  Image.asset('assets/brand/google_g.png', width: 20, height: 20),
+                const SizedBox(width: 12),
+                Text(
+                  loading ? 'Opening Google…' : 'Continue with Google',
                   style: TextStyle(
-                      color: widget.textPri,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600)),
-            ],
+                      color: text, fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
           ),
         ),
       ),
