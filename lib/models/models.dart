@@ -126,6 +126,8 @@ class Order {
   final DateTime? completedAt;
   final int? riderId;
   final bool isRated;
+  final String? restaurantBannerUrl;
+  final List<OrderLine> items;
 
   Order({
     required this.id,
@@ -146,7 +148,25 @@ class Order {
     this.completedAt,
     this.riderId,
     this.isRated = false,
+    this.restaurantBannerUrl,
+    this.items = const [],
   });
+
+  /// Photo for order lists: the first dish with a picture, else the
+  /// restaurant banner.
+  String? get thumbnailUrl {
+    for (final item in items) {
+      final url = item.imageUrl;
+      if (url != null && url.isNotEmpty) return url;
+    }
+    final banner = restaurantBannerUrl;
+    return banner != null && banner.isNotEmpty ? banner : null;
+  }
+
+  bool get isCancelled => status == 'cancelled';
+
+  /// Still moving: paid or awaiting payment, not yet handed over.
+  bool get isActive => !isCompleted && !isCancelled;
 
   bool get isCompleted => status == 'delivered' || status == 'picked_up';
 
@@ -175,6 +195,11 @@ class Order {
         completedAt: _parseDate(json['completed_at']),
         riderId: json['rider_id'],
         isRated: json['is_rated'] ?? false,
+        restaurantBannerUrl: json['restaurant_banner_url'],
+        items: [
+          for (final item in (json['items'] as List? ?? const []))
+            OrderLine.fromJson(Map<String, dynamic>.from(item as Map)),
+        ],
       );
 
   static DateTime? _parseDate(dynamic value) =>
@@ -216,8 +241,38 @@ class Order {
       completedAt: completedAt,
       riderId: riderId,
       isRated: isRated ?? this.isRated,
+      restaurantBannerUrl: restaurantBannerUrl,
+      items: items,
     );
   }
+}
+
+/// One dish within a placed order.
+class OrderLine {
+  final int menuItemId;
+  final int quantity;
+  final String? name;
+  final int? price;
+  final String? imageUrl;
+  final bool isAvailable;
+
+  const OrderLine({
+    required this.menuItemId,
+    required this.quantity,
+    this.name,
+    this.price,
+    this.imageUrl,
+    this.isAvailable = true,
+  });
+
+  factory OrderLine.fromJson(Map<String, dynamic> json) => OrderLine(
+        menuItemId: json['menu_item_id'],
+        quantity: json['quantity'] ?? 1,
+        name: json['name'],
+        price: (json['price'] as num?)?.round(),
+        imageUrl: json['image_url'],
+        isAvailable: json['is_available'] ?? true,
+      );
 }
 
 class CartItem {

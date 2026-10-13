@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../theme.dart';
 import '../../widgets/widgets.dart';
 import '../../widgets/promotion_card.dart';
+import '../../widgets/customer_nav_bar.dart';
 import '../../widgets/glass.dart';
 import '../../models/models.dart';
 import '../../services/api_service.dart';
@@ -457,33 +458,12 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
       )),
 
       // ── BOTTOM NAV ────────────────────────────────────────────
-      bottomNavigationBar: GlassNavBar(
+      bottomNavigationBar: CustomerNavBar(
         // Nav slots: 0 Home, 1 Search, 2 Orders, 3 Profile (cart is the
         // centre button).
         currentIndex: const {0: 0, 1: 1, 3: 2}[_navIndex] ?? -1,
         onTap: (slot) => onNavTap(const [0, 1, 3, 4][slot]),
-        centerIcon: Icons.shopping_bag_rounded,
-        centerTooltip: 'Cart',
-        centerBadge: cart.itemCount,
-        onCenterTap: () => onNavTap(2),
-        items: const [
-          GlassNavItem(
-              icon: Icons.home_outlined,
-              activeIcon: Icons.home_rounded,
-              label: 'Home'),
-          GlassNavItem(
-              icon: Icons.search_rounded,
-              activeIcon: Icons.search_rounded,
-              label: 'Search'),
-          GlassNavItem(
-              icon: Icons.receipt_long_outlined,
-              activeIcon: Icons.receipt_long_rounded,
-              label: 'Orders'),
-          GlassNavItem(
-              icon: Icons.person_outline_rounded,
-              activeIcon: Icons.person_rounded,
-              label: 'Profile'),
-        ],
+        onCartTap: () => onNavTap(2),
       ),
     );
   }

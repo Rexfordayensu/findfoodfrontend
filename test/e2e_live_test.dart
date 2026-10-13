@@ -191,7 +191,7 @@ void main() {
     await tapAndSettle(tester, find.byKey(const Key('rate-restaurant-5')));
     await tapAndSettle(tester, find.byKey(const Key('rate-rider-4')));
     await tapAndSettle(tester, find.byKey(const Key('rate-submit')));
-    await waitFor(tester, find.text('★ Rated — thank you!'));
+    await waitFor(tester, find.textContaining('You rated this'));
 
     final orders = await api(tester, () => ApiService.getMyOrders(tokenOf(tester)));
     final statuses = {for (final o in orders) o.id: o.status};

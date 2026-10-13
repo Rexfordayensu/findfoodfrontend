@@ -57,12 +57,20 @@ Map<String, dynamic> restaurant(int id, String name, String cuisine,
     };
 
 Map<String, dynamic> order(int id, String status,
-        {String method = 'delivery', int total = 4500, int minutes = 30}) =>
+        {String method = 'delivery', int total = 4500, int minutes = 30,
+        bool rated = false}) =>
     {
       'id': id, 'total_amount': total, 'status': status, 'restaurant_id': 1,
       'user_id': 1, 'restaurant_name': "Mama's Kitchen",
       'fulfillment_method': method, 'delivery_address': 'Labone, Accra',
-      'created_at': ago(minutes), 'is_rated': false, 'items': [],
+      'created_at': ago(minutes), 'is_rated': rated,
+      'items': [
+        {'id': id, 'menu_item_id': 1, 'quantity': 1, 'name': 'Jollof',
+         'price': 4000, 'image_url': null, 'is_available': true},
+        if (id.isOdd)
+          {'id': id + 100, 'menu_item_id': 2, 'quantity': 2, 'name': 'Waakye',
+           'price': 3500, 'image_url': null, 'is_available': true},
+      ],
     };
 
 final routes = <String, Object>{
@@ -80,10 +88,11 @@ final routes = <String, Object>{
      'is_active': true, 'created_at': ago(90)},
   ],
   '/orders': [
-    order(41, 'pending', minutes: 3),
-    order(40, 'preparing', minutes: 12),
-    order(39, 'ready', method: 'pickup', minutes: 25),
-    order(37, 'delivered', minutes: 300),
+    order(41, 'preparing', minutes: 12),
+    order(39, 'delivered', minutes: 60 * 26, total: 4099),
+    order(37, 'delivered', minutes: 60 * 24 * 3, total: 3879, rated: true),
+    order(36, 'cancelled', minutes: 60 * 24 * 9, total: 7970),
+    order(35, 'picked_up', minutes: 60 * 24 * 30, total: 4449),
   ],
   '/deliveries/available': [
     order(41, 'ready', minutes: 5),
@@ -287,6 +296,11 @@ void main() {
   testWidgets('checkout pickup light', (t) => shoot(t, 'checkout_pickup_light',
       role: 'customer', name: 'Rexford', dark: false, tab: 'Cart',
       cart: sampleCart(), then: 'Pickup'));
+  for (final dark in [false, true]) {
+    testWidgets('orders ${dark ? 'dark' : 'light'}', (t) => shoot(t,
+        'orders_${dark ? 'dark' : 'light'}',
+        role: 'customer', name: 'Rexford', dark: dark, tab: 'Orders'));
+  }
   testWidgets('admin desktop light', (t) => shoot(t, 'admin_desktop_light',
       role: 'admin', name: 'Ade', dark: false, size: const Size(1280, 860)));
 }
