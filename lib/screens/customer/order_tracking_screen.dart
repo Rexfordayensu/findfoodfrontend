@@ -24,7 +24,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   bool _confirmingPickup = false;
   bool _busy = false;
 
-
   List<Map<String, Object>> get _steps => _order.fulfillmentMethod == 'pickup'
       ? const [
           {
@@ -95,7 +94,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   // ── Poll backend every 4s for live status updates ──────────────────────────
   void _startPolling() {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    if (auth.token == null) return;
+    if (auth.token == null || !_order.isActive) return;
 
     _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) async {
       try {
@@ -133,10 +132,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               tween: Tween(begin: 0.0, end: 1.0),
               duration: const Duration(milliseconds: 600),
               curve: Curves.elasticOut,
-              builder: (_, v, child) =>
-                  Transform.scale(scale: v, child: child),
+              builder: (_, v, child) => Transform.scale(scale: v, child: child),
               child: Container(
-                width: 90, height: 90,
+                width: 90,
+                height: 90,
                 decoration: BoxDecoration(
                   color: AppTheme.success.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
@@ -152,8 +151,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                     fontSize: 22,
                     fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
-             Text(
-              'Enjoy your meal! How was your experience?',
+            Text('Enjoy your meal! How was your experience?',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.textSecondary(context))),
             const SizedBox(height: 24),
@@ -229,7 +227,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       setState(() => _order = updated);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: AppTheme.success,
-        content: Text(paid ? 'Order cancelled and refunded.' : 'Order cancelled.'),
+        content:
+            Text(paid ? 'Order cancelled and refunded.' : 'Order cancelled.'),
       ));
     } catch (e) {
       if (!mounted) return;
@@ -248,8 +247,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     if (auth.token == null) return;
     setState(() => _confirmingPickup = true);
     try {
-      final updated =
-          await ApiService.updateOrderStatus(auth.token!, _order.id, 'picked_up');
+      final updated = await ApiService.updateOrderStatus(
+          auth.token!, _order.id, 'picked_up');
       if (!mounted) return;
       _pollTimer?.cancel();
       setState(() => _order = updated);
@@ -283,6 +282,41 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     return index < 0 ? 0 : index;
   }
 
+  /// Whether a step is finished. A completed order's last step is finished
+  /// too, not "in progress".
+  bool _stepDone(int i) =>
+      _order.isCompleted ? i <= _currentStep : i < _currentStep;
+
+  /// The step being worked on right now, if any. Nothing is in progress for
+  /// unpaid, cancelled or completed orders.
+  bool _stepActive(int i) =>
+      _order.isActive &&
+      _order.status != 'awaiting_payment' &&
+      i == _currentStep;
+
+  String? _stepNote(int i) {
+    if (_stepActive(i)) return 'In progress...';
+    final completedAt = _order.completedAt;
+    if (_order.isCompleted && i == _steps.length - 1 && completedAt != null) {
+      final h = completedAt.hour.toString().padLeft(2, '0');
+      final m = completedAt.minute.toString().padLeft(2, '0');
+      return 'Completed at $h:$m';
+    }
+    return null;
+  }
+
+  static String _statusLabel(String status) => switch (status) {
+        'awaiting_payment' => 'Awaiting payment',
+        'pending' => 'Order placed',
+        'preparing' => 'Preparing',
+        'ready' => 'Ready',
+        'out_for_delivery' => 'On the way',
+        'delivered' => 'Delivered',
+        'picked_up' => 'Picked up',
+        'cancelled' => 'Cancelled',
+        _ => status.replaceAll('_', ' '),
+      };
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -290,28 +324,30 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         title: Text('Order #${_order.id}'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
-            onPressed: () => context.go('/orders'),
+          onPressed: () => context.go('/orders'),
         ),
         actions: [
           // Live indicator
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Row(
-              children: [
-                Container(
-                  width: 8, height: 8,
-                  decoration: const BoxDecoration(
-                      color: AppTheme.success, shape: BoxShape.circle),
-                ),
-                const SizedBox(width: 6),
-                const Text('Live',
-                    style: TextStyle(
-                        color: AppTheme.success,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600)),
-              ],
+          if (_order.isActive)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                        color: AppTheme.success, shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 6),
+                  const Text('Live',
+                      style: TextStyle(
+                          color: AppTheme.success,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600)),
+                ],
+              ),
             ),
-          ),
         ],
       ),
       body: ListView(
@@ -331,14 +367,14 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                     color: AppTheme.accent, size: 36),
                 const SizedBox(height: 10),
                 Text(
-                  _order.fulfillmentMethod == 'pickup'
-                    ? 'Pickup status'
-                    : 'Estimated arrival',
+                    _order.fulfillmentMethod == 'pickup'
+                        ? 'Pickup status'
+                        : 'Estimated arrival',
                     style: TextStyle(color: AppColors.textSecondary(context))),
                 const SizedBox(height: 6),
-                Text(
-                  _headline,
-                  style: TextStyle(color: AppColors.accentText(context),
+                Text(_headline,
+                    style: TextStyle(
+                      color: AppColors.accentText(context),
                       fontSize: 32,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.5,
@@ -358,11 +394,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 16),
           ..._steps.asMap().entries.map((entry) {
-            final i      = entry.key;
-            final step   = entry.value;
-            final curr   = _currentStep;
-            final done   = i < curr;
-            final active = i == curr;
+            final i = entry.key;
+            final step = entry.value;
+            final done = _stepDone(i);
+            final active = _stepActive(i);
+            final note = _stepNote(i);
 
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,7 +407,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                   children: [
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 400),
-                      width: 36, height: 36,
+                      width: 36,
+                      height: 36,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: done
@@ -394,8 +431,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                                   color: Colors.black, strokeWidth: 2),
                             )
                           : Icon(
-                              done ? Icons.check_rounded
-                                   : step['icon'] as IconData,
+                              done
+                                  ? Icons.check_rounded
+                                  : step['icon'] as IconData,
                               size: 18,
                               color: done
                                   ? Colors.white
@@ -404,10 +442,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                     ),
                     if (i < _steps.length - 1)
                       Container(
-                        width: 2, height: 36,
-                        color: done
-                            ? AppTheme.success
-                            : AppColors.border(context),
+                        width: 2,
+                        height: 36,
+                        color:
+                            done ? AppTheme.success : AppColors.border(context),
                       ),
                   ],
                 ),
@@ -426,14 +464,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                                 : done
                                     ? AppColors.textPrimary(context)
                                     : AppColors.textHint(context),
-                            fontWeight: active
-                                ? FontWeight.w700
-                                : FontWeight.w400,
+                            fontWeight:
+                                active ? FontWeight.w700 : FontWeight.w400,
                             fontSize: 15,
                           ),
                         ),
-                        if (active)
-                          Text('In progress...',
+                        if (note != null)
+                          Text(note,
                               style: TextStyle(
                                   color: AppColors.textHint(context),
                                   fontSize: 12)),
@@ -498,7 +535,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
           const SizedBox(height: 12),
           _infoRow('Order ID', '#${_order.id}'),
           _infoRow('Total', _order.displayTotal),
-          _infoRow('Status', _order.status.replaceAll('_', ' ')),
+          _infoRow('Status', _statusLabel(_order.status)),
           const SizedBox(height: 32),
         ],
       ),
@@ -511,7 +548,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: AppColors.textSecondary(context))),
+          Text(label,
+              style: TextStyle(color: AppColors.textSecondary(context))),
           Text(value,
               style: TextStyle(
                   color: AppColors.textPrimary(context),
