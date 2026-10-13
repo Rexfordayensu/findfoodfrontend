@@ -3,10 +3,12 @@ import 'dart:convert';
 
 import 'package:async/async.dart';
 import 'package:findfood_app/screens/chat_screen.dart';
+import 'package:findfood_app/widgets/chat_button.dart';
 import 'package:findfood_app/services/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
@@ -62,7 +64,7 @@ void main() {
     history = [msg(1, 20, 'restaurant', 'Your order is being prepared')];
     requests = [];
     ChatScreen.connect = (uri) {
-      requests.add('WS ${uri.path}');
+      requests.add('WS ${uri.path}?with=${uri.queryParameters['with']}');
       final socket = FakeSocket();
       sockets.add(socket);
       return socket;
@@ -70,7 +72,8 @@ void main() {
   });
 
   final client = MockClient((request) async {
-    requests.add('${request.method} ${request.url.path}');
+    requests.add('${request.method} ${request.url.path}'
+        '${request.url.query.isEmpty ? '' : '?${request.url.query}'}');
     if (request.method == 'POST') {
       final text = jsonDecode(request.body)['message'] as String;
       final sent = msg(10, 7, 'customer', text);
@@ -91,7 +94,8 @@ void main() {
     await tester.pumpWidget(ChangeNotifierProvider.value(
       value: auth,
       child: const MaterialApp(
-          home: ChatScreen(orderId: 3, otherPartyName: "Mama's Kitchen")),
+          home: ChatScreen(
+              orderId: 3, otherPartyName: "Mama's Kitchen", withRole: 'restaurant')),
     ));
     await tester.pumpAndSettle();
   }
@@ -102,7 +106,8 @@ void main() {
       await open(tester);
       expect(find.text('Your order is being prepared'), findsOneWidget);
       expect(find.textContaining('Live'), findsOneWidget);
-      expect(requests.first, 'WS /ws/orders/3/chat');
+      expect(requests.first, 'WS /ws/orders/3/chat?with=restaurant');
+      expect(requests, contains('GET /orders/3/messages?with=restaurant'));
 
       // The rider writes: it appears straight away, no refresh.
       sockets.single.push(msg(2, 30, 'rider', "I'm on my way"));
@@ -144,10 +149,61 @@ void main() {
   testWidgets('quick replies send straight away', (tester) async {
     await http.runWithClient(() async {
       await open(tester);
-      await tester.tap(find.text('Where are you now?'));
+      await tester.tap(find.text('Is my food ready?'));
       await tester.pumpAndSettle();
-      expect(requests, contains('POST /orders/3/messages'));
-      expect(find.text('Where are you now?'), findsNWidgets(2)); // chip + bubble
+      expect(requests, contains('POST /orders/3/messages?with=restaurant'));
+      expect(find.text('Is my food ready?'), findsNWidgets(2)); // chip + bubble
+      // Rider-only suggestions don't appear in the restaurant chat.
+      expect(find.text('Where are you now?'), findsNothing);
     }, () => client);
+  });
+
+  testWidgets('picking who to chat with opens that private conversation',
+      (tester) async {
+    final opened = <String>[];
+    Widget app(List<ChatContact> contacts) => MaterialApp.router(
+          routerConfig: GoRouter(routes: [
+            GoRoute(
+              path: '/',
+              builder: (context, _) => Scaffold(
+                body: Center(
+                  child: ChatButton(
+                    withWhom: 'test',
+                    onPressed: () => openOrderChat(context, 41, contacts),
+                  ),
+                ),
+              ),
+            ),
+            GoRoute(
+              path: '/chat/:id',
+              builder: (_, state) {
+                opened.add(state.uri.toString());
+                return const Text('chat open');
+              },
+            ),
+          ]),
+        );
+
+    // Two people: the picker asks who.
+    await tester.pumpWidget(app(const [
+      ChatContact('customer', 'Customer', 'Directions and delivery updates'),
+      ChatContact('restaurant', "Mama's Kitchen", 'Collecting the order'),
+    ]));
+    await tester.tap(find.text('Chat'));
+    await tester.pumpAndSettle();
+    expect(find.text('Chat about order #41'), findsOneWidget);
+    expect(find.textContaining('private between the two of you'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('chat-with-restaurant')));
+    await tester.pumpAndSettle();
+    expect(opened.single, "/chat/41?with=restaurant&name=Mama%27s+Kitchen");
+
+    // One person: straight in.
+    opened.clear();
+    await tester.pumpWidget(app(const [ChatContact('rider', 'Kofi', 'Delivery')]));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Chat'));
+    await tester.pumpAndSettle();
+    expect(find.text('Chat about order #41'), findsNothing);
+    expect(opened.single, '/chat/41?with=rider&name=Kofi');
   });
 }

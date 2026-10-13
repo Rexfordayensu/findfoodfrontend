@@ -148,31 +148,21 @@ GoRouter createAppRouter(
         },
       ),
       GoRoute(
+        // /chat/41?with=rider&name=Kofi - a private chat on order 41.
         path: '/chat/:orderId',
         builder: (_, state) {
-          final data = state.extra;
-          if (data is Map<String, dynamic>) {
-            return ChatScreen(
-              orderId: int.parse(state.pathParameters['orderId']!),
-              otherPartyName: data['name']?.toString() ?? 'Customer',
-              otherPartyRole: data['role']?.toString() ?? 'customer',
-            );
+          final orderId = int.tryParse(state.pathParameters['orderId'] ?? '');
+          final query = state.uri.queryParameters;
+          final withRole = query['with'];
+          if (orderId == null ||
+              !const {'customer', 'restaurant', 'rider'}.contains(withRole)) {
+            return const _MissingRouteDataScreen();
           }
-          return const _MissingRouteDataScreen();
-        },
-      ),
-      GoRoute(
-        path: '/order-chat/:orderId',
-        builder: (_, state) {
-          final order = state.extra;
-          if (order is Order) {
-            return ChatScreen(
-              orderId: order.id,
-              otherPartyName: 'Customer & ${order.restaurantName ?? 'restaurant'}',
-              otherPartyRole: 'customer',
-            );
-          }
-          return const _MissingRouteDataScreen();
+          return ChatScreen(
+            orderId: orderId,
+            withRole: withRole!,
+            otherPartyName: query['name'] ?? _roleTitle(withRole),
+          );
         },
       ),
       GoRoute(
@@ -385,3 +375,9 @@ class _OrderTrackingLoaderState extends State<_OrderTrackingLoader> {
     );
   }
 }
+
+String _roleTitle(String role) => switch (role) {
+      'restaurant' => 'Restaurant',
+      'rider' => 'Rider',
+      _ => 'Customer',
+    };

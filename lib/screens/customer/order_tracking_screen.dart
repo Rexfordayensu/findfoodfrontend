@@ -383,17 +383,25 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             const SizedBox(height: 12),
             ChatButton.wide(
               key: const Key('tracking-open-chat'),
-              withWhom: _order.riderId != null
-                  ? '${_order.restaurantName ?? 'The restaurant'} & '
-                      '${_order.riderName ?? 'your rider'}'
-                  : (_order.restaurantName ?? 'The restaurant'),
-              onPressed: () => context.push('/chat/${_order.id}', extra: {
-                'name': _order.riderId != null
-                    ? '${_order.restaurantName ?? 'Restaurant'} & rider'
-                    : (_order.restaurantName ?? 'Restaurant'),
-                'role': 'restaurant',
-              }),
+              title: 'Chat with the restaurant',
+              withWhom: _order.restaurantName ?? 'The restaurant',
+              onPressed: () => openOrderChat(context, _order.id, [
+                ChatContact('restaurant', _order.restaurantName ?? 'Restaurant',
+                    'About your food'),
+              ]),
             ),
+            if (_order.riderId != null) ...[
+              const SizedBox(height: 10),
+              ChatButton.wide(
+                key: const Key('tracking-chat-rider'),
+                title: 'Chat with your rider',
+                withWhom: _order.riderName ?? 'Your rider',
+                onPressed: () => openOrderChat(context, _order.id, [
+                  ChatContact('rider', _order.riderName ?? 'Your rider',
+                      'About your delivery'),
+                ]),
+              ),
+            ],
           ],
           const SizedBox(height: 28),
 

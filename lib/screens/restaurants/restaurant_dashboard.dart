@@ -742,17 +742,15 @@ class _OrderCard extends StatelessWidget {
                         ChatButton(
                           key: Key('restaurant-chat-${order.id}'),
                           withWhom: hasRider
-                              ? 'the customer and ${order.riderName ?? 'the rider'}'
+                              ? 'the customer or ${order.riderName ?? 'the rider'}'
                               : 'the customer',
-                          onPressed: () => context.push(
-                            '/chat/${order.id}',
-                            extra: {
-                              'name': hasRider
-                                  ? 'Customer & ${order.riderName ?? 'rider'}'
-                                  : 'Customer',
-                              'role': 'customer',
-                            },
-                          ),
+                          onPressed: () => openOrderChat(context, order.id, [
+                            const ChatContact('customer', 'Customer',
+                                'Questions about the order'),
+                            if (hasRider)
+                              ChatContact('rider', order.riderName ?? 'Rider',
+                                  'Your rider for this order'),
+                          ]),
                         ),
                         const SizedBox(width: 8),
                       ],

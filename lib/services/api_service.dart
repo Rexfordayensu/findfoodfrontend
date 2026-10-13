@@ -901,27 +901,35 @@ class ApiService {
 
   // ── SCHEDULED ORDERS ──────────────────────────────────────────────────────
   // ── CHAT ──────────────────────────────────────────────────────────────────
+  /// Order chats are private between two people: [withRole] is the other
+  /// person ('customer', 'restaurant' or 'rider').
+  static Uri chatUri(int orderId, String withRole) =>
+      Uri.parse('$baseUrl/orders/$orderId/messages')
+          .replace(queryParameters: {'with': withRole});
+
   static Future<List<Map<String, dynamic>>> getChatMessages({
     required String token,
     required int orderId,
+    required String withRole,
   }) async {
     final response = await _http.get(
-      Uri.parse('$baseUrl/orders/$orderId/messages'),
+      chatUri(orderId, withRole),
       headers: {'Authorization': 'Bearer $token'},
     );
     if (response.statusCode == 200) {
       return List<Map<String, dynamic>>.from(jsonDecode(response.body));
     }
-    throw Exception('Failed to load messages');
+    throw Exception(_decode(response)['detail'] ?? 'Failed to load messages');
   }
 
   static Future<Map<String, dynamic>> sendChatMessage({
     required String token,
     required int orderId,
+    required String withRole,
     required String message,
   }) async {
     final response = await _http.post(
-      Uri.parse('$baseUrl/orders/$orderId/messages'),
+      chatUri(orderId, withRole),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -1107,35 +1115,6 @@ class ApiService {
       return List<Map<String, dynamic>>.from(jsonDecode(response.body));
     }
     throw Exception('Failed to load orders');
-  }
-
-  static Future<Map<String, dynamic>> sendMessage({
-    required String token,
-    required int orderId,
-    required String content,
-  }) async {
-    final url = Uri.parse('$baseUrl/orders/$orderId/messages');
-
-    try {
-      final response = await _http.post(
-        url,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
-        },
-        body: jsonEncode({
-          "message": content,
-        }),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return Map<String, dynamic>.from(jsonDecode(response.body));
-      }
-      throw Exception(_decode(response)['detail'] ?? 'Failed to send message');
-    } catch (e) {
-      if (e is Exception) rethrow;
-      throw Exception('Network connection error: $e');
-    }
   }
 
 // Exchange Google OAuth Authorization Code for a token payload map

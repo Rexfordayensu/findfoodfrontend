@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import '../../theme.dart';
@@ -766,9 +765,13 @@ class _MyDeliveriesPageState extends State<_MyDeliveriesPage> with LiveRefresh {
                 ChatButton(
                   key: Key('rider-chat-${order.id}'),
                   withWhom:
-                      'the customer and ${order.restaurantName ?? 'the restaurant'}',
-                  onPressed: () =>
-                      context.push('/order-chat/${order.id}', extra: order),
+                      'the customer or ${order.restaurantName ?? 'the restaurant'}',
+                  onPressed: () => openOrderChat(context, order.id, [
+                    const ChatContact('customer', 'Customer',
+                        'Directions and delivery updates'),
+                    ChatContact('restaurant', order.restaurantName ?? 'Restaurant',
+                        'Collecting the order'),
+                  ]),
                 ),
                 const SizedBox(width: 8),
               ],

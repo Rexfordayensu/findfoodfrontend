@@ -8,19 +8,20 @@ import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
 
-/// Order chat shared by the customer, the restaurant and the rider. New
-/// messages arrive over a WebSocket; history is (re)loaded over REST each
-/// time the socket connects, so nothing sent while offline is missed.
+/// A private chat between the signed-in user and one other person on an
+/// order ([withRole]: 'customer', 'restaurant' or 'rider'). New messages
+/// arrive over a WebSocket; history is (re)loaded over REST each time the
+/// socket connects, so nothing sent while offline is missed.
 class ChatScreen extends StatefulWidget {
   final int orderId;
   final String otherPartyName;
-  final String otherPartyRole;
+  final String withRole;
 
   const ChatScreen({
     super.key,
     required this.orderId,
     required this.otherPartyName,
-    this.otherPartyRole = 'customer',
+    required this.withRole,
   });
 
   /// Opens the live connection; replaced in tests.
@@ -72,7 +73,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (auth.token == null) return;
     try {
       final messages = await ApiService.getChatMessages(
-          token: auth.token!, orderId: widget.orderId);
+          token: auth.token!, orderId: widget.orderId, withRole: widget.withRole);
       if (!mounted) return;
       setState(() {
         for (final raw in messages) {
@@ -108,7 +109,8 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     final wsBase = ApiService.baseUrl.replaceFirst('http', 'ws');
     final uri = Uri.parse(
-        '$wsBase/ws/orders/${widget.orderId}/chat?token=${Uri.encodeComponent(auth.token!)}');
+        '$wsBase/ws/orders/${widget.orderId}/chat'
+        '?token=${Uri.encodeComponent(auth.token!)}&with=${widget.withRole}');
 
     try {
       final channel = ChatScreen.connect(uri);
@@ -176,10 +178,11 @@ class _ChatScreenState extends State<ChatScreen> {
     if (preset == null) _msgCtrl.clear();
     try {
       // Sent over REST; the server broadcasts it to everyone's socket.
-      final msg = await ApiService.sendMessage(
+      final msg = await ApiService.sendChatMessage(
         token: auth.token!,
         orderId: widget.orderId,
-        content: text,
+        withRole: widget.withRole,
+        message: text,
       );
       if (!mounted) return;
       var added = false;
@@ -211,14 +214,39 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  List<String> _quickReplies(String? role) => switch (role) {
-        'rider' => ["I'm on my way", "I've arrived", 'Please call me'],
-        'restaurant' => [
+  /// Suggestions for this particular pair of people.
+  List<String> _quickReplies(String? me) => switch ((me, widget.withRole)) {
+        ('customer', 'restaurant') => [
+            'Is my food ready?',
+            'Can I change my order?',
+            'Thank you!'
+          ],
+        ('customer', 'rider') => [
+            'Where are you now?',
+            'Please call me when you arrive',
+            'Thank you!'
+          ],
+        ('restaurant', 'customer') => [
             'Your order is being prepared',
             'Your order is ready',
             'Thank you!'
           ],
-        _ => ['Is my food ready?', 'Where are you now?', 'Thank you!'],
+        ('restaurant', 'rider') => [
+            'The food is ready for pickup',
+            'Please come to the counter',
+            'Thanks!'
+          ],
+        ('rider', 'restaurant') => [
+            "I'm on my way to collect",
+            "I've arrived for pickup",
+            'Is the order ready?'
+          ],
+        ('rider', 'customer') => [
+            "I'm on my way",
+            "I've arrived",
+            'Please call me'
+          ],
+        _ => ['Thank you!'],
       };
 
   @override
