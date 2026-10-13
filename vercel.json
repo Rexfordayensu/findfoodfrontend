@@ -43,7 +43,7 @@
       ]
     },
     {
-      "source": "/assets/(AssetManifest.json|AssetManifest.bin|AssetManifest.bin.json|FontManifest.json)",
+      "source": "/assets/(AssetManifest.json|AssetManifest.bin|AssetManifest.bin.json|FontManifest.json|fonts/MaterialIcons-Regular.otf|packages/(.*))",
       "headers": [
         {
           "key": "Cache-Control",
