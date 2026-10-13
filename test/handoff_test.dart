@@ -28,7 +28,14 @@ Map<String, dynamic> orderJson(String status,
       'fulfillment_method': method, 'delivery_address': 'Labone',
       'rider_id': riderId, 'rider_name': riderId == null ? null : 'Kofi',
       'delivery_code': deliveryCode, 'pickup_code': pickupCode,
-      'created_at': DateTime.now().toUtc().toIso8601String(), 'items': [],
+      'kitchen_note': 'No pepper please',
+      'created_at': DateTime.now().toUtc().toIso8601String(),
+      'items': [
+        {'id': 1, 'menu_item_id': 1, 'quantity': 2, 'name': 'Jollof Rice',
+         'price': 2000, 'is_available': true},
+        {'id': 2, 'menu_item_id': 2, 'quantity': 1, 'name': 'Kelewele',
+         'price': 1000, 'is_available': true},
+      ],
     };
 
 Future<AuthProvider> signedIn(String role) async {
@@ -119,9 +126,14 @@ void main() {
     await http.runWithClient(() async {
       await show(tester, auth, const RestaurantDashboard(token: 't'));
       expect(find.text('Rider: Kofi'), findsOneWidget);
+      expect(find.text('Jollof Rice'), findsOneWidget, reason: 'packing list on the card');
+      expect(find.text('No pepper please'), findsOneWidget);
       await tester.tap(find.text('Hand over to rider'));
       await frames(tester);
       expect(find.text("Enter Kofi's code"), findsOneWidget);
+      expect(find.text('Jollof Rice'), findsNWidgets(2), reason: 'and in the sheet');
+      expect(find.textContaining('Only hand over the bag once the code is accepted'),
+          findsOneWidget);
 
       await tester.enterText(find.byKey(const Key('handoff-code-input')), '1111');
       await frames(tester);
@@ -163,6 +175,11 @@ void main() {
       await frames(tester);
       expect(find.byKey(const Key('rider-pickup-code-4')), findsOneWidget);
       expect(find.textContaining('The food is ready'), findsOneWidget);
+      expect(find.textContaining('labelled #4'), findsOneWidget);
+      expect(find.text('2×'), findsOneWidget);
+      expect(find.text('Jollof Rice'), findsOneWidget);
+      expect(find.byKey(const Key('rider-release-4')), findsOneWidget);
+      expect(find.byKey(const Key('rider-chat-4')), findsOneWidget);
 
       // The restaurant enters the code; the rider's list refreshes.
       status = 'out_for_delivery';
@@ -178,5 +195,69 @@ void main() {
 
     expect(find.text('Delivery complete. Nice work!'), findsOneWidget);
     expect(find.byKey(const Key('rider-complete-4')), findsNothing);
+  });
+
+  testWidgets('rider can release a job before collecting it, within the daily limit',
+      (tester) async {
+    final auth = await signedIn('rider');
+    var releaseStatus = 200;
+    final calls = <String>[];
+    final client = MockClient((request) async {
+      final path = request.url.path;
+      calls.add('${request.method} $path');
+      if (path == '/deliveries/4/release') {
+        return releaseStatus == 200
+            ? json(orderJson('ready'))
+            : json({'detail': 'You can release at most 2 jobs a day. '
+                  'Please collect this order or contact support.'}, 429);
+      }
+      if (path == '/orders') {
+        return json([orderJson('ready', riderId: 1, pickupCode: '7302')]);
+      }
+      return json([]);
+    });
+
+    await http.runWithClient(() async {
+      await show(tester, auth, const RiderDashboard());
+      await tester.tap(find.text('My Deliveries'));
+      await frames(tester);
+
+      // Over the limit: the job stays and the reason is shown.
+      releaseStatus = 429;
+      await tester.tap(find.byKey(const Key('rider-release-4')));
+      await frames(tester);
+      expect(find.textContaining('up to 2 jobs a day'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('confirm-release')));
+      await frames(tester);
+      expect(find.textContaining('at most 2 jobs a day'), findsOneWidget);
+      expect(find.byKey(const Key('rider-pickup-code-4')), findsOneWidget);
+
+      // Allowed: the job leaves the rider's list.
+      releaseStatus = 200;
+      await tester.tap(find.byKey(const Key('rider-release-4')));
+      await frames(tester);
+      await tester.tap(find.byKey(const Key('confirm-release')));
+      await frames(tester);
+    }, () => client);
+
+    expect(calls.where((c) => c == 'POST /deliveries/4/release'), hasLength(2));
+    expect(find.byKey(const Key('rider-pickup-code-4')), findsNothing);
+    expect(find.text('Order #4 released to other riders.'), findsOneWidget);
+  });
+
+  testWidgets('a collected job cannot be released from the app', (tester) async {
+    final auth = await signedIn('rider');
+    final client = MockClient((request) async => request.url.path == '/orders'
+        ? json([orderJson('out_for_delivery', riderId: 1)])
+        : json([]));
+
+    await http.runWithClient(() async {
+      await show(tester, auth, const RiderDashboard());
+      await tester.tap(find.text('My Deliveries'));
+      await frames(tester);
+    }, () => client);
+
+    expect(find.byKey(const Key('rider-release-4')), findsNothing);
+    expect(find.byKey(const Key('rider-complete-4')), findsOneWidget);
   });
 }

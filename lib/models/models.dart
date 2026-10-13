@@ -130,6 +130,9 @@ class Order {
   final List<OrderLine> items;
   final String? riderName;
 
+  /// When the restaurant handed the food to the rider.
+  final DateTime? collectedAt;
+
   /// The customer's code: shown only to the customer, who gives it to the
   /// rider (or the restaurant counter for pickup orders).
   final String? deliveryCode;
@@ -160,6 +163,7 @@ class Order {
     this.restaurantBannerUrl,
     this.items = const [],
     this.riderName,
+    this.collectedAt,
     this.deliveryCode,
     this.pickupCode,
   });
@@ -214,6 +218,7 @@ class Order {
         isRated: json['is_rated'] ?? false,
         restaurantBannerUrl: json['restaurant_banner_url'],
         riderName: json['rider_name'],
+        collectedAt: _parseDate(json['collected_at']),
         deliveryCode: json['delivery_code'],
         pickupCode: json['pickup_code'],
         items: [
@@ -264,6 +269,7 @@ class Order {
       restaurantBannerUrl: restaurantBannerUrl,
       items: items,
       riderName: riderName,
+      collectedAt: collectedAt,
       deliveryCode: deliveryCode,
       pickupCode: pickupCode,
     );

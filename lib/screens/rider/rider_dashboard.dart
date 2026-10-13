@@ -404,24 +404,8 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Wrap the Order ID and Chat icon together
-                    Row(
-                      children: [
-                        Text('Order #${order.id}', style: AppText.title),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: const Icon(Icons.chat_bubble_outline_rounded,
-                              size: 20, color: AppTheme.accent),
-                          constraints:
-                              const BoxConstraints(), // Keeps the button compact
-                          padding: EdgeInsets.zero,
-                          onPressed: () {
-                            context.push('/order-chat/${order.id}',
-                                extra: order);
-                          },
-                        ),
-                      ],
-                    ),
+                    // Chat opens once the rider has accepted the job.
+                    Text('Order #${order.id}', style: AppText.title),
                     Text(order.displayTotal,
                         style: AppText.title.copyWith(color: AppTheme.accent)),
                   ],
@@ -451,7 +435,7 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
                                   color: AppColors.textHint(context),
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500)),
-                          Text('Restaurant location',
+                          Text(order.restaurantName ?? 'Restaurant',
                               style: TextStyle(
                                   color: AppColors.textPrimary(context),
                                   fontSize: 14,
@@ -538,6 +522,13 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
             ),
           ),
 
+          if (order.items.isNotEmpty) ...[
+            Divider(height: 1, color: AppColors.border(context)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: PackingList(order: order, dense: true),
+            ),
+          ],
           Divider(height: 1, color: AppColors.border(context)),
 
           // ── Accept button ───────────────────────────────────
@@ -568,8 +559,7 @@ class _MyDeliveriesPage extends StatefulWidget {
   State<_MyDeliveriesPage> createState() => _MyDeliveriesPageState();
 }
 
-class _MyDeliveriesPageState extends State<_MyDeliveriesPage>
-    with LiveRefresh {
+class _MyDeliveriesPageState extends State<_MyDeliveriesPage> with LiveRefresh {
   List<Order> _orders = [];
   bool _loading = true;
   String _error = '';
@@ -629,6 +619,50 @@ class _MyDeliveriesPageState extends State<_MyDeliveriesPage>
     }
   }
 
+  /// Gives a job back before collecting it; the server enforces the rules.
+  Future<void> _releaseJob(Order order) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Release order #${order.id}?'),
+        content: const Text(
+            'It goes back to the available jobs for another rider. You can '
+            'release up to 2 jobs a day, and never after collecting the food.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Keep job')),
+          TextButton(
+              key: const Key('confirm-release'),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Release',
+                  style: TextStyle(color: AppTheme.danger))),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ApiService.releaseDelivery(
+          context.read<AuthProvider>().token!, order.id);
+      if (!mounted) return;
+      setState(() => _orders.removeWhere((o) => o.id == order.id));
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+          content: Text('Order #${order.id} released to other riders.'),
+        ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+          backgroundColor: AppTheme.danger,
+          content: Text(e.toString().replaceAll('Exception: ', ''),
+              style: const TextStyle(color: Colors.white)),
+        ));
+    }
+  }
+
   /// The rider asks the customer for their code to finish the delivery.
   Future<void> _completeDelivery(Order order) async {
     final token = context.read<AuthProvider>().token!;
@@ -640,7 +674,8 @@ class _MyDeliveriesPageState extends State<_MyDeliveriesPage>
           'FindFood app. Hand over the food once the code is accepted.',
       actionLabel: 'Complete delivery',
       submit: (code) async {
-        final updated = await ApiService.completeDelivery(token, order.id, code);
+        final updated =
+            await ApiService.completeDelivery(token, order.id, code);
         if (!mounted) return;
         setState(() {
           final idx = _orders.indexWhere((o) => o.id == order.id);
@@ -724,9 +759,17 @@ class _MyDeliveriesPageState extends State<_MyDeliveriesPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Order #${order.id}', style: AppText.title),
+              Expanded(child: Text('Order #${order.id}', style: AppText.title)),
+              if (order.isActive)
+                IconButton(
+                  key: Key('rider-chat-${order.id}'),
+                  tooltip: 'Message the customer and restaurant',
+                  onPressed: () =>
+                      context.push('/order-chat/${order.id}', extra: order),
+                  icon: Icon(Icons.chat_bubble_outline_rounded,
+                      size: 20, color: AppColors.textSecondary(context)),
+                ),
               StatusBadge(status: order.status),
             ],
           ),
@@ -769,9 +812,30 @@ class _MyDeliveriesPageState extends State<_MyDeliveriesPage>
               code: order.pickupCode!,
               icon: Icons.storefront_outlined,
               instructions:
-                  'Give this code to ${order.restaurantName ?? 'the restaurant'} '
-                  'when you collect the food. '
+                  'Check the bag is labelled #${order.id} and has everything '
+                  'below, then give this code to '
+                  '${order.restaurantName ?? 'the restaurant'}. '
                   '${order.status == 'ready' ? 'The food is ready.' : 'The kitchen is still preparing it.'}',
+            ),
+            const SizedBox(height: 12),
+            Text('In the bag',
+                style: TextStyle(
+                    color: AppColors.textSecondary(context),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            PackingList(order: order),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                key: Key('rider-release-${order.id}'),
+                onPressed: () => _releaseJob(order),
+                style: TextButton.styleFrom(
+                    foregroundColor: AppColors.textSecondary(context),
+                    padding: const EdgeInsets.symmetric(horizontal: 4)),
+                icon: const Icon(Icons.undo_rounded, size: 18),
+                label: const Text('Release this job'),
+              ),
             ),
           ],
           if (isActive) ...[
@@ -875,7 +939,8 @@ class _RiderEarningsPageState extends State<_RiderEarningsPage> {
                       const SizedBox(height: 6),
                       Text(formatCedis(data.todayEarnings),
                           key: const Key('rider-today-earnings'),
-                          style: TextStyle(color: AppColors.accentText(context),
+                          style: TextStyle(
+                            color: AppColors.accentText(context),
                             fontSize: 36,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -1,

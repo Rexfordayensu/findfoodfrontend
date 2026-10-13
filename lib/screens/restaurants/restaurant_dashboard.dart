@@ -401,10 +401,11 @@ class _OrdersPageState extends State<_OrdersPage> {
           ? "Enter ${order.riderName ?? 'the rider'}'s code"
           : "Enter the customer's code",
       instructions: toRider
-          ? 'Ask the rider for the 4-digit pickup code in their FindFood app '
-              'before handing over the food.'
-          : 'Ask the customer for the 4-digit code in their FindFood app '
-              'before handing over the food.',
+          ? 'Check the bag against this list, then enter the pickup code from '
+              "the rider's app. Only hand over the bag once the code is accepted."
+          : 'Check the bag against this list, then enter the code from the '
+              "customer's app. Only hand over the bag once the code is accepted.",
+      details: PackingList(order: order),
       actionLabel: toRider ? 'Hand over to rider' : 'Hand over to customer',
       submit: (code) async {
         final updated = await ApiService.handOverOrder(token, order.id, code);
@@ -773,6 +774,10 @@ class _OrderCard extends StatelessWidget {
                     ]),
                   ],
                 ),
+                if (!isDone && !isCancelled && order.items.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  PackingList(order: order),
+                ],
                 if (hasRider && !isDone && !isCancelled) ...[
                   const SizedBox(height: 8),
                   Row(children: [

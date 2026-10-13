@@ -578,6 +578,11 @@ class ApiService {
       _handoffCall(token, '/deliveries/$orderId/accept',
           'Could not accept this delivery.');
 
+  /// A rider gives a job back before collecting the food.
+  static Future<Order> releaseDelivery(String token, int orderId) =>
+      _handoffCall(token, '/deliveries/$orderId/release',
+          'Could not release this delivery.');
+
   /// The restaurant hands the food to the rider (rider's code) or, for
   /// pickup orders, to the customer (customer's code).
   static Future<Order> handOverOrder(String token, int orderId, String code) =>

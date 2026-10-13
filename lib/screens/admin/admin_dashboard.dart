@@ -33,6 +33,8 @@ class _AdminDashboardState extends State<AdminDashboard>
     'approval': Icons.storefront_outlined,
     'refund': Icons.report_problem_outlined,
     'orders': Icons.receipt_long_outlined,
+    'overdue': Icons.timer_off_outlined,
+    'releases': Icons.undo_rounded,
   };
 
   final _navItems = [
@@ -62,7 +64,8 @@ class _AdminDashboardState extends State<AdminDashboard>
       final items = await ApiService.getAdminNotifications(token);
       if (!mounted) return;
       final count = items
-          .where((n) => n['kind'] == 'approval' || n['kind'] == 'refund')
+          .where((n) => const {'approval', 'refund', 'overdue', 'releases'}
+              .contains(n['kind']))
           .length;
       if (count != _attentionCount) setState(() => _attentionCount = count);
     } catch (_) {
@@ -925,6 +928,8 @@ class _OverviewPageState extends State<_OverviewPage>
     'signup': (Icons.person_add_alt_1_outlined, Color(0xFF60A5FA)),
     'restaurant': (Icons.storefront_outlined, AppTheme.warning),
     'promotion': (Icons.local_offer_outlined, AppTheme.accent),
+    'collected': (Icons.delivery_dining_outlined, Color(0xFF60A5FA)),
+    'release': (Icons.undo_rounded, AppTheme.warning),
   };
 
   Widget _activityPanel(BuildContext context) {

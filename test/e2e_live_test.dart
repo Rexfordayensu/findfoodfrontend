@@ -263,6 +263,26 @@ void main() {
     await tapAndSettle(tester, find.text('My Deliveries').last);
     final codeCard = find.byKey(const Key('rider-pickup-code-$readyOrderId'));
     await waitFor(tester, codeCard);
+    String shownCode() => tester
+        .widgetList<Text>(find.descendant(
+            of: find.descendant(of: codeCard, matching: find.byKey(const Key('handoff-code-digits'))),
+            matching: find.byType(Text)))
+        .map((t) => t.data)
+        .join();
+    final firstCode = shownCode();
+    expect(find.text('Jollof Rice'), findsOneWidget, reason: 'packing list shown');
+
+    // Accepted by mistake: release it before collecting, then take it again.
+    await tapAndSettle(tester, find.byKey(const Key('rider-release-$readyOrderId')));
+    await tapAndSettle(tester, find.byKey(const Key('confirm-release')));
+    await waitFor(tester, find.text('Order #$readyOrderId released to other riders.'));
+    expect(codeCard, findsNothing);
+    await tapAndSettle(tester, find.text('Available').last);
+    await waitFor(tester, find.text('Accept delivery'));
+    await tapAndSettle(tester, find.text('Accept delivery').first);
+    await tapAndSettle(tester, find.text('My Deliveries').last);
+    await waitFor(tester, codeCard);
+
     final pickupCode = tester
         .widgetList<Text>(find.descendant(
             of: find.descendant(of: codeCard, matching: find.byKey(const Key('handoff-code-digits'))),
@@ -284,8 +304,11 @@ void main() {
     expect(asRestaurant['rider_name'], isNotNull);
     expect(deliveryCode, isNot(pickupCode));
 
-    // The restaurant must enter the rider's code to hand the food over.
-    final wrongPickup = pickupCode == '0000' ? '1111' : '0000';
+    // The restaurant must enter the rider's current code. The code from the
+    // released acceptance is dead, so it counts as a wrong attempt.
+    final wrongPickup = firstCode != pickupCode
+        ? firstCode
+        : (pickupCode == '0000' ? '1111' : '0000');
     final refused = await handover(ownerToken, wrongPickup);
     expect(refused.statusCode, 400);
     expect(jsonDecode(refused.body)['detail'], contains('1 attempt left'));
@@ -297,6 +320,14 @@ void main() {
     final complete = find.byKey(const Key('rider-complete-$readyOrderId'));
     await waitFor(tester, complete);
     expect(codeCard, findsNothing, reason: 'pickup code is gone after handover');
+    expect(find.byKey(const Key('rider-release-$readyOrderId')), findsNothing,
+        reason: 'a collected job cannot be released');
+    final riderToken = tokenOf(tester);
+    final lateRelease = await api(tester, () => http.post(
+        Uri.parse('${ApiService.baseUrl}/deliveries/$readyOrderId/release'),
+        headers: {'Authorization': 'Bearer $riderToken'}));
+    expect(lateRelease.statusCode, 400);
+    expect(jsonDecode(lateRelease.body)['detail'], contains('already collected'));
     await tapAndSettle(tester, complete);
     await waitFor(tester, find.byKey(const Key('handoff-code-input')));
     final wrongDelivery = deliveryCode == '0000' ? '1111' : '0000';
@@ -307,6 +338,18 @@ void main() {
 
     final finished = await orderAs(customerToken);
     expect(finished['status'], 'delivered');
+    expect(finished['collected_at'], isNotNull);
+
+    // Admins see the release and the collection in the activity feed.
+    final adminToken = await login('admin@e2e-findfood.com', [password]);
+    final activity = await api(tester, () async {
+      final res = await http.get(Uri.parse('${ApiService.baseUrl}/admin/activity'),
+          headers: {'Authorization': 'Bearer $adminToken'});
+      return (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
+    });
+    final titles = activity.map((a) => a['title'] as String).toList();
+    expect(titles.where((t) => t.endsWith('released order #$readyOrderId')), hasLength(1));
+    expect(titles, contains('Order #$readyOrderId collected by rider'));
     expect(finished['delivery_code'], isNull, reason: 'code is hidden once used');
 
     await finish(tester);
