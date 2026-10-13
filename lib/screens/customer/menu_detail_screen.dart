@@ -5,6 +5,7 @@ import '../../theme.dart';
 import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
+import '../../widgets/glass.dart';
 import '../../widgets/promotion_card.dart';
 
 String? _uploadedImageUrl(String? imageUrl) {
@@ -470,59 +471,53 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
         ],
       ),
 
-      // ── Sticky basket bar ──────────────────────────────────
+      // ── Floating basket bar ────────────────────────────────
       bottomNavigationBar: cart.items.isNotEmpty
-          ? SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: GestureDetector(
-                  onTap: () => context.go('/cart'),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 16),
-                    decoration: BoxDecoration(
-                      color: AppTheme.accent,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.accent.withValues(alpha: 0.4),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(6),
+          ? Padding(
+              padding: EdgeInsets.fromLTRB(
+                  16, 8, 16, GlassNavBar.bottomGap(context)),
+              child: Material(
+                color: AppTheme.accent,
+                borderRadius: BorderRadius.circular(18),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  key: const Key('view-basket'),
+                  onTap: () => context.push('/cart'),
+                  child: SizedBox(
+                    height: 58,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 28,
+                            height: 28,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text('${cart.itemCount}',
+                                style: const TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13)),
                           ),
-                          child: Text('${cart.itemCount}',
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text('View basket',
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16)),
+                          ),
+                          Text(cart.displayTotal,
                               style: const TextStyle(
                                   color: Colors.black,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 13)),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Text('View basket',
-                              style: TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: FontWeight.w700,
                                   fontSize: 16)),
-                        ),
-                        const Icon(Icons.shopping_basket_rounded,
-                            color: Colors.black, size: 20),
-                        const SizedBox(width: 8),
-                        Text(cart.displayTotal,
-                            style: const TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 16)),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -566,331 +561,218 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
   }
 }
 
-// ─── MENU ITEM CARD WITH QTY CONTROLS ───────────────────────────────────────
-class _MenuItemCard extends StatefulWidget {
+// ─── MENU ITEM CARD ──────────────────────────────────────────────────────────
+/// Text on the left, photo on the right with the add control resting on its
+/// corner. The quantity comes from the cart, so it stays right after visiting
+/// the basket or when an add is refused.
+class _MenuItemCard extends StatelessWidget {
   final MenuItem item;
   final VoidCallback onAdd;
   const _MenuItemCard({required this.item, required this.onAdd});
 
   @override
-  State<_MenuItemCard> createState() => _MenuItemCardState();
-}
-
-class _MenuItemCardState extends State<_MenuItemCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _bounceCtrl;
-  late Animation<double> _bounceAnim;
-  int _qty = 0; // local quantity on this card
-
-  @override
-  void initState() {
-    super.initState();
-    _bounceCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 350));
-    _bounceAnim = TweenSequence([
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.25), weight: 40),
-      TweenSequenceItem(tween: Tween(begin: 1.25, end: 0.92), weight: 30),
-      TweenSequenceItem(tween: Tween(begin: 0.92, end: 1.0), weight: 30),
-    ]).animate(CurvedAnimation(parent: _bounceCtrl, curve: Curves.easeOut));
-  }
-
-  @override
-  void dispose() {
-    _bounceCtrl.dispose();
-    super.dispose();
-  }
-
-  void _increment() {
-    widget.onAdd();
-    setState(() => _qty++);
-    _bounceCtrl.forward(from: 0);
-  }
-
-  void _decrement() {
-    if (_qty <= 0) return;
-    setState(() => _qty--);
-    // Remove one from cart via provider
-    final cart = Provider.of<CartProvider>(context, listen: false);
-    cart.decreaseItem(widget.item.id);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final item = widget.item;
-    final bg = AppColors.card(context);
-    final border = AppColors.border(context);
+    final cart = context.watch<CartProvider>();
+    final qty = cart.restaurantId == item.restaurantId
+        ? cart.items
+                .where((line) => line.menuItem.id == item.id)
+                .firstOrNull
+                ?.quantity ??
+            0
+        : 0;
     final textPri = AppColors.textPrimary(context);
     final textSec = AppColors.textSecondary(context);
-    final textHint = AppColors.textHint(context);
-    final imageUrl = _uploadedImageUrl(item.imageUrl);
+    final soldOut = !item.isAvailable;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: _qty > 0 ? AppTheme.accent.withValues(alpha: 0.04) : bg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _qty > 0 ? AppTheme.accent.withValues(alpha: 0.35) : border,
-          width: _qty > 0 ? 1.5 : 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: _qty > 0
-                ? AppTheme.accent.withValues(alpha: 0.08)
-                : Colors.black.withValues(alpha: 0.04),
-            blurRadius: _qty > 0 ? 12 : 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        color: AppColors.card(context),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border(context)),
       ),
-      child: Column(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              // ── Food image ────────────────────────────────
-              ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  bottomLeft: Radius.circular(16),
-                ),
-                child: SizedBox(
-                  width: 100,
-                  height: 100,
-                  child: imageUrl == null
-                      ? Container(
-                          color: AppColors.surface(context),
-                          child: Icon(Icons.fastfood_rounded,
-                              size: 30, color: textHint),
-                        )
-                      : Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: AppColors.surface(context),
-                      child: Icon(Icons.fastfood_rounded,
-                          size: 30, color: textHint),
-                    ),
-                    loadingBuilder: (_, child, prog) {
-                      if (prog == null) return child;
-                      return Container(
-                        color: AppColors.surface(context),
-                        child: const Center(
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                                color: AppTheme.accent, strokeWidth: 2),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-
-              // ── Info ──────────────────────────────────────
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(item.name,
-                          style: TextStyle(
-                              color: textPri,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700)),
-                      if (item.description != null &&
-                          item.description!.isNotEmpty) ...[
-                        const SizedBox(height: 3),
-                        Text(item.description!,
-                            style: TextStyle(
-                                color: textSec, fontSize: 11, height: 1.4),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis),
-                      ],
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(item.displayPrice,
-                              style: TextStyle(color: AppColors.accentText(context),
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800)),
-
-                          // ── +/- qty controls or basket button ──
-                          if (!item.isAvailable)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: textHint.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text('Sold out',
-                                  style: TextStyle(
-                                      color: textHint,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600)),
-                            )
-                          else if (_qty == 0)
-                            // Initial basket button
-                            ScaleTransition(
-                              scale: _bounceAnim,
-                              child: GestureDetector(
-                                onTap: _increment,
-                                child: Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.accent,
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: AppTheme.accent
-                                            .withValues(alpha: 0.4),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Icon(
-                                      Icons.shopping_basket_rounded,
-                                      color: Colors.black,
-                                      size: 20),
-                                ),
-                              ),
-                            )
-                          else
-                            // +/- stepper
-                            ScaleTransition(
-                              scale: _bounceAnim,
-                              child: Row(
-                                children: [
-                                  _QtyBtn(
-                                    icon: Icons.remove_rounded,
-                                    onTap: _decrement,
-                                    filled: false,
-                                  ),
-                                  AnimatedSwitcher(
-                                    duration: const Duration(milliseconds: 200),
-                                    transitionBuilder: (child, anim) =>
-                                        ScaleTransition(
-                                            scale: anim, child: child),
-                                    child: Container(
-                                      key: ValueKey(_qty),
-                                      width: 34,
-                                      alignment: Alignment.center,
-                                      child: Text('$_qty',
-                                          style: TextStyle(color: AppColors.accentText(context),
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w900)),
-                                    ),
-                                  ),
-                                  _QtyBtn(
-                                    icon: Icons.add_rounded,
-                                    onTap: _increment,
-                                    filled: true,
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          // Subtotal strip when qty > 0
-          if (_qty > 0)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppTheme.accent.withValues(alpha: 0.08),
-                borderRadius:
-                    const BorderRadius.vertical(bottom: Radius.circular(16)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 2, right: 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('$_qty × ${item.displayPrice}',
+                  Text(_capitalised(item.name),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          color: AppColors.textSecondary(context),
-                          fontSize: 12)),
-                  Text(
-                    'GH₵ ${(item.price * _qty / 100).toStringAsFixed(2)}',
-                    style: TextStyle(color: AppColors.accentText(context),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800),
+                          color: soldOut ? textSec : textPri,
+                          fontSize: 16,
+                          height: 1.25,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2)),
+                  if (item.description?.trim().isNotEmpty == true) ...[
+                    const SizedBox(height: 4),
+                    Text(item.description!.trim(),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: textSec, fontSize: 13, height: 1.4)),
+                  ],
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Text(item.displayPrice,
+                          style: TextStyle(
+                              color: soldOut ? textSec : textPri,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600)),
+                      if (soldOut) ...[
+                        const SizedBox(width: 8),
+                        Text('· Sold out',
+                            style: TextStyle(
+                                color: textSec,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600)),
+                      ],
+                    ],
                   ),
                 ],
               ),
             ),
+          ),
+          SizedBox(
+            width: 112,
+            height: 112 + 14,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: SizedBox(
+                    width: 112,
+                    height: 112,
+                    child: Opacity(
+                      opacity: soldOut ? 0.45 : 1,
+                      child: _MenuPhoto(url: _uploadedImageUrl(item.imageUrl)),
+                    ),
+                  ),
+                ),
+                if (!soldOut)
+                  Positioned(
+                    right: 6,
+                    bottom: 0,
+                    child: _AddControl(
+                      quantity: qty,
+                      onAdd: onAdd,
+                      onRemove: () => context.read<CartProvider>().decreaseItem(item.id),
+                      itemName: item.name,
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  /// Menus are typed by restaurants; show "waakye and salad" as
+  /// "Waakye and salad" without changing the rest.
+  static String _capitalised(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return trimmed;
+    return trimmed[0].toUpperCase() + trimmed.substring(1);
+  }
+}
+
+class _MenuPhoto extends StatelessWidget {
+  final String? url;
+  const _MenuPhoto({required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    final placeholder = Container(
+      color: AppColors.surface(context),
+      alignment: Alignment.center,
+      child: Icon(Icons.restaurant_rounded,
+          size: 28, color: AppColors.textHint(context)),
+    );
+    if (url == null) return placeholder;
+    return Image.network(
+      url!,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => placeholder,
+      frameBuilder: (_, child, frame, sync) => AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: sync || frame != null ? child : placeholder,
       ),
     );
   }
 }
 
-// ─── QTY BUTTON ───────────────────────────────────────────────────────────────
-class _QtyBtn extends StatefulWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool filled;
-  const _QtyBtn(
-      {required this.icon, required this.onTap, required this.filled});
+/// A round "+" that grows into a "− 1 +" pill once the dish is in the cart.
+class _AddControl extends StatelessWidget {
+  final int quantity;
+  final VoidCallback onAdd;
+  final VoidCallback onRemove;
+  final String itemName;
 
-  @override
-  State<_QtyBtn> createState() => _QtyBtnState();
-}
-
-class _QtyBtnState extends State<_QtyBtn> with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  late Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 100));
-    _scale = Tween(begin: 1.0, end: 0.85)
-        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeIn));
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
+  const _AddControl({
+    required this.quantity,
+    required this.onAdd,
+    required this.onRemove,
+    required this.itemName,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _ctrl.forward(),
-      onTapUp: (_) {
-        _ctrl.reverse();
-        widget.onTap();
-      },
-      onTapCancel: () => _ctrl.reverse(),
-      child: ScaleTransition(
-        scale: _scale,
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: widget.filled
-                ? AppTheme.accent
-                : AppTheme.accent.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
-            border: widget.filled
-                ? null
-                : Border.all(color: AppTheme.accent.withValues(alpha: 0.4)),
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final fg = AppColors.textPrimary(context);
+    Widget iconButton(IconData icon, String tooltip, VoidCallback onTap) => Tooltip(
+          message: tooltip,
+          child: InkResponse(
+            onTap: onTap,
+            radius: 20,
+            child: SizedBox(
+              width: 36,
+              height: 36,
+              child: Icon(icon, size: 20, color: fg),
+            ),
           ),
-          child: Icon(widget.icon,
-              color: widget.filled ? Colors.black : AppTheme.accent, size: 18),
+        );
+
+    return Material(
+      color: dark ? const Color(0xFF2B2F3A) : Colors.white,
+      elevation: 0,
+      shape: StadiumBorder(side: BorderSide(color: AppColors.border(context))),
+      shadowColor: Colors.transparent,
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: quantity == 0
+              ? iconButton(Icons.add_rounded, 'Add $itemName', onAdd)
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    iconButton(
+                        quantity == 1
+                            ? Icons.delete_outline_rounded
+                            : Icons.remove_rounded,
+                        quantity == 1 ? 'Remove $itemName' : 'One less',
+                        onRemove),
+                    SizedBox(
+                      width: 20,
+                      child: Text('$quantity',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: fg,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                    iconButton(Icons.add_rounded, 'One more', onAdd),
+                  ],
+                ),
         ),
       ),
     );

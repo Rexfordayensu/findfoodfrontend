@@ -122,6 +122,15 @@ final routes = <String, Object>{
     ],
   },
   '/restaurants/1/promotions': [],
+  '/restaurants/1/menu': [
+    {'id': 1, 'name': 'waakye and salad', 'description': 'Tasty',
+     'price': 5000, 'is_available': true, 'restaurant_id': 1},
+    {'id': 2, 'name': 'Fried rice and chicken',
+     'description': 'Smoky fried rice with grilled chicken and shito',
+     'price': 6000, 'is_available': true, 'restaurant_id': 1},
+    {'id': 3, 'name': 'Kelewele', 'description': 'Spicy fried plantain',
+     'price': 2000, 'is_available': false, 'restaurant_id': 1},
+  ],
   '/restaurants/1/menu/manage': [
     {'id': 1, 'name': 'Jollof Rice', 'description': 'Smoky party jollof',
      'price': 4000, 'is_available': true, 'restaurant_id': 1},
@@ -300,6 +309,17 @@ void main() {
     testWidgets('orders ${dark ? 'dark' : 'light'}', (t) => shoot(t,
         'orders_${dark ? 'dark' : 'light'}',
         role: 'customer', name: 'Rexford', dark: dark, tab: 'Orders'));
+  }
+  CartProvider menuCart() => CartProvider()
+    ..addItem(
+        MenuItem(id: 2, name: 'Fried rice and chicken', price: 6000,
+            isAvailable: true, restaurantId: 1),
+        1, "Mama's Kitchen");
+  for (final dark in [false, true]) {
+    testWidgets('menu ${dark ? 'dark' : 'light'}', (t) => shoot(t,
+        'menu_${dark ? 'dark' : 'light'}',
+        role: 'customer', name: 'Rexford', dark: dark,
+        then: 'Ghanaian', cart: menuCart()));
   }
   testWidgets('admin desktop light', (t) => shoot(t, 'admin_desktop_light',
       role: 'admin', name: 'Ade', dark: false, size: const Size(1280, 860)));

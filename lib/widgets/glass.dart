@@ -186,7 +186,7 @@ class GlassNavBar extends StatelessWidget {
 
   /// Space below the bar. Flutter web is not told about the iPhone home
   /// indicator (the inset is 0), so leave room for it there explicitly.
-  static double _bottomGap(BuildContext context) {
+  static double bottomGap(BuildContext context) {
     final inset = MediaQuery.viewPaddingOf(context).bottom;
     if (inset > 0) return inset + 4;
     if (kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) return 28;
@@ -223,7 +223,7 @@ class GlassNavBar extends StatelessWidget {
 
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 6, 16, _bottomGap(context)),
+      padding: EdgeInsets.fromLTRB(16, 6, 16, bottomGap(context)),
       child: SizedBox(
         height: _height,
         child: GlassPanel(
