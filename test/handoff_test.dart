@@ -102,7 +102,7 @@ void main() {
         final code = jsonDecode(request.body)['code'] as String;
         submitted.add(code);
         if (code != '7302') {
-          return json({'detail': 'That code is not right. 4 attempts left.'}, 400);
+          return json({'detail': 'That code is not right. 1 attempt left.'}, 400);
         }
         status = 'out_for_delivery';
         return json(orderJson(status, riderId: 2));
@@ -125,7 +125,7 @@ void main() {
 
       await tester.enterText(find.byKey(const Key('handoff-code-input')), '1111');
       await frames(tester);
-      expect(find.text('That code is not right. 4 attempts left.'), findsOneWidget);
+      expect(find.text('That code is not right. 1 attempt left.'), findsOneWidget);
 
       await tester.enterText(find.byKey(const Key('handoff-code-input')), '7302');
       await frames(tester);
@@ -145,7 +145,7 @@ void main() {
       if (path == '/orders/4/deliver') {
         final code = jsonDecode(request.body)['code'] as String;
         if (code != '4821') {
-          return json({'detail': 'That code is not right. 4 attempts left.'}, 400);
+          return json({'detail': 'That code is not right. 1 attempt left.'}, 400);
         }
         status = 'delivered';
         return json(orderJson(status, riderId: 1));

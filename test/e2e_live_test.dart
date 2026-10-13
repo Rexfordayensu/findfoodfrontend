@@ -288,7 +288,7 @@ void main() {
     final wrongPickup = pickupCode == '0000' ? '1111' : '0000';
     final refused = await handover(ownerToken, wrongPickup);
     expect(refused.statusCode, 400);
-    expect(jsonDecode(refused.body)['detail'], contains('attempts left'));
+    expect(jsonDecode(refused.body)['detail'], contains('1 attempt left'));
     final handed = await handover(ownerToken, pickupCode);
     expect(handed.statusCode, 200);
     expect(jsonDecode(handed.body)['status'], 'out_for_delivery');
@@ -301,7 +301,7 @@ void main() {
     await waitFor(tester, find.byKey(const Key('handoff-code-input')));
     final wrongDelivery = deliveryCode == '0000' ? '1111' : '0000';
     await tester.enterText(find.byKey(const Key('handoff-code-input')), wrongDelivery);
-    await waitFor(tester, find.textContaining('attempts left'));
+    await waitFor(tester, find.textContaining('1 attempt left'));
     await tester.enterText(find.byKey(const Key('handoff-code-input')), deliveryCode);
     await waitFor(tester, find.text('Delivery complete. Nice work!'));
 

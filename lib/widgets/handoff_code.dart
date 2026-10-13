@@ -86,7 +86,7 @@ Color _fill(BuildContext context) =>
         : AppTheme.lightBg;
 
 /// Asks for a 4-digit handover code and submits it. Returns true once
-/// [submit] succeeds; a failure's message (e.g. "2 attempts left") is shown
+/// [submit] succeeds; a failure's message (e.g. "1 attempt left") is shown
 /// in the sheet so the person can try again.
 Future<bool> showHandoffCodeEntry(
   BuildContext context, {
