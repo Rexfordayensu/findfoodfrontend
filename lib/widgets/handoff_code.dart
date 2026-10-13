@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../models/models.dart';
 import '../theme.dart';
+import '../utils/friendly_error.dart';
 
 /// Shows a handover code to the person who holds it (the customer's delivery
 /// code, the rider's pickup code), with what to do with it.
@@ -161,7 +162,7 @@ class _CodeEntrySheetState extends State<_CodeEntrySheet> {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = e.toString().replaceAll('Exception: ', '');
+        _error = friendlyMessage(e);
         _controller.clear();
       });
     }

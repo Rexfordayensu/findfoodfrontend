@@ -7,6 +7,7 @@ import '../services/providers.dart';
 import '../theme.dart';
 import 'account_settings.dart';
 import 'widgets.dart';
+import '../utils/friendly_error.dart';
 
 /// Lets the customer rate a completed order. Resolves to true when submitted.
 Future<bool> showRateOrderSheet(BuildContext context, Order order) async {
@@ -56,7 +57,7 @@ class _RateOrderFormState extends State<_RateOrderForm> {
       showSettingsMessage(context, 'Thanks for your feedback!');
     } catch (error) {
       if (mounted) {
-        showSettingsMessage(context, error.toString().replaceAll('Exception: ', ''),
+        showSettingsMessage(context, friendlyMessage(error),
             isError: true);
       }
     } finally {

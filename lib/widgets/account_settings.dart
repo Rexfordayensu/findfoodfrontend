@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../services/providers.dart';
 import '../theme.dart';
 import 'widgets.dart';
+import '../utils/friendly_error.dart';
 
 /// Account settings shared by every role: profile, email, password,
 /// notifications, appearance and support pages.
@@ -276,7 +277,7 @@ void showSettingsMessage(BuildContext context, String message,
 }
 
 String _errorText(Object error) =>
-    error.toString().replaceAll('Exception: ', '');
+    friendlyMessage(error);
 
 class SheetHeader extends StatelessWidget {
   final String title;

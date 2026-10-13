@@ -13,6 +13,8 @@ import '../../services/providers.dart';
 import '../../services/local_customer_store.dart';
 import 'menu_detail_screen.dart';
 import '../../widgets/greeting_header.dart';
+import '../../utils/friendly_error.dart';
+import '../../widgets/error_view.dart';
 
 // ── Cuisine colors used for image-free restaurant cards ──────────────────────
 const _cuisineData = {
@@ -150,7 +152,7 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
       _staggerCtrl.forward(from: 0);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      setState(() => _error = friendlyMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -333,13 +335,7 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
               child: _loading
                   ? _LoadingShimmer(bg: surf, border: border)
                   : _error.isNotEmpty
-                      ? EmptyState(
-                          icon: Icons.wifi_off_rounded,
-                          title: 'Connection failed',
-                          subtitle: _error,
-                          actionLabel: 'Retry',
-                          onAction: _load,
-                        )
+                      ? ErrorView(error: _error, onRetry: _load)
                       : _filtered.isEmpty
                           ? EmptyState(
                               icon: Icons.search_off_rounded,

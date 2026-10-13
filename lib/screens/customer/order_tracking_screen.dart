@@ -11,6 +11,7 @@ import '../../services/providers.dart';
 import '../../services/order_payment.dart';
 import '../../widgets/handoff_code.dart';
 import '../../widgets/rating_sheet.dart';
+import '../../utils/friendly_error.dart';
 
 class OrderTrackingScreen extends StatefulWidget {
   final Order order;
@@ -190,7 +191,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: AppTheme.danger,
-        content: Text(e.toString().replaceAll('Exception: ', ''),
+        content: Text(friendlyMessage(e),
             style: const TextStyle(color: Colors.white)),
       ));
     } finally {
@@ -235,7 +236,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: AppTheme.danger,
-        content: Text(e.toString().replaceAll('Exception: ', ''),
+        content: Text(friendlyMessage(e),
             style: const TextStyle(color: Colors.white)),
       ));
     } finally {

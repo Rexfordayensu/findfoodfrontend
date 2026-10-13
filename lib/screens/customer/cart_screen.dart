@@ -10,6 +10,7 @@ import '../../widgets/widgets.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
 import '../../services/order_payment.dart';
+import '../../utils/friendly_error.dart';
 
 
 class CartScreen extends StatefulWidget {
@@ -86,7 +87,7 @@ class _CartScreenState extends State<CartScreen> {
     } catch (error) {
       if (!mounted) return;
       _showCheckoutMessage(
-        error.toString().replaceAll('Exception: ', ''),
+        friendlyMessage(error),
         isError: true,
       );
     } finally {
@@ -221,7 +222,7 @@ class _CartScreenState extends State<CartScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      final errorMsg = e.toString().replaceAll('Exception: ', '');
+      final errorMsg = friendlyMessage(e);
       debugPrint('Checkout error: $errorMsg');
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: AppTheme.danger,

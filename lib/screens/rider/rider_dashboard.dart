@@ -12,6 +12,7 @@ import '../../widgets/account_settings.dart';
 import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
+import '../../utils/friendly_error.dart';
 
 class RiderDashboard extends StatefulWidget {
   const RiderDashboard({super.key});
@@ -144,7 +145,7 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      setState(() => _error = friendlyMessage(e));
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -207,7 +208,7 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: AppTheme.danger,
-        content: Text(e.toString().replaceAll('Exception: ', ''),
+        content: Text(friendlyMessage(e),
             style: const TextStyle(color: Colors.white)),
       ));
     }
@@ -594,7 +595,7 @@ class _MyDeliveriesPageState extends State<_MyDeliveriesPage> with LiveRefresh {
       setState(() => _orders = orders);
     } catch (e) {
       if (!mounted || silent) return;
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      setState(() => _error = friendlyMessage(e));
     } finally {
       if (mounted && !silent) {
         setState(() => _loading = false);
@@ -640,7 +641,7 @@ class _MyDeliveriesPageState extends State<_MyDeliveriesPage> with LiveRefresh {
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(
           backgroundColor: AppTheme.danger,
-          content: Text(e.toString().replaceAll('Exception: ', ''),
+          content: Text(friendlyMessage(e),
               style: const TextStyle(color: Colors.white)),
         ));
     }
@@ -898,7 +899,7 @@ class _RiderEarningsPageState extends State<_RiderEarningsPage> {
       setState(() => _data = RiderAnalytics.fromJson(json));
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      setState(() => _error = friendlyMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

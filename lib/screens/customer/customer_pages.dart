@@ -10,6 +10,8 @@ import '../../widgets/account_settings.dart';
 import '../../widgets/customer_nav_bar.dart';
 import '../../widgets/rating_sheet.dart';
 import '../../widgets/widgets.dart';
+import '../../utils/friendly_error.dart';
+import '../../widgets/error_view.dart';
 
 class CustomerOrdersScreen extends StatefulWidget {
   const CustomerOrdersScreen({super.key});
@@ -44,7 +46,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _error = error.toString().replaceAll('Exception: ', '');
+        _error = friendlyMessage(error);
         _loading = false;
       });
     }
@@ -67,7 +69,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen> {
       }
       await _loadOrders();
     } catch (error) {
-      if (mounted) _message(error.toString().replaceAll('Exception: ', ''), isError: true);
+      if (mounted) _message(friendlyMessage(error), isError: true);
     } finally {
       if (mounted) setState(() => _busyOrderId = null);
     }
@@ -102,7 +104,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen> {
       _message(paid ? 'Order cancelled and refunded.' : 'Order cancelled.');
       await _loadOrders();
     } catch (error) {
-      if (mounted) _message(error.toString().replaceAll('Exception: ', ''), isError: true);
+      if (mounted) _message(friendlyMessage(error), isError: true);
     } finally {
       if (mounted) setState(() => _busyOrderId = null);
     }
@@ -246,12 +248,7 @@ class _CustomerOrdersScreenState extends State<CustomerOrdersScreen> {
       return [
         SliverFillRemaining(
           hasScrollBody: false,
-          child: Center(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(_error!, textAlign: TextAlign.center),
-              TextButton(onPressed: _loadOrders, child: const Text('Retry')),
-            ]),
-          ),
+          child: ErrorView(error: _error!, onRetry: _loadOrders),
         ),
       ];
     }

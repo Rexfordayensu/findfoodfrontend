@@ -6,6 +6,7 @@ import '../../widgets/widgets.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
 import 'google_oauth_flow.dart';
+import '../../utils/friendly_error.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
@@ -116,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen>
       context.go(_emailVerificationUri(_loginEmail.text.trim()));
     } catch (e) {
       if (!mounted) return;
-      _showError(e.toString().replaceAll('Exception: ', ''));
+      _showError(friendlyMessage(e));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -137,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen>
       context.go(_emailVerificationUri(email));
     } catch (e) {
       if (!mounted) return;
-      _showError(e.toString().replaceAll('Exception: ', ''));
+      _showError(friendlyMessage(e));
     } finally {
       if (mounted) setState(() => _isRequestingOtp = false);
     }
@@ -207,7 +208,7 @@ class _LoginScreenState extends State<LoginScreen>
       }
     } catch (e) {
       if (!mounted) return;
-      _showError(e.toString().replaceAll('Exception: ', ''));
+      _showError(friendlyMessage(e));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

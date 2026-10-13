@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/auth/google/:path*",
+      "destination": "https://findfooddelivery-backend.onrender.com/auth/google/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

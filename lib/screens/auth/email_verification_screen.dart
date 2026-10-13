@@ -6,6 +6,7 @@ import '../../services/api_service.dart';
 import '../../services/providers.dart';
 import '../../services/otp_provider.dart';
 import '../../widgets/otp_input_widget.dart';
+import '../../utils/friendly_error.dart';
 
 enum VerificationMode { registration, login }
 
@@ -160,7 +161,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
       }
     } catch (e) {
       if (!mounted) return;
-      final errorMsg = e.toString().replaceAll('Exception: ', '');
+      final errorMsg = friendlyMessage(e);
       _otpInputKey.currentState?.clear();
       otpProvider.setVerificationError(errorMsg);
       _showErrorSnackBar(errorMsg);
@@ -202,7 +203,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
       _showSuccessSnackBar('A new verification code has been sent.');
     } catch (e) {
       if (!mounted) return;
-      final errorMsg = e.toString().replaceAll('Exception: ', '');
+      final errorMsg = friendlyMessage(e);
       otpProvider.setVerificationError(errorMsg);
       _showErrorSnackBar(errorMsg);
     } finally {

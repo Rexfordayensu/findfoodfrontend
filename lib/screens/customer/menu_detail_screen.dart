@@ -7,6 +7,8 @@ import '../../services/api_service.dart';
 import '../../services/providers.dart';
 import '../../widgets/glass.dart';
 import '../../widgets/promotion_card.dart';
+import '../../utils/friendly_error.dart';
+import '../../widgets/error_view.dart';
 
 String? _uploadedImageUrl(String? imageUrl) {
   if (imageUrl == null || imageUrl.trim().isEmpty) return null;
@@ -51,7 +53,7 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
       setState(() => _menu = items);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      setState(() => _error = friendlyMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -413,27 +415,8 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
             )
           else if (_error.isNotEmpty)
             SliverFillRemaining(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.wifi_off_rounded, size: 48, color: textHint),
-                    const SizedBox(height: 12),
-                    Text('Failed to load menu',
-                        style: TextStyle(
-                            color: textPri,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 6),
-                    Text(_error,
-                        style: TextStyle(color: textSec, fontSize: 13),
-                        textAlign: TextAlign.center),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                        onPressed: _load, child: const Text('Retry')),
-                  ],
-                ),
-              ),
+              hasScrollBody: false,
+              child: ErrorView(error: _error, onRetry: _load),
             )
           else if (_menu.isEmpty)
             SliverFillRemaining(

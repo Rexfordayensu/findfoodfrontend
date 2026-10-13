@@ -7,6 +7,7 @@ import '../../theme.dart';
 import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
+import '../utils/friendly_error.dart';
 
 /// A private chat between the signed-in user and one other person on an
 /// order ([withRole]: 'customer', 'restaurant' or 'rider'). New messages
@@ -87,7 +88,7 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (e) {
       if (!mounted) return;
       if (_messages.isEmpty) {
-        setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+        setState(() => _error = friendlyMessage(e));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -194,7 +195,7 @@ class _ChatScreenState extends State<ChatScreen> {
       if (preset == null && _msgCtrl.text.isEmpty) _msgCtrl.text = text;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: AppTheme.danger,
-        content: Text(e.toString().replaceAll('Exception: ', ''),
+        content: Text(friendlyMessage(e),
             style: const TextStyle(color: Colors.white)),
       ));
     } finally {

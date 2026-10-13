@@ -11,6 +11,7 @@ import '../../utils/time_format.dart';
 import '../../services/providers.dart';
 import '../../services/api_service.dart';
 import '../../models/models.dart';
+import '../../utils/friendly_error.dart';
 
 int getPendingApprovalsCount(List<Map<String, dynamic>> restaurants) =>
     restaurants.length;
@@ -133,7 +134,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                       child: Center(child: CircularProgressIndicator(color: AppTheme.accent)),
                     )
                   else if (snapshot.hasError)
-                    Text(snapshot.error.toString().replaceAll('Exception: ', ''),
+                    Text(friendlyMessage(snapshot.error!),
                         style: TextStyle(color: AppColors.textSecondary(context)))
                   else if (items.isEmpty)
                     Padding(
@@ -688,7 +689,7 @@ class _OverviewPageState extends State<_OverviewPage>
       if (!mounted) return;
       // Keep showing the last good data if a background refresh fails.
       if (silent) return;
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      setState(() => _error = friendlyMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -1233,7 +1234,7 @@ class _ApprovalsPageState extends State<_ApprovalsPage>
       if (!mounted) return;
       // Keep showing the last good data if a background refresh fails.
       if (silent) return;
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      setState(() => _error = friendlyMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -1258,7 +1259,7 @@ class _ApprovalsPageState extends State<_ApprovalsPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: AppTheme.danger,
-        content: Text(e.toString().replaceAll('Exception: ', ''),
+        content: Text(friendlyMessage(e),
             style: const TextStyle(color: Colors.white)),
       ));
     } finally {
@@ -1310,7 +1311,7 @@ class _ApprovalsPageState extends State<_ApprovalsPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: AppTheme.danger,
-        content: Text(e.toString().replaceAll('Exception: ', ''),
+        content: Text(friendlyMessage(e),
             style: const TextStyle(color: Colors.white)),
       ));
     } finally {
@@ -1579,7 +1580,7 @@ class _RiderDeskPageState extends State<_RiderDeskPage>
       if (!mounted) return;
       // Keep showing the last good data if a background refresh fails.
       if (silent) return;
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      setState(() => _error = friendlyMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -1737,7 +1738,7 @@ class _UsersPageState extends State<_UsersPage>
       if (!mounted) return;
       // Keep showing the last good data if a background refresh fails.
       if (silent) return;
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      setState(() => _error = friendlyMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -1779,7 +1780,7 @@ class _UsersPageState extends State<_UsersPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: AppTheme.danger,
-        content: Text(e.toString().replaceAll('Exception: ', '')),
+        content: Text(friendlyMessage(e)),
       ));
     }
   }
@@ -2037,7 +2038,7 @@ class _AdminOrdersScreenState extends State<_AdminOrdersScreen>
       if (!mounted) return;
       // Keep showing the last good data if a background refresh fails.
       if (silent) return;
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      setState(() => _error = friendlyMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -2294,7 +2295,7 @@ class _AdminRevenueScreenState extends State<_AdminRevenueScreen>
       if (!mounted) return;
       // Keep showing the last good data if a background refresh fails.
       if (silent) return;
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      setState(() => _error = friendlyMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

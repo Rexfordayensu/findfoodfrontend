@@ -15,6 +15,7 @@ import '../../widgets/promotion_card.dart';
 import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
+import '../../utils/friendly_error.dart';
 
 class RestaurantDashboard extends StatefulWidget {
   const RestaurantDashboard(
@@ -58,7 +59,7 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       _applyRestaurant(restaurant);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _checkError = e.toString().replaceAll('Exception: ', ''));
+      setState(() => _checkError = friendlyMessage(e));
     } finally {
       if (mounted) setState(() => _checking = false);
     }
@@ -316,7 +317,7 @@ class _OrdersPageState extends State<_OrdersPage> {
       setState(() => _orders = orders);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      setState(() => _error = friendlyMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -385,7 +386,7 @@ class _OrdersPageState extends State<_OrdersPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: AppTheme.danger,
-        content: Text(e.toString().replaceAll('Exception: ', ''),
+        content: Text(friendlyMessage(e),
             style: const TextStyle(color: Colors.white)),
       ));
     }
@@ -1099,7 +1100,7 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
       setState(() => _items = items);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      setState(() => _error = friendlyMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -1267,7 +1268,7 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
                     if (!mounted) return;
                     messenger?.showSnackBar(SnackBar(
                       backgroundColor: AppTheme.danger,
-                      content: Text(e.toString().replaceAll('Exception: ', ''),
+                      content: Text(friendlyMessage(e),
                           style: const TextStyle(color: Colors.white)),
                     ));
                   } finally {
@@ -1521,7 +1522,7 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
                     if (!mounted) return;
                     messenger?.showSnackBar(SnackBar(
                       backgroundColor: AppTheme.danger,
-                      content: Text(e.toString().replaceAll('Exception: ', ''),
+                      content: Text(friendlyMessage(e),
                           style: const TextStyle(color: Colors.white)),
                     ));
                   } finally {
@@ -1582,7 +1583,7 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
       if (!mounted) return;
       messenger?.showSnackBar(SnackBar(
         backgroundColor: AppTheme.danger,
-        content: Text(e.toString().replaceAll('Exception: ', ''),
+        content: Text(friendlyMessage(e),
             style: const TextStyle(color: Colors.white)),
       ));
     } finally {
@@ -1608,7 +1609,7 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
       if (!mounted) return;
       messenger?.showSnackBar(SnackBar(
         backgroundColor: AppTheme.danger,
-        content: Text(e.toString().replaceAll('Exception: ', ''),
+        content: Text(friendlyMessage(e),
             style: const TextStyle(color: Colors.white)),
       ));
     } finally {
@@ -1903,7 +1904,7 @@ class _EarningsPageState extends State<_EarningsPage> {
       setState(() => _data = data);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      setState(() => _error = friendlyMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -2281,7 +2282,7 @@ class _PromotionManagerState extends State<_PromotionManager> {
       if (mounted) setState(() => _promotions = promotions);
     } catch (error) {
       if (mounted) {
-        setState(() => _error = error.toString().replaceAll('Exception: ', ''));
+        setState(() => _error = friendlyMessage(error));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -2396,7 +2397,7 @@ class _PromotionManagerState extends State<_PromotionManager> {
       }
     } catch (error) {
       if (mounted) {
-        _showMessage(error.toString().replaceAll('Exception: ', ''),
+        _showMessage(friendlyMessage(error),
             isError: true);
       }
     } finally {
@@ -2417,7 +2418,7 @@ class _PromotionManagerState extends State<_PromotionManager> {
       }
     } catch (error) {
       if (mounted) {
-        _showMessage(error.toString().replaceAll('Exception: ', ''),
+        _showMessage(friendlyMessage(error),
             isError: true);
       }
     }
@@ -2574,7 +2575,7 @@ class _SettingsPageState extends State<_SettingsPage> {
       if (!mounted) return;
       setState(() => _isOpen = !open);
       showSettingsMessage(
-          context, error.toString().replaceAll('Exception: ', ''),
+          context, friendlyMessage(error),
           isError: true);
     } finally {
       if (mounted) setState(() => _savingOpen = false);
@@ -2648,7 +2649,7 @@ class _SettingsPageState extends State<_SettingsPage> {
     } catch (error) {
       if (!mounted) return;
       _showBannerMessage(
-        error.toString().replaceAll('Exception: ', ''),
+        friendlyMessage(error),
         isError: true,
       );
     } finally {
@@ -2903,7 +2904,7 @@ class _RestaurantProfileFormState extends State<_RestaurantProfileForm> {
     } catch (error) {
       if (mounted) {
         showSettingsMessage(
-            context, error.toString().replaceAll('Exception: ', ''),
+            context, friendlyMessage(error),
             isError: true);
       }
     } finally {
