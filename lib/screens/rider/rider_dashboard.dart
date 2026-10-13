@@ -825,14 +825,23 @@ class _MyDeliveriesPageState extends State<_MyDeliveriesPage> with LiveRefresh {
                     fontWeight: FontWeight.w600)),
             const SizedBox(height: 6),
             PackingList(order: order),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: OutlinedButton.icon(
                 key: Key('rider-release-${order.id}'),
                 onPressed: () => _releaseJob(order),
-                style: TextButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary(context),
-                    padding: const EdgeInsets.symmetric(horizontal: 4)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textPrimary(context),
+                  side: BorderSide(color: AppColors.border(context)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  textStyle: const TextStyle(
+                      fontFamily: 'PlusJakartaSans',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600),
+                ),
                 icon: const Icon(Icons.undo_rounded, size: 18),
                 label: const Text('Release this job'),
               ),
