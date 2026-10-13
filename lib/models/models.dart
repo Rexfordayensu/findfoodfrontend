@@ -128,6 +128,15 @@ class Order {
   final bool isRated;
   final String? restaurantBannerUrl;
   final List<OrderLine> items;
+  final String? riderName;
+
+  /// The customer's code: shown only to the customer, who gives it to the
+  /// rider (or the restaurant counter for pickup orders).
+  final String? deliveryCode;
+
+  /// The rider's code: shown only to the assigned rider, who gives it to the
+  /// restaurant when collecting the food.
+  final String? pickupCode;
 
   Order({
     required this.id,
@@ -150,7 +159,15 @@ class Order {
     this.isRated = false,
     this.restaurantBannerUrl,
     this.items = const [],
+    this.riderName,
+    this.deliveryCode,
+    this.pickupCode,
   });
+
+  /// A rider has accepted but not yet collected the food.
+  bool get awaitingRiderPickup =>
+      riderId != null &&
+      (status == 'pending' || status == 'preparing' || status == 'ready');
 
   /// Photo for order lists: the first dish with a picture, else the
   /// restaurant banner.
@@ -196,6 +213,9 @@ class Order {
         riderId: json['rider_id'],
         isRated: json['is_rated'] ?? false,
         restaurantBannerUrl: json['restaurant_banner_url'],
+        riderName: json['rider_name'],
+        deliveryCode: json['delivery_code'],
+        pickupCode: json['pickup_code'],
         items: [
           for (final item in (json['items'] as List? ?? const []))
             OrderLine.fromJson(Map<String, dynamic>.from(item as Map)),
@@ -243,6 +263,9 @@ class Order {
       isRated: isRated ?? this.isRated,
       restaurantBannerUrl: restaurantBannerUrl,
       items: items,
+      riderName: riderName,
+      deliveryCode: deliveryCode,
+      pickupCode: pickupCode,
     );
   }
 }

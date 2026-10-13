@@ -64,6 +64,10 @@ Map<String, dynamic> order(int id, String status,
       'user_id': 1, 'restaurant_name': "Mama's Kitchen",
       'fulfillment_method': method, 'delivery_address': 'Labone, Accra',
       'created_at': ago(minutes), 'is_rated': rated,
+      if (status == 'preparing') ...{
+        'rider_id': 2, 'rider_name': 'Kofi',
+        'delivery_code': '4821', 'pickup_code': '7302',
+      },
       'items': [
         {'id': id, 'menu_item_id': 1, 'quantity': 1, 'name': 'Jollof',
          'price': 4000, 'image_url': null, 'is_available': true},
@@ -250,7 +254,9 @@ void main() {
         }
       }
       if (then != null) {
-        await tester.tap(find.text(then).last);
+        await tester.tap(then.startsWith('key:')
+            ? find.byKey(Key(then.substring(4)))
+            : find.text(then).last);
         for (var i = 0; i < 10; i++) {
           await tester.pump(const Duration(milliseconds: 100));
         }
@@ -321,6 +327,11 @@ void main() {
         role: 'customer', name: 'Rexford', dark: dark,
         then: 'Ghanaian', cart: menuCart()));
   }
+  testWidgets('tracking code light', (t) => shoot(t, 'tracking_code_light',
+      role: 'customer', name: 'Rexford', dark: false, tab: 'Orders',
+      then: 'key:order-card-41'));
+  testWidgets('rider code dark', (t) => shoot(t, 'rider_code_dark',
+      role: 'rider', name: 'Kofi', dark: true, tab: 'My Deliveries'));
   testWidgets('admin desktop light', (t) => shoot(t, 'admin_desktop_light',
       role: 'admin', name: 'Ade', dark: false, size: const Size(1280, 860)));
 }

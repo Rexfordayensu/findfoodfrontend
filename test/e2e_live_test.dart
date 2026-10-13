@@ -18,6 +18,7 @@ import 'package:findfood_app/main.dart';
 import 'package:findfood_app/services/api_service.dart';
 import 'package:findfood_app/services/otp_provider.dart';
 import 'package:findfood_app/services/providers.dart';
+import 'package:findfood_app/widgets/live_refresh.dart';
 import 'package:findfood_app/widgets/widgets.dart';
 
 const bool live = bool.fromEnvironment('LIVE_E2E');
@@ -28,6 +29,7 @@ const riderId = 2;
 const unpaidOrderId = 1;
 const paidOrderId = 2;
 const deliveredOrderId = 3;
+const readyOrderId = 4; // paid, ready, no rider yet
 
 late ThemeProvider theme;
 
@@ -222,6 +224,90 @@ void main() {
     await waitFor(tester, find.byKey(const Key('settings-edit-profile')));
     expect(find.text('Kofi Rider'), findsOneWidget);
     await editProfileName(tester, 'Kofi Mensah');
+
+    await finish(tester);
+  });
+
+  testWidgets('handover codes: restaurant checks the rider, rider checks the customer',
+      (tester) async {
+    LiveRefresh.interval = const Duration(seconds: 2);
+    addTearDown(() => LiveRefresh.interval = const Duration(seconds: 10));
+
+    Future<String> login(String email, List<String> passwords) => api(tester, () async {
+          for (final pass in passwords) {
+            final res = await http.post(Uri.parse('${ApiService.baseUrl}/login'),
+                body: {'username': email, 'password': pass});
+            if (res.statusCode == 200) {
+              return jsonDecode(res.body)['access_token'] as String;
+            }
+          }
+          throw StateError('cannot sign in $email');
+        });
+    Future<Map<String, dynamic>> orderAs(String token) => api(tester, () async {
+          final res = await http.get(Uri.parse('${ApiService.baseUrl}/orders'),
+              headers: {'Authorization': 'Bearer $token'});
+          return (jsonDecode(res.body) as List)
+              .cast<Map<String, dynamic>>()
+              .firstWhere((o) => o['id'] == readyOrderId);
+        });
+    Future<http.Response> handover(String token, String code) => api(tester,
+        () => http.post(Uri.parse('${ApiService.baseUrl}/orders/$readyOrderId/handover'),
+            headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+            body: jsonEncode({'code': code})));
+
+    // The rider accepts the job in the app and sees a pickup code.
+    await startApp(tester);
+    await signIn(tester, 'rider@e2e-findfood.com', password);
+    await waitFor(tester, find.text('Accept delivery'));
+    await tapAndSettle(tester, find.text('Accept delivery').first);
+    await tapAndSettle(tester, find.text('My Deliveries').last);
+    final codeCard = find.byKey(const Key('rider-pickup-code-$readyOrderId'));
+    await waitFor(tester, codeCard);
+    final pickupCode = tester
+        .widgetList<Text>(find.descendant(
+            of: find.descendant(of: codeCard, matching: find.byKey(const Key('handoff-code-digits'))),
+            matching: find.byType(Text)))
+        .map((t) => t.data)
+        .join();
+    expect(pickupCode, matches(RegExp(r'^\d{4}$')));
+
+    // Nobody sees a code that is not theirs.
+    final ownerToken = await login('owner@e2e-findfood.com', [password]);
+    final customerToken =
+        await login('customer@e2e-findfood.com', [password, 'NewPassword456!']);
+    final asCustomer = await orderAs(customerToken);
+    final asRestaurant = await orderAs(ownerToken);
+    final deliveryCode = asCustomer['delivery_code'] as String;
+    expect(asCustomer['pickup_code'], isNull);
+    expect(asRestaurant['pickup_code'], isNull);
+    expect(asRestaurant['delivery_code'], isNull);
+    expect(asRestaurant['rider_name'], isNotNull);
+    expect(deliveryCode, isNot(pickupCode));
+
+    // The restaurant must enter the rider's code to hand the food over.
+    final wrongPickup = pickupCode == '0000' ? '1111' : '0000';
+    final refused = await handover(ownerToken, wrongPickup);
+    expect(refused.statusCode, 400);
+    expect(jsonDecode(refused.body)['detail'], contains('attempts left'));
+    final handed = await handover(ownerToken, pickupCode);
+    expect(handed.statusCode, 200);
+    expect(jsonDecode(handed.body)['status'], 'out_for_delivery');
+
+    // The rider's list updates by itself; they finish with the customer's code.
+    final complete = find.byKey(const Key('rider-complete-$readyOrderId'));
+    await waitFor(tester, complete);
+    expect(codeCard, findsNothing, reason: 'pickup code is gone after handover');
+    await tapAndSettle(tester, complete);
+    await waitFor(tester, find.byKey(const Key('handoff-code-input')));
+    final wrongDelivery = deliveryCode == '0000' ? '1111' : '0000';
+    await tester.enterText(find.byKey(const Key('handoff-code-input')), wrongDelivery);
+    await waitFor(tester, find.textContaining('attempts left'));
+    await tester.enterText(find.byKey(const Key('handoff-code-input')), deliveryCode);
+    await waitFor(tester, find.text('Delivery complete. Nice work!'));
+
+    final finished = await orderAs(customerToken);
+    expect(finished['status'], 'delivered');
+    expect(finished['delivery_code'], isNull, reason: 'code is hidden once used');
 
     await finish(tester);
   });

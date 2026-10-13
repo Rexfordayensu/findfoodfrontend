@@ -552,6 +552,46 @@ class ApiService {
     return Order.fromJson(data);
   }
 
+  // ── HANDOVERS (4-digit codes) ─────────────────────────────────────────────
+
+  static Future<Order> _handoffCall(
+      String token, String path, String fallbackError,
+      {String? code}) async {
+    final response = await _http.post(
+      Uri.parse('$baseUrl$path'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: code == null ? null : jsonEncode({'code': code}),
+    );
+    final data = _decode(response);
+    if (response.statusCode != 200) {
+      final detail = data['detail'];
+      throw Exception(detail is String ? detail : fallbackError);
+    }
+    return Order.fromJson(data);
+  }
+
+  /// A rider takes a job; the result carries their pickup code.
+  static Future<Order> acceptDelivery(String token, int orderId) =>
+      _handoffCall(token, '/deliveries/$orderId/accept',
+          'Could not accept this delivery.');
+
+  /// The restaurant hands the food to the rider (rider's code) or, for
+  /// pickup orders, to the customer (customer's code).
+  static Future<Order> handOverOrder(String token, int orderId, String code) =>
+      _handoffCall(token, '/orders/$orderId/handover',
+          'Could not hand over this order.',
+          code: code);
+
+  /// The rider completes the delivery with the customer's code.
+  static Future<Order> completeDelivery(
+          String token, int orderId, String code) =>
+      _handoffCall(token, '/orders/$orderId/deliver',
+          'Could not complete this delivery.',
+          code: code);
+
   // ── DELIVERIES (Rider) ────────────────────────────────────────────────────
 
   static Future<List<Order>> getAvailableDeliveries(String token) async {

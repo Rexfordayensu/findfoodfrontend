@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../theme.dart';
 import '../../widgets/glass.dart';
+import '../../widgets/handoff_code.dart';
 import '../../utils/time_format.dart';
 import '../../widgets/widgets.dart';
 import '../../widgets/account_settings.dart';
@@ -389,6 +390,43 @@ class _OrdersPageState extends State<_OrdersPage> {
     }
   }
 
+  /// Hands the food over after checking the receiver's code: the rider's
+  /// pickup code, or the customer's code for pickup orders.
+  Future<void> _handOver(Order order) async {
+    final token = context.read<AuthProvider>().token!;
+    final toRider = order.fulfillmentMethod != 'pickup';
+    final done = await showHandoffCodeEntry(
+      context,
+      title: toRider
+          ? "Enter ${order.riderName ?? 'the rider'}'s code"
+          : "Enter the customer's code",
+      instructions: toRider
+          ? 'Ask the rider for the 4-digit pickup code in their FindFood app '
+              'before handing over the food.'
+          : 'Ask the customer for the 4-digit code in their FindFood app '
+              'before handing over the food.',
+      actionLabel: toRider ? 'Hand over to rider' : 'Hand over to customer',
+      submit: (code) async {
+        final updated = await ApiService.handOverOrder(token, order.id, code);
+        if (!mounted) return;
+        setState(() {
+          final idx = _orders.indexWhere((o) => o.id == order.id);
+          if (idx != -1) _orders[idx] = updated;
+        });
+      },
+    );
+    if (done && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppTheme.success,
+        content: Text(
+            toRider
+                ? 'Order #${order.id} is on its way with the rider.'
+                : 'Order #${order.id} collected by the customer.',
+            style: const TextStyle(color: Colors.white)),
+      ));
+    }
+  }
+
   int get _ordersToday {
     final now = DateTime.now();
     return _orders.where((o) {
@@ -586,6 +624,7 @@ class _OrdersPageState extends State<_OrdersPage> {
                                 itemBuilder: (_, i) => _OrderCard(
                                   order: _filtered[i],
                                   onUpdateStatus: _updateStatus,
+                                  onHandOver: _handOver,
                                 ),
                               ),
                             ),
@@ -601,8 +640,13 @@ class _OrdersPageState extends State<_OrdersPage> {
 class _OrderCard extends StatelessWidget {
   final Order order;
   final Future<void> Function(Order, String) onUpdateStatus;
+  final Future<void> Function(Order) onHandOver;
 
-  const _OrderCard({required this.order, required this.onUpdateStatus});
+  const _OrderCard({
+    required this.order,
+    required this.onUpdateStatus,
+    required this.onHandOver,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -612,11 +656,14 @@ class _OrderCard extends StatelessWidget {
     final isPickup = order.fulfillmentMethod == 'pickup';
     final isDone = order.status == 'delivered' || order.status == 'picked_up';
     final isCancelled = order.status == 'cancelled';
+    final onTheWay = order.status == 'out_for_delivery';
+    final hasRider = order.riderId != null;
 
     String? actionLabel;
     IconData? actionIcon;
     String? nextStatus;
     Color? actionColor;
+    var handOver = false;
 
     if (isPending) {
       actionLabel = 'Start preparing';
@@ -628,10 +675,10 @@ class _OrderCard extends StatelessWidget {
       actionIcon = Icons.check_circle_rounded;
       nextStatus = 'ready';
       actionColor = AppTheme.success;
-    } else if (isReady && isPickup) {
-      actionLabel = 'Customer collected order';
-      actionIcon = Icons.shopping_bag_rounded;
-      nextStatus = 'picked_up';
+    } else if (isReady && (isPickup || hasRider)) {
+      actionLabel = isPickup ? 'Hand over to customer' : 'Hand over to rider';
+      actionIcon = Icons.pin_outlined;
+      handOver = true;
       actionColor = AppTheme.success;
     }
 
@@ -726,6 +773,19 @@ class _OrderCard extends StatelessWidget {
                     ]),
                   ],
                 ),
+                if (hasRider && !isDone && !isCancelled) ...[
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    Icon(Icons.electric_bike_outlined,
+                        size: 15, color: AppColors.textSecondary(context)),
+                    const SizedBox(width: 6),
+                    Text('Rider: ${order.riderName ?? 'assigned'}',
+                        style: TextStyle(
+                            color: AppColors.textSecondary(context),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600)),
+                  ]),
+                ],
               ],
             ),
           ),
@@ -765,7 +825,10 @@ class _OrderCard extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: GestureDetector(
-                    onTap: () => onUpdateStatus(order, nextStatus!),
+                    key: Key('order-action-${order.id}'),
+                    onTap: () => handOver
+                        ? onHandOver(order)
+                        : onUpdateStatus(order, nextStatus!),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -821,7 +884,7 @@ class _OrderCard extends StatelessWidget {
                     Icon(Icons.delivery_dining_rounded,
                         color: AppTheme.success, size: 16),
                     SizedBox(width: 8),
-                    Text('Waiting for rider pickup',
+                    Text('Waiting for a rider to accept',
                         style: TextStyle(
                             color: AppTheme.success,
                             fontWeight: FontWeight.w600,
@@ -829,6 +892,19 @@ class _OrderCard extends StatelessWidget {
                   ],
                 ),
               ),
+            ),
+          ] else if (onTheWay) ...[
+            Divider(height: 1, color: AppColors.border(context)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(children: [
+                Icon(Icons.delivery_dining_rounded,
+                    color: AppColors.textSecondary(context), size: 16),
+                const SizedBox(width: 8),
+                Text('On the way with ${order.riderName ?? 'the rider'}',
+                    style: TextStyle(
+                        color: AppColors.textSecondary(context), fontSize: 12)),
+              ]),
             ),
           ] else if (isCancelled) ...[
             Divider(height: 1, color: AppColors.border(context)),

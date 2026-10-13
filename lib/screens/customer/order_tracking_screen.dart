@@ -8,6 +8,7 @@ import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
 import '../../services/order_payment.dart';
+import '../../widgets/handoff_code.dart';
 import '../../widgets/rating_sheet.dart';
 
 class OrderTrackingScreen extends StatefulWidget {
@@ -21,7 +22,6 @@ class OrderTrackingScreen extends StatefulWidget {
 class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   late Order _order;
   Timer? _pollTimer;
-  bool _confirmingPickup = false;
   bool _busy = false;
 
   List<Map<String, Object>> get _steps => _order.fulfillmentMethod == 'pickup'
@@ -242,29 +242,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     }
   }
 
-  Future<void> _confirmPickup() async {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    if (auth.token == null) return;
-    setState(() => _confirmingPickup = true);
-    try {
-      final updated = await ApiService.updateOrderStatus(
-          auth.token!, _order.id, 'picked_up');
-      if (!mounted) return;
-      _pollTimer?.cancel();
-      setState(() => _order = updated);
-      _showOrderComplete();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        backgroundColor: AppTheme.danger,
-        content: Text(e.toString().replaceAll('Exception: ', ''),
-            style: const TextStyle(color: Colors.white)),
-      ));
-    } finally {
-      if (mounted) setState(() => _confirmingPickup = false);
-    }
-  }
-
   String get _headline {
     if (_order.status == 'awaiting_payment') return 'Awaiting payment';
     if (_order.status == 'cancelled') return 'Cancelled';
@@ -384,6 +361,23 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               ],
             ),
           ),
+          if (_order.deliveryCode != null &&
+              _order.isActive &&
+              _order.status != 'awaiting_payment') ...[
+            const SizedBox(height: 16),
+            HandoffCodeCard(
+              key: const Key('tracking-delivery-code'),
+              title: _order.fulfillmentMethod == 'pickup'
+                  ? 'Collection code'
+                  : 'Delivery code',
+              code: _order.deliveryCode!,
+              icon: Icons.lock_outline_rounded,
+              instructions: _order.fulfillmentMethod == 'pickup'
+                  ? 'Show this code at the counter when you collect your order.'
+                  : 'Give this code to your rider when your food arrives. '
+                      'Only share it once you have your order.',
+            ),
+          ],
           const SizedBox(height: 28),
 
           // ── Status steps ──────────────────────────────────
@@ -510,16 +504,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                   setState(() => _order = _order.copyWith(isRated: true));
                 }
               },
-            ),
-            const SizedBox(height: 24),
-          ],
-          if (_order.fulfillmentMethod == 'pickup' &&
-              _order.status == 'ready') ...[
-            PrimaryButton(
-              label: "I've collected my order",
-              icon: Icons.storefront_outlined,
-              isLoading: _confirmingPickup,
-              onPressed: _confirmingPickup ? null : _confirmPickup,
             ),
             const SizedBox(height: 24),
           ],

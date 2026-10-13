@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import '../../theme.dart';
 import '../../widgets/glass.dart';
+import '../../widgets/handoff_code.dart';
+import '../../widgets/live_refresh.dart';
 import '../../widgets/widgets.dart';
 import '../../widgets/account_settings.dart';
 import '../../models/models.dart';
@@ -190,16 +192,15 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
   Future<void> _acceptDelivery(Order order) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     try {
-      await ApiService.updateOrderStatus(
-        auth.token!,
-        order.id,
-        'out_for_delivery', // Just pass the raw string values!
-      );
+      final accepted = await ApiService.acceptDelivery(auth.token!, order.id);
       if (!mounted) return;
       setState(() => _orders.removeWhere((o) => o.id == order.id));
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: AppTheme.success,
-        content: Text('Delivery #${order.id} accepted! Head to pickup.',
+        content: Text(
+            'Delivery #${order.id} accepted. Your pickup code is '
+            '${accepted.pickupCode ?? 'in My deliveries'} — give it to the '
+            'restaurant when you collect.',
             style: const TextStyle(color: Colors.white)),
       ));
     } catch (e) {
@@ -567,7 +568,8 @@ class _MyDeliveriesPage extends StatefulWidget {
   State<_MyDeliveriesPage> createState() => _MyDeliveriesPageState();
 }
 
-class _MyDeliveriesPageState extends State<_MyDeliveriesPage> {
+class _MyDeliveriesPageState extends State<_MyDeliveriesPage>
+    with LiveRefresh {
   List<Order> _orders = [];
   bool _loading = true;
   String _error = '';
@@ -600,55 +602,57 @@ class _MyDeliveriesPageState extends State<_MyDeliveriesPage> {
   void initState() {
     super.initState();
     _load();
+    // Picks up the restaurant's handover without a manual refresh.
+    startLiveRefresh(() => _load(silent: true));
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool silent = false}) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     if (auth.token == null) return;
-    setState(() {
-      _loading = true;
-      _error = '';
-    });
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = '';
+      });
+    }
     try {
       final orders = await ApiService.getMyOrders(auth.token!);
       if (!mounted) return;
       setState(() => _orders = orders);
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || silent) return;
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
-      if (mounted) {
+      if (mounted && !silent) {
         setState(() => _loading = false);
       }
     }
   }
 
-  Future<void> _markDelivered(Order order) async {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    try {
-      await ApiService.updateOrderStatus(
-        auth.token!,
-        order.id,
-        'delivered',
-      );
-      if (!mounted) return;
-      setState(() {
-        final idx = _orders.indexWhere((o) => o.id == order.id);
-        if (idx != -1) {
-          _orders[idx] = _orders[idx].copyWith(status: 'delivered');
-        }
-      });
+  /// The rider asks the customer for their code to finish the delivery.
+  Future<void> _completeDelivery(Order order) async {
+    final token = context.read<AuthProvider>().token!;
+    final done = await showHandoffCodeEntry(
+      context,
+      title: "Enter the customer's code",
+      instructions:
+          'Ask the customer for the 4-digit delivery code shown in their '
+          'FindFood app. Hand over the food once the code is accepted.',
+      actionLabel: 'Complete delivery',
+      submit: (code) async {
+        final updated = await ApiService.completeDelivery(token, order.id, code);
+        if (!mounted) return;
+        setState(() {
+          final idx = _orders.indexWhere((o) => o.id == order.id);
+          if (idx != -1) _orders[idx] = updated;
+        });
+      },
+    );
+    if (done && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         backgroundColor: AppTheme.success,
-        content: Text('Order marked as delivered! 🎉',
+        content: Text('Delivery complete. Nice work!',
             style: TextStyle(color: Colors.white)),
-      ));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        backgroundColor: AppTheme.danger,
-        content: Text(e.toString().replaceAll('Exception: ', ''),
-            style: const TextStyle(color: Colors.white)),
       ));
     }
   }
@@ -757,16 +761,30 @@ class _MyDeliveriesPageState extends State<_MyDeliveriesPage> {
               ],
             ),
           ],
+          if (order.awaitingRiderPickup && order.pickupCode != null) ...[
+            const SizedBox(height: 14),
+            HandoffCodeCard(
+              key: Key('rider-pickup-code-${order.id}'),
+              title: 'Pickup code',
+              code: order.pickupCode!,
+              icon: Icons.storefront_outlined,
+              instructions:
+                  'Give this code to ${order.restaurantName ?? 'the restaurant'} '
+                  'when you collect the food. '
+                  '${order.status == 'ready' ? 'The food is ready.' : 'The kitchen is still preparing it.'}',
+            ),
+          ],
           if (isActive) ...[
             const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
-              height: 42,
+              height: 46,
               child: ElevatedButton.icon(
-                onPressed: () => _markDelivered(order),
-                icon: const Icon(Icons.check_rounded,
+                key: Key('rider-complete-${order.id}'),
+                onPressed: () => _completeDelivery(order),
+                icon: const Icon(Icons.pin_outlined,
                     color: Colors.black, size: 18),
-                label: const Text('Mark as delivered'),
+                label: const Text("Complete with customer's code"),
               ),
             ),
           ],
