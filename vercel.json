@@ -43,7 +43,16 @@
       ]
     },
     {
-      "source": "/assets/(AssetManifest.json|AssetManifest.bin|AssetManifest.bin.json|FontManifest.json|fonts/MaterialIcons-Regular.otf|packages/(.*))",
+      "source": "/assets/(AssetManifest.json|AssetManifest.bin|AssetManifest.bin.json|FontManifest.json)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/assets/fonts/MaterialIcons-Regular.otf",
       "headers": [
         {
           "key": "Cache-Control",
