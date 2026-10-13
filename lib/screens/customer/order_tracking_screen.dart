@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../theme.dart';
+import '../../widgets/chat_button.dart';
 import '../../widgets/widgets.dart';
 import '../../models/models.dart';
 import '../../services/api_service.dart';
@@ -378,6 +379,22 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       'Only share it once you have your order.',
             ),
           ],
+          if (_order.status != 'awaiting_payment' && !_order.isCancelled) ...[
+            const SizedBox(height: 12),
+            ChatButton.wide(
+              key: const Key('tracking-open-chat'),
+              withWhom: _order.riderId != null
+                  ? '${_order.restaurantName ?? 'The restaurant'} & '
+                      '${_order.riderName ?? 'your rider'}'
+                  : (_order.restaurantName ?? 'The restaurant'),
+              onPressed: () => context.push('/chat/${_order.id}', extra: {
+                'name': _order.riderId != null
+                    ? '${_order.restaurantName ?? 'Restaurant'} & rider'
+                    : (_order.restaurantName ?? 'Restaurant'),
+                'role': 'restaurant',
+              }),
+            ),
+          ],
           const SizedBox(height: 28),
 
           // ── Status steps ──────────────────────────────────
@@ -508,27 +525,6 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             const SizedBox(height: 24),
           ],
 
-          if (_order.status != 'awaiting_payment' && !_order.isCancelled) ...[
-            OutlinedButton.icon(
-              key: const Key('tracking-open-chat'),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-                foregroundColor: AppColors.textPrimary(context),
-                side: BorderSide(color: AppColors.border(context)),
-              ),
-              icon: const Icon(Icons.chat_bubble_outline_rounded, size: 20),
-              label: Text(_order.riderId != null
-                  ? 'Message the restaurant & rider'
-                  : 'Message the restaurant'),
-              onPressed: () => context.push('/chat/${_order.id}', extra: {
-                'name': _order.riderId != null
-                    ? '${_order.restaurantName ?? 'Restaurant'} & rider'
-                    : (_order.restaurantName ?? 'Restaurant'),
-                'role': 'restaurant',
-              }),
-            ),
-            const SizedBox(height: 24),
-          ],
 
           // ── Order summary ─────────────────────────────────
           Divider(color: AppColors.border(context)),

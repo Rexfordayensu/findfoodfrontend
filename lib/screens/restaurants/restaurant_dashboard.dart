@@ -8,6 +8,7 @@ import '../../theme.dart';
 import '../../widgets/glass.dart';
 import '../../widgets/handoff_code.dart';
 import '../../utils/time_format.dart';
+import '../../widgets/chat_button.dart';
 import '../../widgets/widgets.dart';
 import '../../widgets/account_settings.dart';
 import '../../widgets/promotion_card.dart';
@@ -713,41 +714,48 @@ class _OrderCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(children: [
-                      if (isPending)
-                        Container(
-                          width: 8,
-                          height: 8,
-                          margin: const EdgeInsets.only(right: 8),
-                          decoration: const BoxDecoration(
-                              color: AppTheme.accent, shape: BoxShape.circle),
-                        ),
-                      Text('Order #${order.id}',
-                          style: TextStyle(
-                              color: AppColors.textPrimary(context),
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700)),
-                    ]),
-                    Row(children: [
-                      GestureDetector(
-                        onTap: () => context.push(
-                          '/chat/${order.id}',
-                          extra: const {'name': 'Customer', 'role': 'customer'},
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          margin: const EdgeInsets.only(right: 8),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface(context),
-                            borderRadius: BorderRadius.circular(8),
+                    Expanded(
+                      child: Row(children: [
+                        if (isPending)
+                          Container(
+                            width: 8,
+                            height: 8,
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: const BoxDecoration(
+                                color: AppTheme.accent, shape: BoxShape.circle),
                           ),
-                          child: Icon(Icons.chat_bubble_outline_rounded,
-                              size: 15,
-                              color: AppColors.textSecondary(context)),
+                        Flexible(
+                          child: Text('Order #${order.id}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: AppColors.textPrimary(context),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700)),
                         ),
-                      ),
+                      ]),
+                    ),
+                    const SizedBox(width: 8),
+                    Row(children: [
+                      if (!isCancelled) ...[
+                        ChatButton(
+                          key: Key('restaurant-chat-${order.id}'),
+                          withWhom: hasRider
+                              ? 'the customer and ${order.riderName ?? 'the rider'}'
+                              : 'the customer',
+                          onPressed: () => context.push(
+                            '/chat/${order.id}',
+                            extra: {
+                              'name': hasRider
+                                  ? 'Customer & ${order.riderName ?? 'rider'}'
+                                  : 'Customer',
+                              'role': 'customer',
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
                       StatusBadge(status: order.status),
                     ]),
                   ],

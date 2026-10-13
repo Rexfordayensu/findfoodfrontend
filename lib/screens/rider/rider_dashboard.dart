@@ -7,6 +7,7 @@ import '../../theme.dart';
 import '../../widgets/glass.dart';
 import '../../widgets/handoff_code.dart';
 import '../../widgets/live_refresh.dart';
+import '../../widgets/chat_button.dart';
 import '../../widgets/widgets.dart';
 import '../../widgets/account_settings.dart';
 import '../../models/models.dart';
@@ -761,15 +762,16 @@ class _MyDeliveriesPageState extends State<_MyDeliveriesPage> with LiveRefresh {
           Row(
             children: [
               Expanded(child: Text('Order #${order.id}', style: AppText.title)),
-              if (order.isActive)
-                IconButton(
+              if (!order.isCancelled) ...[
+                ChatButton(
                   key: Key('rider-chat-${order.id}'),
-                  tooltip: 'Message the customer and restaurant',
+                  withWhom:
+                      'the customer and ${order.restaurantName ?? 'the restaurant'}',
                   onPressed: () =>
                       context.push('/order-chat/${order.id}', extra: order),
-                  icon: Icon(Icons.chat_bubble_outline_rounded,
-                      size: 20, color: AppColors.textSecondary(context)),
                 ),
+                const SizedBox(width: 8),
+              ],
               StatusBadge(status: order.status),
             ],
           ),
