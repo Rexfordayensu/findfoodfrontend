@@ -8,6 +8,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:findfood_app/main.dart';
+import 'package:findfood_app/models/models.dart';
 import 'package:findfood_app/services/otp_provider.dart';
 import 'package:findfood_app/services/providers.dart';
 import 'package:findfood_app/widgets/live_refresh.dart';
@@ -167,7 +168,7 @@ Future<void> capture(WidgetTester tester, GlobalKey key, String name) async {
 
 Future<GlobalKey> launch(WidgetTester tester,
     {required String role, required String name, required bool dark,
-    Size size = const Size(400, 860)}) async {
+    Size size = const Size(400, 860), CartProvider? cart}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   FlutterSecureStorage.setMockInitialValues({});
@@ -187,7 +188,7 @@ Future<GlobalKey> launch(WidgetTester tester,
       providers: [
         ChangeNotifierProvider.value(value: theme),
         ChangeNotifierProvider.value(value: auth),
-        ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => cart ?? CartProvider()),
         ChangeNotifierProvider(create: (_) => OtpProvider()),
         ChangeNotifierProvider(create: (_) => OrderPollingProvider()),
       ],
@@ -212,10 +213,12 @@ void main() {
 
   Future<void> shoot(WidgetTester tester, String file,
       {required String role, required String name, required bool dark,
-      String? tab, Size size = const Size(400, 860)}) async {
+      String? tab, Size size = const Size(400, 860), CartProvider? cart,
+      String? then}) async {
     debugDisableShadows = false; // render real soft shadows
     await http.runWithClient(() async {
-      final key = await launch(tester, role: role, name: name, dark: dark, size: size);
+      final key = await launch(tester,
+          role: role, name: name, dark: dark, size: size, cart: cart);
       for (var i = 0; i < 30; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
@@ -224,6 +227,12 @@ void main() {
         await tester.tap(byTooltip.evaluate().isNotEmpty
             ? byTooltip.first
             : find.text(tab).last);
+        for (var i = 0; i < 10; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+      }
+      if (then != null) {
+        await tester.tap(find.text(then).last);
         for (var i = 0; i < 10; i++) {
           await tester.pump(const Duration(milliseconds: 100));
         }
@@ -258,6 +267,26 @@ void main() {
       'restaurant_settings_light', role: 'restaurant', name: 'Esi', dark: false, tab: 'Settings'));
   testWidgets('rider profile light', (t) => shoot(t, 'rider_profile_light',
       role: 'rider', name: 'Kofi', dark: false, tab: 'Profile'));
+  CartProvider sampleCart() {
+    MenuItem item(int id, String name, int price) => MenuItem(
+        id: id, name: name, price: price, isAvailable: true, restaurantId: 1);
+    return CartProvider()
+      ..addItem(item(1, 'Waakye and salad', 5000), 1, "Mina's Launch",
+          restaurantAddress: 'Lapaz, Accra')
+      ..addItem(item(2, 'Grilled tilapia with banku', 8500), 1, "Mina's Launch",
+          restaurantAddress: 'Lapaz, Accra')
+      ..addItem(item(2, 'Grilled tilapia with banku', 8500), 1, "Mina's Launch",
+          restaurantAddress: 'Lapaz, Accra');
+  }
+  for (final dark in [false, true]) {
+    final mode = dark ? 'dark' : 'light';
+    testWidgets('checkout $mode', (t) => shoot(t, 'checkout_$mode',
+        role: 'customer', name: 'Rexford', dark: dark, tab: 'Cart',
+        cart: sampleCart()));
+  }
+  testWidgets('checkout pickup light', (t) => shoot(t, 'checkout_pickup_light',
+      role: 'customer', name: 'Rexford', dark: false, tab: 'Cart',
+      cart: sampleCart(), then: 'Pickup'));
   testWidgets('admin desktop light', (t) => shoot(t, 'admin_desktop_light',
       role: 'admin', name: 'Ade', dark: false, size: const Size(1280, 860)));
 }

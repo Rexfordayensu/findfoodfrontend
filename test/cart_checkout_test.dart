@@ -36,6 +36,13 @@ void main() {
 
     expect(find.text('Delivery address'), findsOneWidget);
     expect(find.text('Pickup location'), findsNothing);
+    // The kitchen note applies to delivery orders too.
+    await tester.scrollUntilVisible(
+        find.text('Kitchen note (optional)'), 200,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.text('Kitchen note (optional)'), findsOneWidget);
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 2000));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Pickup'));
     await tester.pumpAndSettle();
@@ -46,6 +53,12 @@ void main() {
     expect(find.text('24 Market Road, Accra'), findsOneWidget);
     expect(find.text('Pickup name'), findsOneWidget);
     expect(find.text('Pickup phone number'), findsOneWidget);
+    await tester.scrollUntilVisible(
+        find.text('Kitchen note (optional)'), 200,
+        scrollable: find.byType(Scrollable).first);
     expect(find.text('Kitchen note (optional)'), findsOneWidget);
+    // Total and the order button stay pinned at the bottom.
+    expect(find.text('Place order'), findsNothing); // signed out
+    expect(find.text('Sign in to order'), findsOneWidget);
   });
 }

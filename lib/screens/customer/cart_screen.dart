@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
+import '../../models/models.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
@@ -246,9 +248,10 @@ class _CartScreenState extends State<CartScreen> {
       );
     }
 
+    final itemCount = cart.items.fold<int>(0, (sum, item) => sum + item.quantity);
     return Scaffold(
       appBar: AppBar(
-        title: Text(cart.restaurantName ?? 'Cart'),
+        centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
           onPressed: () {
@@ -259,210 +262,226 @@ class _CartScreenState extends State<CartScreen> {
             }
           },
         ),
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Checkout'),
+            if (cart.restaurantName != null)
+              Text(
+                cart.restaurantName!,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary(context),
+                ),
+              ),
+          ],
+        ),
       ),
+      bottomNavigationBar: _buildCheckoutBar(cart, auth),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
-          // ── Cart items ─────────────────────────────────────────
-          const Text('Your order', style: AppText.heading),
-          const SizedBox(height: 14),
-          ...cart.items.map((item) => Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.card(context),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppTheme.darkBorder),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(item.menuItem.name, style: AppText.title),
-                          const SizedBox(height: 4),
-                          Text(item.displaySubtotal,
-                              style: AppText.label
-                                  .copyWith(color: AppTheme.accent)),
-                        ],
-                      ),
-                    ),
-                    // Qty controls
-                    Row(
-                      children: [
-                        _qtyBtn(
-                            Icons.remove,
-                            () => Provider.of<CartProvider>(context,
-                                    listen: false)
-                                .decreaseItem(item.menuItem.id)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                          child: Text('${item.quantity}', style: AppText.title),
-                        ),
-                        _qtyBtn(
-                            Icons.add,
-                            () => Provider.of<CartProvider>(context,
-                                    listen: false)
-                                .addItem(item.menuItem, cart.restaurantId!,
-                              cart.restaurantName!,
-                              restaurantAddress: cart.restaurantAddress)),
-                      ],
-                    ),
+          _section(
+            'Your order',
+            trailing: '$itemCount ${itemCount == 1 ? 'item' : 'items'}',
+            child: _card(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  for (var i = 0; i < cart.items.length; i++) ...[
+                    if (i > 0) Divider(height: 1, color: AppColors.border(context)),
+                    _itemRow(cart, cart.items[i]),
                   ],
-                ),
-              )),
-
-          // ── Summary ────────────────────────────────────────────
-          const SizedBox(height: 8),
-              _buildFulfillmentSelector(cart),
-              const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.card(context),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.darkBorder),
-            ),
-            child: Column(
-              children: [
-                _summaryRow('Subtotal', cart.displayTotal),
-                const SizedBox(height: 8),
-                _summaryRow(_isDelivery ? 'Delivery fee' : 'Pickup fee', 'Free'),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 10),
-                  child: Divider(color: AppTheme.darkBorder),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Total', style: AppText.title),
-                    Text(cart.displayTotal,
-                        style: AppText.title.copyWith(color: AppTheme.accent)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-          if (_isDelivery)
-            _buildDeliveryDetails()
-          else
-            _buildPickupDetails(cart.restaurantAddress),
-
-          const SizedBox(height: 24),
-          const Text('Payment', style: AppText.heading),
-          const SizedBox(height: 14),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.card(context),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.darkBorder),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.lock_outline_rounded, color: AppTheme.accent),
-                SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Paystack', style: AppText.title),
-                    SizedBox(height: 3),
-                    Text('Secure online payment', style: AppText.caption),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          if (!auth.isLoggedIn)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 12),
-              child: Text(
-                'You need to sign in before placing an order.',
-                style: TextStyle(color: AppTheme.warning, fontSize: 13),
-                textAlign: TextAlign.center,
+                ],
               ),
             ),
-          PrimaryButton(
-            label: auth.isLoggedIn
-                ? 'Place order · ${cart.displayTotal}'
-                : 'Sign in to order',
-            isLoading: _isLoading,
-            onPressed: _placeOrderAndInitializePayment,
           ),
-          const SizedBox(height: 32),
+          _section(
+            "How you'll get it",
+            child: _card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ModeToggle(
+                    isDelivery: _isDelivery,
+                    onChanged: (value) => setState(() => _isDelivery = value),
+                  ),
+                  const SizedBox(height: 18),
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOutCubic,
+                    alignment: Alignment.topCenter,
+                    child: _isDelivery
+                        ? _buildDeliveryDetails()
+                        : _buildPickupDetails(cart),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          _section(
+            'Note for the kitchen',
+            child: _card(
+              child: TextField(
+                controller: _kitchenNoteController,
+                maxLines: 2,
+                minLines: 1,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(
+                  labelText: 'Kitchen note (optional)',
+                  hintText: 'Allergies, less pepper, extra shito…',
+                  prefixIcon: Icon(Icons.edit_note_rounded),
+                ),
+              ),
+            ),
+          ),
+          _section(
+            'Payment',
+            child: _card(
+              child: Row(
+                children: [
+                  _iconTile(Icons.lock_outline_rounded),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Paystack', style: _strong(15)),
+                        const SizedBox(height: 2),
+                        Text('Card or mobile money, paid securely',
+                            style: _muted(13)),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.check_circle_rounded,
+                      size: 20, color: AppColors.textPrimary(context)),
+                ],
+              ),
+            ),
+          ),
+          _section(
+            'Summary',
+            child: _card(
+              child: Column(
+                children: [
+                  _summaryRow('Subtotal', cart.displayTotal),
+                  const SizedBox(height: 10),
+                  _summaryRow(_isDelivery ? 'Delivery fee' : 'Pickup fee', 'Free'),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Divider(height: 1, color: AppColors.border(context)),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Total', style: _strong(16)),
+                      Text(cart.displayTotal, style: _strong(16)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildFulfillmentSelector(CartProvider cart) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Fulfillment', style: AppText.title),
-        const SizedBox(height: 10),
-        SizedBox(
-          width: double.infinity,
-          child: SegmentedButton<bool>(
-            segments: const [
-              ButtonSegment<bool>(
-                value: true,
-                label: Text('Delivery'),
-                icon: Icon(Icons.delivery_dining_outlined),
-              ),
-              ButtonSegment<bool>(
-                value: false,
-                label: Text('Pickup'),
-                icon: Icon(Icons.storefront_outlined),
-              ),
-            ],
-            selected: {_isDelivery},
-            showSelectedIcon: false,
-            onSelectionChanged: (selection) {
-              setState(() => _isDelivery = selection.first);
-            },
+  // ── Building blocks ────────────────────────────────────────────────
+
+  TextStyle _strong(double size) => TextStyle(
+        color: AppColors.textPrimary(context),
+        fontSize: size,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.2,
+      );
+
+  TextStyle _muted(double size) =>
+      TextStyle(color: AppColors.textSecondary(context), fontSize: size, height: 1.35);
+
+  Widget _section(String title, {String? trailing, required Widget child}) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+            child: Row(
+              children: [
+                Expanded(child: Text(title, style: _strong(16))),
+                if (trailing != null) Text(trailing, style: _muted(13)),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Icon(
-              _isDelivery ? Icons.location_on_outlined : Icons.store_outlined,
-              size: 17,
-              color: AppColors.textSecondary(context),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                _isDelivery
-                    ? 'Delivered to your address or current location'
-                    : 'Collect from ${cart.restaurantName ?? 'the restaurant'}',
-                style: AppText.caption.copyWith(color: AppColors.textSecondary(context)),
-              ),
-            ),
-          ],
-        ),
-      ],
+          child,
+        ],
+      ),
     );
   }
 
-  Widget _qtyBtn(IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: AppColors.surface(context),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppTheme.darkBorder),
-        ),
-        child: Icon(icon, size: 16, color: AppColors.textPrimary(context)),
+  Widget _card({required Widget child, EdgeInsets padding = const EdgeInsets.all(16)}) {
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: AppColors.card(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border(context)),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _iconTile(IconData icon) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: _softFill(context),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(icon, size: 20, color: AppColors.textPrimary(context)),
+    );
+  }
+
+  Widget _itemRow(CartProvider cart, CartItem item) {
+    final provider = context.read<CartProvider>();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.menuItem.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: _strong(15)),
+                const SizedBox(height: 3),
+                Text('${item.menuItem.displayPrice} each', style: _muted(13)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          _QuantityStepper(
+            quantity: item.quantity,
+            onDecrease: () => provider.decreaseItem(item.menuItem.id),
+            onIncrease: () => provider.addItem(
+              item.menuItem,
+              cart.restaurantId!,
+              cart.restaurantName!,
+              restaurantAddress: cart.restaurantAddress,
+            ),
+          ),
+          SizedBox(
+            width: 84,
+            child: Text(item.displaySubtotal,
+                textAlign: TextAlign.right, style: _strong(14)),
+          ),
+        ],
       ),
     );
   }
@@ -471,115 +490,306 @@ class _CartScreenState extends State<CartScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: AppText.body),
-        Text(value, style: AppText.label),
+        Text(label, style: _muted(14)),
+        Text(value,
+            style: TextStyle(
+                color: AppColors.textPrimary(context),
+                fontSize: 14,
+                fontWeight: FontWeight.w600)),
       ],
     );
   }
 
-  Widget _buildDeliveryDetails() {
+  Widget _buildCheckoutBar(CartProvider cart, AuthProvider auth) {
+    final inset = MediaQuery.viewPaddingOf(context).bottom;
+    final bottom = inset > 0
+        ? inset
+        : (kIsWeb && defaultTargetPlatform == TargetPlatform.iOS ? 24.0 : 12.0);
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(20, 12, 16, bottom),
       decoration: BoxDecoration(
         color: AppColors.card(context),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.darkBorder),
+        border: Border(top: BorderSide(color: AppColors.border(context))),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('Delivery address', style: AppText.title),
-          const SizedBox(height: 6),
-          const Text('Use your location or enter the address manually.',
-              style: AppText.caption),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _deliveryAddressController,
-            maxLines: 2,
-            decoration: const InputDecoration(
-              hintText: 'Enter delivery address',
-              prefixIcon: Icon(Icons.location_on_outlined),
+          if (!auth.isLoggedIn)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Text('Sign in to place your order.', style: _muted(13)),
             ),
-            onChanged: (_) {
-              if (_deliveryLatitude != null || _deliveryLongitude != null) {
-                setState(() {
-                  _deliveryLatitude = null;
-                  _deliveryLongitude = null;
-                });
-              }
-            },
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: _isDetectingLocation ? null : _detectDeliveryLocation,
-            icon: _isDetectingLocation
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.my_location_rounded),
-            label: Text(_isDetectingLocation
-                ? 'Detecting location...'
-                : 'Use my current location'),
+          Row(
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Total', style: _muted(12)),
+                  const SizedBox(height: 1),
+                  Text(cart.displayTotal, style: _strong(19)),
+                ],
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: PrimaryButton(
+                  label: auth.isLoggedIn ? 'Place order' : 'Sign in to order',
+                  isLoading: _isLoading,
+                  onPressed: _placeOrderAndInitializePayment,
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPickupDetails(String? restaurantAddress) {
+  Widget _buildDeliveryDetails() {
+    return Column(
+      key: const ValueKey('delivery'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Delivery address', style: _strong(15)),
+        const SizedBox(height: 2),
+        Text('Type your address or use where you are now.', style: _muted(13)),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _deliveryAddressController,
+          maxLines: 2,
+          minLines: 1,
+          decoration: const InputDecoration(
+            hintText: 'House number, street, landmark',
+            prefixIcon: Icon(Icons.location_on_outlined),
+          ),
+          onChanged: (_) {
+            if (_deliveryLatitude != null || _deliveryLongitude != null) {
+              setState(() {
+                _deliveryLatitude = null;
+                _deliveryLongitude = null;
+              });
+            }
+          },
+        ),
+        const SizedBox(height: 4),
+        TextButton.icon(
+          onPressed: _isDetectingLocation ? null : _detectDeliveryLocation,
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.textPrimary(context),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          ),
+          icon: _isDetectingLocation
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.my_location_rounded, size: 18),
+          label: Text(
+            _isDetectingLocation
+                ? 'Finding your location…'
+                : 'Use my current location',
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPickupDetails(CartProvider cart) {
+    final address = cart.restaurantAddress?.trim();
+    return Column(
+      key: const ValueKey('pickup'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Pickup location', style: _strong(15)),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            _iconTile(Icons.storefront_outlined),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Collect from ${cart.restaurantName ?? 'the restaurant'}',
+                      style: TextStyle(
+                          color: AppColors.textPrimary(context),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text(
+                    address?.isNotEmpty == true
+                        ? address!
+                        : 'Restaurant address unavailable',
+                    style: _muted(13),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _pickupNameController,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(
+            labelText: 'Pickup name',
+            hintText: 'Who is collecting the order',
+            prefixIcon: Icon(Icons.person_outline),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _pickupPhoneController,
+          keyboardType: TextInputType.phone,
+          decoration: const InputDecoration(
+            labelText: 'Pickup phone number',
+            hintText: 'For collection updates',
+            prefixIcon: Icon(Icons.phone_outlined),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Quiet fill for controls that sit inside a card.
+Color _softFill(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+        ? const Color(0x12FFFFFF)
+        : AppTheme.lightBg;
+
+/// Delivery / pickup switch: a sliding white thumb on a quiet track.
+class _ModeToggle extends StatelessWidget {
+  final bool isDelivery;
+  final ValueChanged<bool> onChanged;
+
+  const _ModeToggle({required this.isDelivery, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.all(16),
+      height: 46,
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.card(context),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.darkBorder),
+        color: _softFill(context),
+        borderRadius: BorderRadius.circular(13),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          const Text('Pickup location', style: AppText.title),
-          const SizedBox(height: 6),
-          Text(
-            restaurantAddress?.trim().isNotEmpty == true
-                ? restaurantAddress!
-                : 'Restaurant address unavailable',
-            style: AppText.body,
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _pickupNameController,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Pickup name',
-              hintText: 'Name of the person collecting the order',
-              prefixIcon: Icon(Icons.person_outline),
+          AnimatedAlign(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            alignment: isDelivery ? Alignment.centerLeft : Alignment.centerRight,
+            child: FractionallySizedBox(
+              widthFactor: 0.5,
+              heightFactor: 1,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: dark ? const Color(0xFF2B2F3A) : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: dark ? 0.3 : 0.08),
+                      blurRadius: 6,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _pickupPhoneController,
-            keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(
-              labelText: 'Pickup phone number',
-              hintText: 'Phone number for collection updates',
-              prefixIcon: Icon(Icons.phone_outlined),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _kitchenNoteController,
-            maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: 'Kitchen note (optional)',
-              hintText: 'Special instructions for the restaurant',
-              prefixIcon: Icon(Icons.chat_bubble_outline),
-            ),
+          Row(
+            children: [
+              _option(context, 'Delivery', Icons.delivery_dining_outlined, true),
+              _option(context, 'Pickup', Icons.storefront_outlined, false),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _option(BuildContext context, String label, IconData icon, bool value) {
+    final selected = isDelivery == value;
+    final color = selected
+        ? AppColors.textPrimary(context)
+        : AppColors.textSecondary(context);
+    return Expanded(
+      child: Semantics(
+        button: true,
+        selected: selected,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => onChanged(value),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: color),
+              const SizedBox(width: 8),
+              Text(label,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 14,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  )),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
+class _QuantityStepper extends StatelessWidget {
+  final int quantity;
+  final VoidCallback onDecrease;
+  final VoidCallback onIncrease;
+
+  const _QuantityStepper({
+    required this.quantity,
+    required this.onDecrease,
+    required this.onIncrease,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = AppColors.textPrimary(context);
+    Widget button(IconData icon, String tooltip, VoidCallback onTap) => SizedBox(
+          width: 32,
+          height: 32,
+          child: IconButton(
+            tooltip: tooltip,
+            padding: EdgeInsets.zero,
+            iconSize: 17,
+            color: color,
+            onPressed: onTap,
+            icon: Icon(icon),
+          ),
+        );
+    return Container(
+      height: 34,
+      decoration: BoxDecoration(
+        color: _softFill(context),
+        borderRadius: BorderRadius.circular(17),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          button(quantity == 1 ? Icons.delete_outline_rounded : Icons.remove_rounded,
+              quantity == 1 ? 'Remove' : 'Decrease', onDecrease),
+          SizedBox(
+            width: 22,
+            child: Text('$quantity',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: color, fontSize: 14, fontWeight: FontWeight.w700)),
+          ),
+          button(Icons.add_rounded, 'Increase', onIncrease),
+        ],
+      ),
+    );
+  }
+}
