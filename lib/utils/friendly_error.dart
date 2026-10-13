@@ -16,6 +16,10 @@ class FriendlyError {
 
   /// The free server sleeps when idle and takes up to a minute to wake.
   bool get isWaking => kind == ErrorKind.waking;
+
+  /// Worth retrying on its own: the server is waking or unreachable.
+  bool get retriesAutomatically =>
+      kind == ErrorKind.waking || kind == ErrorKind.offline;
   bool get needsSignIn => kind == ErrorKind.signedOut;
 }
 
@@ -23,11 +27,16 @@ final _statusCode = RegExp(r'\((\d{3})\)');
 final _technical = RegExp(
   r'Exception|Error:|TypeError|NoSuchMethod|FormatException|XMLHttpRequest|'
   r'SocketException|ClientException|Instance of|Failed to (load|fetch|update|'
-  r'create|send|delete)|is not a subtype|Null check|RangeError|\{|\[',
+  r'create|send|delete)|is not a subtype|Null check|RangeError|\{|\[|'
+  r'uri=|https?://|localhost|onrender|Load failed',
 );
 
 FriendlyError friendlyError(Object error) {
-  final text = error.toString().replaceAll('Exception: ', '').trim();
+  // Check the untouched text first: stripping "Exception: " would turn
+  // "ClientException: Load failed" into "ClientLoad failed".
+  final raw = error.toString();
+  final rawLower = raw.toLowerCase();
+  final text = raw.replaceAll('Exception: ', '').trim();
   final lower = text.toLowerCase();
 
   // Also recognise our own wording, in case an error was already translated.
@@ -41,19 +50,21 @@ FriendlyError friendlyError(Object error) {
       'This can take up to a minute after a quiet spell. We’ll keep trying.',
     );
   }
-  if (lower.contains('xmlhttprequest') ||
-      lower.contains('failed host lookup') ||
-      lower.contains('socketexception') ||
-      lower.contains('clientexception') ||
-      lower.contains('network') ||
-      lower.contains('connection refused') ||
-      lower.contains('connection closed') ||
-      lower.contains('can’t reach findfood')) {
+  // The request never got an answer: no internet, or the server is
+  // restarting (browsers report both the same way, e.g. Safari's "Load
+  // failed" and Chrome's "Failed to fetch").
+  const unreachable = [
+    'clientexception', 'xmlhttprequest', 'load failed', 'failed to fetch',
+    'networkerror', 'network error', 'socketexception', 'failed host lookup',
+    'connection refused', 'connection closed', 'connection reset',
+    'can’t reach findfood',
+  ];
+  if (unreachable.any(rawLower.contains)) {
     return const FriendlyError(
       ErrorKind.offline,
       Icons.wifi_off_rounded,
-      'You’re offline',
-      'We can’t reach FindFood right now. Check your internet connection and try again.',
+      'Can’t reach FindFood',
+      'Check your internet connection. We’ll keep trying in the meantime.',
     );
   }
 

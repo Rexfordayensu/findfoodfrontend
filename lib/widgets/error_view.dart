@@ -43,7 +43,7 @@ class _ErrorViewState extends State<ErrorView> {
 
   void _scheduleAutoRetry() {
     _autoRetry?.cancel();
-    if (_friendly.isWaking) {
+    if (_friendly.retriesAutomatically) {
       _autoRetry = Timer(ErrorView.autoRetryEvery, _retry);
     }
   }
@@ -118,9 +118,16 @@ class _ErrorViewState extends State<ErrorView> {
                     child: const Text('Sign in'),
                   ),
                 )
-              else if (friendly.isWaking)
+              else if (friendly.retriesAutomatically) ...[
                 Text(_retrying ? 'Checking…' : 'Retrying automatically',
-                    style: TextStyle(color: textSec, fontSize: 13))
+                    style: TextStyle(color: textSec, fontSize: 13)),
+                if (!friendly.isWaking)
+                  TextButton(
+                    key: const Key('error-retry'),
+                    onPressed: _retrying ? null : _retry,
+                    child: const Text('Try now'),
+                  ),
+              ]
               else
                 SizedBox(
                   width: double.infinity,

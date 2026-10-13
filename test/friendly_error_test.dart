@@ -33,6 +33,29 @@ void main() {
       }
     });
 
+    test('browser network failures never show the server address', () {
+      for (final raw in [
+        // Safari (the screenshot) and Chrome wording for an unanswered request.
+        'ClientException: Load failed, uri=https://findfooddelivery-backend.onrender.com/restaurants/3/menu',
+        'ClientException: Failed to fetch, uri=https://findfooddelivery-backend.onrender.com/orders',
+      ]) {
+        final friendly = friendlyError(Exception(raw));
+        expect(friendly.kind, ErrorKind.offline, reason: raw);
+        expect(friendly.retriesAutomatically, isTrue);
+        final shown = friendlyMessage(Exception(raw));
+        expect(shown, isNot(contains('onrender')), reason: raw);
+        expect(shown, isNot(contains('uri=')), reason: raw);
+        expect(shown, isNot(contains('Client')), reason: raw);
+        // Translating twice keeps the meaning.
+        expect(friendlyError(shown).kind, ErrorKind.offline);
+      }
+    });
+
+    test('unknown messages that mention addresses are hidden', () {
+      expect(friendlyMessage(Exception('Bad thing at https://example.com/x')),
+          'Please try again. If it keeps happening, contact support.');
+    });
+
     test('offline errors say so', () {
       expect(friendlyError(Exception('ClientException: XMLHttpRequest error.')).kind,
           ErrorKind.offline);
