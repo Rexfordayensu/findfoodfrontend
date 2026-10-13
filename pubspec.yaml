@@ -30,6 +30,9 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  # Used by tests to stand in for the chat WebSocket.
+  async: any
+  stream_channel: any
 
 flutter:
   uses-material-design: true

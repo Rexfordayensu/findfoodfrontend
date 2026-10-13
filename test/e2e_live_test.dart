@@ -4,11 +4,14 @@
 // Skipped unless run with:
 //   flutter test test/e2e_live_test.dart --dart-define=LIVE_E2E=true
 // against a backend listening on http://localhost:8000 (ApiService.baseUrl).
+
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
 import 'package:findfood_app/main.dart';
@@ -287,6 +290,80 @@ void main() {
     await waitFor(tester, find.byKey(const Key('settings-edit-profile')));
     await editProfileName(tester, 'Ade Mensah');
 
+    await finish(tester);
+  });
+
+  testWidgets('chat: messages are delivered live between customer and restaurant',
+      (tester) async {
+    // The restaurant signs in outside the app and listens on its own socket.
+    final ownerToken = await api(tester, () async {
+      final res = await http.post(Uri.parse('${ApiService.baseUrl}/login'),
+          body: {'username': 'owner@e2e-findfood.com', 'password': password});
+      return jsonDecode(res.body)['access_token'] as String;
+    });
+    final wsBase = ApiService.baseUrl.replaceFirst('http', 'ws');
+    final ownerSocket = (await api(tester, () => WebSocket.connect(
+        '$wsBase/ws/orders/$deliveredOrderId/chat?token=$ownerToken')));
+    final ownerInbox = <Map<String, dynamic>>[];
+    final sub = ownerSocket.listen(
+        (raw) => ownerInbox.add(jsonDecode(raw as String) as Map<String, dynamic>));
+
+    // The customer test changes this password; work with either.
+    final customerPassword = await api(tester, () async {
+      try {
+        await ApiService.login('customer@e2e-findfood.com', password);
+        return password;
+      } catch (_) {
+        return 'NewPassword456!';
+      }
+    });
+
+    // The customer opens the chat from order tracking in the app.
+    await startApp(tester);
+    await signIn(tester, 'customer@e2e-findfood.com', customerPassword);
+    await waitFor(tester, find.text('Orders'));
+    await tapAndSettle(tester, find.text('Orders').last);
+    await waitFor(tester, find.byKey(const Key('order-card-$deliveredOrderId')));
+    await tapAndSettle(tester, find.byKey(const Key('order-card-$deliveredOrderId')));
+    await waitFor(tester, find.byKey(const Key('tracking-open-chat')));
+    await tapAndSettle(tester, find.byKey(const Key('tracking-open-chat')));
+    await waitFor(tester, find.textContaining('· Live'));
+
+    // Restaurant -> customer: appears in the open chat without refreshing.
+    final fromKitchen = 'Your jollof is ready ${DateTime.now().millisecondsSinceEpoch}';
+    final sentAt = DateTime.now();
+    await api(tester, () => http.post(
+        Uri.parse('${ApiService.baseUrl}/orders/$deliveredOrderId/messages'),
+        headers: {
+          'Authorization': 'Bearer $ownerToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'message': fromKitchen})));
+    await waitFor(tester, find.text(fromKitchen), timeout: const Duration(seconds: 5));
+    // ignore: avoid_print
+    print('restaurant -> customer shown in app after '
+        '${DateTime.now().difference(sentAt).inMilliseconds} ms');
+    expect(find.text('Restaurant'), findsWidgets);
+
+    // Customer -> restaurant: typed in the app, received on the kitchen's socket.
+    const fromCustomer = 'Great, thank you!';
+    await tester.enterText(find.byKey(const Key('chat-input')), fromCustomer);
+    await tapAndSettle(tester, find.byKey(const Key('chat-send')));
+    await waitFor(tester, find.text(fromCustomer));
+    final end = DateTime.now().add(const Duration(seconds: 5));
+    while (!ownerInbox.any((m) => m['message'] == fromCustomer) &&
+        DateTime.now().isBefore(end)) {
+      await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+    }
+    final received = ownerInbox.where((m) => m['message'] == fromCustomer);
+    expect(received, hasLength(1), reason: 'restaurant socket receives it once');
+    expect(received.single['sender_role'], 'customer');
+    expect(find.text(fromCustomer), findsOneWidget, reason: 'shown once in the app');
+
+    await api(tester, () async {
+      await sub.cancel();
+      await ownerSocket.close();
+    });
     await finish(tester);
   });
 }

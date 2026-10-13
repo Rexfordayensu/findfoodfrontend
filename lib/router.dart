@@ -16,7 +16,6 @@ import 'screens/customer/order_tracking_screen.dart';
 import 'screens/customer/payment_return_screen.dart';
 import 'screens/customer/menu_detail_screen.dart';
 import 'screens/chat_screen.dart';
-import 'screens/customer/order_chat_screen.dart';
 import 'screens/rider/rider_dashboard.dart';
 import 'screens/restaurant/restaurant_pending_approval_screen.dart';
 import 'screens/restaurants/restaurant_dashboard.dart';
@@ -167,10 +166,10 @@ GoRouter createAppRouter(
         builder: (_, state) {
           final order = state.extra;
           if (order is Order) {
-            return OrderChatScreen(
+            return ChatScreen(
               orderId: order.id,
-              order: order,
-              otherPartyLabel: order.restaurantName ?? 'Restaurant',
+              otherPartyName: 'Customer & ${order.restaurantName ?? 'restaurant'}',
+              otherPartyRole: 'customer',
             );
           }
           return const _MissingRouteDataScreen();

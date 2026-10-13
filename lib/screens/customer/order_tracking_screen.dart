@@ -524,6 +524,28 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             const SizedBox(height: 24),
           ],
 
+          if (_order.status != 'awaiting_payment' && !_order.isCancelled) ...[
+            OutlinedButton.icon(
+              key: const Key('tracking-open-chat'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(50),
+                foregroundColor: AppColors.textPrimary(context),
+                side: BorderSide(color: AppColors.border(context)),
+              ),
+              icon: const Icon(Icons.chat_bubble_outline_rounded, size: 20),
+              label: Text(_order.riderId != null
+                  ? 'Message the restaurant & rider'
+                  : 'Message the restaurant'),
+              onPressed: () => context.push('/chat/${_order.id}', extra: {
+                'name': _order.riderId != null
+                    ? '${_order.restaurantName ?? 'Restaurant'} & rider'
+                    : (_order.restaurantName ?? 'Restaurant'),
+                'role': 'restaurant',
+              }),
+            ),
+            const SizedBox(height: 24),
+          ],
+
           // ── Order summary ─────────────────────────────────
           Divider(color: AppColors.border(context)),
           const SizedBox(height: 16),
