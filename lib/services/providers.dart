@@ -109,7 +109,7 @@ class AuthProvider extends ChangeNotifier {
       bool? isRestaurantApproved}) async {
     _token = token;
     _userId = userId;
-    _role = role;
+    _role = normalizeRole(role);
     _name = name;
     _email = email;
     _isLoggedIn = true;
@@ -230,7 +230,8 @@ class AuthProvider extends ChangeNotifier {
       final userId = user['user_id'] ?? user['id'];
       _token = token;
       _userId = userId is int ? userId : int.tryParse(userId?.toString() ?? '0');
-      _role = user['role']?.toString().toLowerCase();
+      final freshRole = user['role']?.toString();
+      if (freshRole != null) _role = normalizeRole(freshRole);
       _name = user['name']?.toString();
       _email = user['email']?.toString();
       _isEmailVerified = user['is_verified'] == true ||
@@ -256,7 +257,7 @@ class AuthProvider extends ChangeNotifier {
       final role = await _secureStorage.read(key: _roleKey);
       if (role == null || role.isEmpty) return;
       _token = token;
-      _role = role;
+      _role = normalizeRole(role);
       _userId = int.tryParse(await _secureStorage.read(key: _userIdKey) ?? '');
       _name = await _secureStorage.read(key: _nameKey);
       _email = await _secureStorage.read(key: _emailKey);
@@ -444,4 +445,12 @@ class OrderPollingProvider extends ChangeNotifier {
     _timer?.cancel();
     super.dispose();
   }
+}
+
+/// "customer", "rider", "restaurant" or "admin". Google sign-in used to send
+/// "UserRole.CUSTOMER", which made the app treat the user as having no role.
+String normalizeRole(String role) {
+  final plain = role.trim().toLowerCase();
+  final dot = plain.lastIndexOf('.');
+  return dot == -1 ? plain : plain.substring(dot + 1);
 }

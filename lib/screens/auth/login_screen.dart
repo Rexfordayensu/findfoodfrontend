@@ -684,6 +684,8 @@ class _LoginScreenState extends State<LoginScreen>
 // ─── SOCIAL BUTTON ────────────────────────────────────────────────────────────
 /// "Continue with Google" in Google's own button style: the official G,
 /// a neutral surface and a thin outline (see Google's sign-in branding).
+/// "Continue with Google": the official G on a soft, raised white card
+/// (a deep charcoal one in dark mode), matching the app's rounded inputs.
 class _GoogleSignInButton extends StatelessWidget {
   final bool loading;
   final VoidCallback onPressed;
@@ -693,45 +695,79 @@ class _GoogleSignInButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final background = dark ? const Color(0xFF131314) : Colors.white;
-    final outline = dark ? const Color(0xFF8E918F) : const Color(0xFF747775);
-    final text = dark ? const Color(0xFFE3E3E3) : const Color(0xFF1F1F1F);
+    final background = dark ? const Color(0xFF1E1F22) : Colors.white;
+    final outline = dark ? const Color(0x33FFFFFF) : const Color(0xFFDADCE0);
+    final text = dark ? const Color(0xFFE8EAED) : const Color(0xFF1F1F1F);
 
     return Semantics(
       button: true,
       label: 'Continue with Google',
       excludeSemantics: true,
-      child: SizedBox(
-        width: double.infinity,
-        height: 52,
-        child: Material(
-          key: const Key('google-sign-in'),
-          color: background,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-            side: BorderSide(color: outline),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: loading ? null : onPressed,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (loading)
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: text),
-                  )
-                else
-                  Image.asset('assets/brand/google_g.png', width: 20, height: 20),
-                const SizedBox(width: 12),
-                Text(
-                  loading ? 'Opening Google…' : 'Continue with Google',
-                  style: TextStyle(
-                      color: text, fontSize: 15, fontWeight: FontWeight.w600),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: dark ? 0.35 : 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: Material(
+            key: const Key('google-sign-in'),
+            color: background,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: outline),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: loading ? null : onPressed,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Row(
+                  children: [
+                    // The G sits in its own white circle so it stays crisp on
+                    // the dark button too.
+                    Container(
+                      width: 44,
+                      height: 44,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: dark ? null : Border.all(color: outline),
+                      ),
+                      child: loading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Color(0xFF4285F4)),
+                            )
+                          : Image.asset('assets/brand/google_g.png',
+                              width: 22, height: 22),
+                    ),
+                    Expanded(
+                      child: Text(
+                        loading ? 'Opening Google…' : 'Continue with Google',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: text,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.1),
+                      ),
+                    ),
+                    // Balances the logo so the label sits in the true centre.
+                    const SizedBox(width: 44),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

@@ -92,6 +92,7 @@ class GoogleOAuthResult {
     required this.userId,
     required this.email,
     required this.name,
+    this.isRestaurantApproved,
   });
 
   final String token;
@@ -99,16 +100,18 @@ class GoogleOAuthResult {
   final int userId;
   final String? email;
   final String? name;
+  final bool? isRestaurantApproved;
 
   factory GoogleOAuthResult.fromJson(Map<String, dynamic> payload) {
     return GoogleOAuthResult(
       token: payload['access_token']?.toString() ?? payload['token']?.toString() ?? '',
-      role: payload['role']?.toString() ?? 'customer',
+      role: normalizeRole(payload['role']?.toString() ?? 'customer'),
       userId: payload['user_id'] is int
           ? payload['user_id'] as int
           : int.tryParse(payload['user_id']?.toString() ?? '0') ?? 0,
       email: payload['email']?.toString(),
       name: payload['name']?.toString(),
+      isRestaurantApproved: payload['is_approved'] as bool?,
     );
   }
 
@@ -353,6 +356,9 @@ class GoogleOAuthFlowService {
       role: result.role,
       email: result.email,
       name: result.name,
+      // Google only signs in verified email addresses.
+      isEmailVerified: true,
+      isRestaurantApproved: result.isRestaurantApproved,
     );
 
     await clearPendingNavigation();
