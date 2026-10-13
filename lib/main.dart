@@ -76,38 +76,10 @@ class _FindFoodAppState extends State<FindFoodApp> {
         // Deep links are optional; a platform without the plugin must still start.
         debugPrint('Deep link handling unavailable: $error');
       }
-      await _handleDeepLink();
+      // Sign-in links are handled only on /auth/callback (above). A generic
+      // "?token=" check used to run on every page and signed people in with
+      // their password-reset token, throwing them off the reset page.
     });
-  }
-
-  Future<void> _handleDeepLink() async {
-    final uri = Uri.base;
-    final token =
-        uri.queryParameters['token'] ?? uri.queryParameters['access_token'];
-    if (token == null || token.isEmpty) return;
-
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final role =
-        (uri.queryParameters['role'] ?? auth.role ?? 'customer').toLowerCase();
-    final userIdText =
-        uri.queryParameters['user_id'] ?? uri.queryParameters['userId'];
-    final userId = userIdText == null ? null : int.tryParse(userIdText);
-    final email = uri.queryParameters['email'];
-
-    await auth.login(
-      token: token,
-      userId: userId ?? auth.userId ?? 0,
-      role: role,
-      email: email ?? auth.email,
-    );
-
-    final route = switch (role) {
-      'admin' => '/admin',
-      'restaurant' => '/restaurant/orders',
-      'rider' => '/rider',
-      _ => '/',
-    };
-    _router.go(route);
   }
 
   @override

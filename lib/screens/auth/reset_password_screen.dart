@@ -105,7 +105,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: textPri, size: 18),
-          onPressed: () => Navigator.pop(context),
+          // Opened from an email there is nothing to go back to.
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go('/login'),
         ),
         title: Text(
           'Reset password',
