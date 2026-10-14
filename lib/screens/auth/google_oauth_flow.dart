@@ -58,6 +58,16 @@ class GoogleOAuthConfig {
     return '$normalizedBackendBaseUrl/auth/google/login?${queryParts.join('&')}';
   }
 
+  /// Where sign-in starts. On the deployed site it goes through the site's
+  /// own /api/auth/google (Vercel forwards it to the API), so Google's page
+  /// names FindFood's address instead of the API host.
+  static String loginBaseUrl() {
+    if (kIsWeb && Uri.base.host.endsWith('.vercel.app')) {
+      return '${Uri.base.origin}/api';
+    }
+    return defaultBackendBaseUrl;
+  }
+
   static String resolveRedirectUri() {
     if (kIsWeb) {
       final origin = Uri.base.origin;
@@ -169,7 +179,7 @@ class GoogleOAuthFlowService {
 
     final redirectUri = GoogleOAuthConfig.resolveRedirectUri();
     final loginUrl = GoogleOAuthConfig.buildLoginUrl(
-      backendBaseUrl: GoogleOAuthConfig.defaultBackendBaseUrl,
+      backendBaseUrl: GoogleOAuthConfig.loginBaseUrl(),
       redirectUri: redirectUri,
       returnTo: pendingNavigation.route,
     );
