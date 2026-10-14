@@ -407,6 +407,10 @@ void main() {
       cart: menuCart(), size: const Size(400, 1900)));
   testWidgets('feed tall dark', (t) => shoot(t, 'feed_tall_dark',
       role: 'customer', name: 'Rexford', dark: true, size: const Size(400, 1700)));
+  testWidgets('search mode light', (t) => shoot(t, 'search_mode_light',
+      role: 'customer', name: 'Rexford', dark: false, tab: 'Search'));
+  testWidgets('feed basket dark', (t) => shoot(t, 'feed_basket_dark',
+      role: 'customer', name: 'Rexford', dark: true, cart: menuCart()));
   testWidgets('rider code dark', (t) => shoot(t, 'rider_code_dark',
       role: 'rider', name: 'Kofi', dark: true, tab: 'My Deliveries'));
   for (final dark in [false, true]) {

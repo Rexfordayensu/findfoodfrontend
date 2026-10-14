@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -114,6 +115,34 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
     'Seafood'
   ];
   final _searchCtrl = TextEditingController();
+  final _searchFocus = FocusNode();
+  // Bumped each time search opens, to replay the search bar's bounce.
+  int _searchPulse = 0;
+
+  /// Search mode: the greeting slides away and the search bar takes the top.
+  bool get _searching => _navIndex == 1;
+
+  void _openSearch() {
+    if (!_searching) {
+      setState(() {
+        _navIndex = 1;
+        _searchPulse++;
+      });
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _searchFocus.requestFocus();
+    });
+  }
+
+  void _closeSearch() {
+    _searchFocus.unfocus();
+    _searchCtrl.clear();
+    setState(() {
+      _navIndex = 0;
+      _search = '';
+      _applyFilter();
+    });
+  }
 
   // Stagger animation controller
   late AnimationController _staggerCtrl;
@@ -122,6 +151,12 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
   void initState() {
     super.initState();
     _navIndex = widget.initialNavIndex;
+    if (_searching) {
+      _searchPulse = 1;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _searchFocus.requestFocus();
+      });
+    }
     _staggerCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
@@ -134,6 +169,7 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
   void dispose() {
     _staggerCtrl.dispose();
     _searchCtrl.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -265,11 +301,13 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
     void onNavTap(int i) {
       switch (i) {
         case 0:
-          context.go('/');
-          break;
+          if (_searching) _closeSearch();
+          if (GoRouterState.of(context).uri.path != '/') context.go('/');
+          return;
         case 1:
-          context.go('/search');
-          break;
+          // Search opens right here: the bar at the top takes over.
+          _openSearch();
+          return;
         case 2:
           context.go('/cart');
           break;
@@ -303,6 +341,11 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
               surf: surf,
               border: border,
               searchCtrl: _searchCtrl,
+              searchFocus: _searchFocus,
+              searching: _searching,
+              searchPulse: _searchPulse,
+              onSearchFocused: _openSearch,
+              onCancelSearch: _closeSearch,
               recentSearches: _recentSearches,
               onSearch: (v) {
                 setState(() {
@@ -356,6 +399,7 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
                                 itemBuilder: (_, i) {
                                   if (i == 0) {
                                     final showDeals = _deals.isNotEmpty &&
+                                        !_searching &&
                                         _search.isEmpty &&
                                         _filter == 'All';
                                     return Padding(
@@ -530,10 +574,23 @@ class _Header extends StatelessWidget {
   final ThemeProvider themeP;
   final Color textPri, textSec, textHint, surf, border;
   final TextEditingController searchCtrl;
+  final FocusNode searchFocus;
+  final bool searching;
+  final int searchPulse;
+  final VoidCallback onSearchFocused;
+  final VoidCallback onCancelSearch;
   final List<String> recentSearches;
   final ValueChanged<String> onSearch;
 
+  /// Shown in search mode before anything has been searched.
+  static const _suggestions = ['Jollof', 'Waakye', 'Fried rice', 'Kelewele', 'Pizza', 'Burger'];
+
   const _Header({
+    required this.searchFocus,
+    required this.searching,
+    required this.searchPulse,
+    required this.onSearchFocused,
+    required this.onCancelSearch,
     required this.auth,
     required this.cart,
     required this.themeP,
@@ -554,6 +611,41 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
       child: Column(
         children: [
+          // In search mode the top row and greeting slide away and the
+          // search bar rises to the top.
+          AnimatedSize(
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            layoutBuilder: (current, previous) => Stack(
+              alignment: Alignment.topCenter,
+              children: [...previous, if (current != null) current],
+            ),
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween(begin: const Offset(0, -0.15), end: Offset.zero)
+                    .animate(animation),
+                child: child,
+              ),
+            ),
+            child: searching
+                ? Padding(
+                    key: const ValueKey('search-header'),
+              padding: const EdgeInsets.only(top: 4, bottom: 12),
+              child: Row(children: [
+                Text('Search',
+                    key: const Key('search-title'),
+                    style: TextStyle(
+                        color: textPri,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.6)),
+              ]),
+            )
+                : Column(key: const ValueKey('feed-header'), children: [
           Row(
             children: [
               Container(
@@ -633,15 +725,75 @@ class _Header extends StatelessWidget {
               padding: const EdgeInsets.only(top: 12, bottom: 0),
             ),
           const SizedBox(height: 10),
-          // Animated search bar
-          _AnimatedSearchBar(
-            controller: searchCtrl,
-            textPri: textPri,
-            textHint: textHint,
-            surf: surf,
-            border: border,
-            onChanged: onSearch,
+            ]),
+            ),
           ),
+          // Animated search bar, with Cancel in search mode.
+          Row(children: [
+            Expanded(
+              child: TweenAnimationBuilder<double>(
+                key: ValueKey(searchPulse),
+                tween: Tween(begin: 0, end: 1),
+                duration: Duration(milliseconds: searchPulse == 0 ? 1 : 520),
+                curve: Curves.easeOut,
+                builder: (_, t, child) => Transform.scale(
+                  // A small bounce as the bar is "pulled" into focus.
+                  scale: 1 + 0.035 * math.sin(math.pi * t),
+                  child: child,
+                ),
+                child: _AnimatedSearchBar(
+                  controller: searchCtrl,
+                  focusNode: searchFocus,
+                  textPri: textPri,
+                  textHint: textHint,
+                  surf: surf,
+                  border: border,
+                  onChanged: onSearch,
+                  onFocused: onSearchFocused,
+                ),
+              ),
+            ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 240),
+              curve: Curves.easeOutCubic,
+              child: searching
+                  ? Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: TextButton(
+                        key: const Key('search-cancel'),
+                        onPressed: onCancelSearch,
+                        child: const Text('Cancel',
+                            style: TextStyle(fontWeight: FontWeight.w700)),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ]),
+          if (searching && recentSearches.isEmpty && searchCtrl.text.isEmpty) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 30,
+              child: ListView.separated(
+                key: const Key('search-suggestions'),
+                scrollDirection: Axis.horizontal,
+                itemCount: _suggestions.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 6),
+                itemBuilder: (_, i) => ActionChip(
+                  visualDensity: VisualDensity.compact,
+                  avatar: Icon(Icons.trending_up_rounded, size: 14, color: textSec),
+                  label: Text(_suggestions[i],
+                      style: TextStyle(color: textSec, fontSize: 12)),
+                  backgroundColor: surf.withValues(alpha: 0.62),
+                  side: BorderSide(color: border.withValues(alpha: 0.7)),
+                  shape: const StadiumBorder(),
+                  onPressed: () {
+                    searchCtrl.text = _suggestions[i];
+                    onSearch(_suggestions[i]);
+                  },
+                ),
+              ),
+            ),
+          ],
           if (recentSearches.isNotEmpty) ...[
             const SizedBox(height: 8),
             SizedBox(
@@ -679,11 +831,15 @@ class _Header extends StatelessWidget {
 // ─── ANIMATED SEARCH BAR ─────────────────────────────────────────────────────
 class _AnimatedSearchBar extends StatefulWidget {
   final TextEditingController controller;
+  final FocusNode focusNode;
   final Color textPri, textHint, surf, border;
   final ValueChanged<String> onChanged;
+  final VoidCallback onFocused;
 
   const _AnimatedSearchBar({
     required this.controller,
+    required this.focusNode,
+    required this.onFocused,
     required this.textPri,
     required this.textHint,
     required this.surf,
@@ -737,9 +893,15 @@ class _AnimatedSearchBarState extends State<_AnimatedSearchBar> {
           const SizedBox(width: 8),
           Expanded(
             child: Focus(
-              onFocusChange: (f) => setState(() => _focused = f),
+              onFocusChange: (f) {
+                setState(() => _focused = f);
+                if (f) widget.onFocused();
+              },
               child: TextField(
+                key: const Key('feed-search'),
                 controller: widget.controller,
+                focusNode: widget.focusNode,
+                textInputAction: TextInputAction.search,
                 style: TextStyle(color: widget.textPri, fontSize: 14),
                 decoration: InputDecoration(
                   filled: false,

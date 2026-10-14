@@ -312,45 +312,74 @@ class _CenterAction extends StatelessWidget {
   final int badge;
   final VoidCallback? onTap;
 
-  /// The yellow from the FindFood logo.
-  static const _brandYellow = Color(0xFFFED700);
-
   const _CenterAction({required this.icon, this.tooltip, this.badge = 0, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    Widget button = Container(
-      width: 50,
-      height: 50,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: _brandYellow,
+    // A yellow pill like the app's other buttons: the basket icon, and the
+    // number of items inside it once there are any.
+    final filled = badge > 0;
+    final label = tooltip == null
+        ? null
+        : filled
+            ? '$tooltip, $badge item${badge == 1 ? '' : 's'}'
+            : tooltip;
+    final button = AnimatedContainer(
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutBack,
+      height: 44,
+      constraints: BoxConstraints(minWidth: filled ? 72 : 56),
+      decoration: BoxDecoration(
+        gradient: AppTheme.brandGradient,
+        borderRadius: BorderRadius.circular(22),
         boxShadow: [
-          BoxShadow(color: Color(0x33000000), blurRadius: 8, offset: Offset(0, 3)),
+          BoxShadow(
+            color: AppTheme.accentDeep.withValues(alpha: 0.35),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
         ],
       ),
       child: Material(
         type: MaterialType.transparency,
-        shape: const CircleBorder(),
+        borderRadius: BorderRadius.circular(22),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
+          key: const Key('nav-basket'),
           onTap: onTap,
-          child: Icon(icon, color: const Color(0xFF111111), size: 23),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: const Color(0xFF111111), size: 22),
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  child: filled
+                      ? Padding(
+                          padding: const EdgeInsets.only(left: 6),
+                          child: Text(badge > 99 ? '99+' : '$badge',
+                              key: const Key('nav-basket-count'),
+                              style: const TextStyle(
+                                  color: Color(0xFF111111),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800)),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
-    if (badge > 0) {
-      button = Badge(
-        label: Text('$badge'),
-        backgroundColor: AppTheme.danger,
-        offset: const Offset(-2, 2),
-        child: button,
-      );
-    }
     return Semantics(
       button: true,
-      label: tooltip,
-      child: tooltip == null ? button : Tooltip(message: tooltip!, child: button),
+      label: label,
+      excludeSemantics: true,
+      child: label == null ? button : Tooltip(message: label, child: button),
     );
   }
 }

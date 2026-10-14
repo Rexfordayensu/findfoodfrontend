@@ -23,8 +23,8 @@ class CustomerNavBar extends StatelessWidget {
     return GlassNavBar(
       currentIndex: currentIndex,
       onTap: onTap,
-      centerIcon: Icons.shopping_bag_rounded,
-      centerTooltip: 'Cart',
+      centerIcon: Icons.shopping_basket_rounded,
+      centerTooltip: 'Basket',
       centerBadge: context.watch<CartProvider>().itemCount,
       onCenterTap: onCartTap,
       items: const [
