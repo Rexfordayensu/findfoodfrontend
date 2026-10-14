@@ -700,7 +700,7 @@ class _MenuItemCard extends StatelessWidget {
           ),
           SizedBox(
             width: 112,
-            height: 112 + 14,
+            height: 112 + _AddControl.height / 2,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
@@ -762,25 +762,37 @@ class _MenuPhoto extends StatelessWidget {
           size: 28, color: AppColors.textHint(context)),
     );
     if (url == null) return placeholder;
-    return Image.network(
-      url!,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => placeholder,
-      frameBuilder: (_, child, frame, sync) => AnimatedSwitcher(
-        duration: const Duration(milliseconds: 200),
-        child: sync || frame != null ? child : placeholder,
+    // Fill the square and crop, whatever shape the restaurant's photo is.
+    return SizedBox.expand(
+      child: Image.network(
+        url!,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (_, __, ___) => placeholder,
+        frameBuilder: (_, child, frame, sync) => AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          layoutBuilder: (current, previous) => Stack(
+            fit: StackFit.expand,
+            children: [...previous, if (current != null) current],
+          ),
+          child: sync || frame != null ? child : placeholder,
+        ),
       ),
     );
   }
 }
 
-/// A yellow "+ Add" button that becomes a "− 1 +" pill once the dish is in
-/// the basket.
+/// One yellow pill, the same size either way: "+ Add", then "− 1 +" once
+/// the dish is in the basket.
 class _AddControl extends StatelessWidget {
   final int quantity;
   final VoidCallback onAdd;
   final VoidCallback onRemove;
   final String itemName;
+
+  static const width = 100.0;
+  static const height = 38.0;
 
   const _AddControl({
     required this.quantity,
@@ -791,78 +803,69 @@ class _AddControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final fg = AppColors.textPrimary(context);
-    Widget iconButton(IconData icon, String tooltip, VoidCallback onTap) => Tooltip(
-          message: tooltip,
+    Widget tapArea(IconData icon, String label, VoidCallback onTap, {Key? key}) => Tooltip(
+          message: label,
           child: InkResponse(
+            key: key,
             onTap: onTap,
-            radius: 20,
+            radius: 18,
             child: SizedBox(
-              width: 36,
-              height: 36,
-              child: Icon(icon, size: 20, color: fg),
+              width: 34,
+              height: height,
+              child: Icon(icon, size: 19, color: Colors.black),
             ),
           ),
         );
 
-    if (quantity == 0) {
-      return Material(
-        color: AppTheme.accent,
-        shape: const StadiumBorder(),
-        elevation: 3,
-        shadowColor: AppTheme.accent.withValues(alpha: 0.5),
-        child: InkWell(
-          key: Key('menu-add-$itemName'),
-          customBorder: const StadiumBorder(),
-          onTap: onAdd,
-          child: Semantics(
-            button: true,
-            label: 'Add $itemName',
-            excludeSemantics: true,
-            child: const Padding(
-              padding: EdgeInsets.fromLTRB(12, 8, 16, 8),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.add_rounded, size: 18, color: Colors.black),
-                SizedBox(width: 4),
-                Text('Add',
-                    style: TextStyle(
-                        color: Colors.black, fontSize: 14, fontWeight: FontWeight.w800)),
-              ]),
-            ),
-          ),
-        ),
-      );
-    }
     return Material(
-      color: dark ? const Color(0xFF2B2F3A) : Colors.white,
-      elevation: 3,
-      shape: const StadiumBorder(side: BorderSide(color: AppTheme.accent, width: 1.5)),
-      shadowColor: Colors.black26,
-      child: AnimatedSize(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        child: Padding(
-          padding: const EdgeInsets.all(2),
-          child: Row(
-                  mainAxisSize: MainAxisSize.min,
+      color: AppTheme.accent,
+      shape: StadiumBorder(
+        side: BorderSide(color: AppColors.card(context), width: 2),
+      ),
+      elevation: 4,
+      shadowColor: Colors.black.withValues(alpha: 0.35),
+      clipBehavior: Clip.antiAlias,
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          transitionBuilder: (child, animation) =>
+              FadeTransition(opacity: animation, child: child),
+          child: quantity == 0
+              ? InkWell(
+                  key: Key('menu-add-$itemName'),
+                  onTap: onAdd,
+                  child: Semantics(
+                    button: true,
+                    label: 'Add $itemName',
+                    excludeSemantics: true,
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_rounded, size: 19, color: Colors.black),
+                        SizedBox(width: 4),
+                        Text('Add',
+                            style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800)),
+                      ],
+                    ),
+                  ),
+                )
+              : Row(
+                  key: const ValueKey('stepper'),
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    iconButton(
-                        quantity == 1
-                            ? Icons.delete_outline_rounded
-                            : Icons.remove_rounded,
+                    tapArea(
+                        quantity == 1 ? Icons.delete_outline_rounded : Icons.remove_rounded,
                         quantity == 1 ? 'Remove $itemName' : 'One less',
                         onRemove),
-                    SizedBox(
-                      width: 20,
-                      child: Text('$quantity',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: fg,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700)),
-                    ),
-                    iconButton(Icons.add_rounded, 'One more', onAdd),
+                    Text('$quantity',
+                        style: const TextStyle(
+                            color: Colors.black, fontSize: 15, fontWeight: FontWeight.w800)),
+                    tapArea(Icons.add_rounded, 'One more', onAdd),
                   ],
                 ),
         ),
