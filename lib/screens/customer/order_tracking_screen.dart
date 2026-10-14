@@ -10,6 +10,7 @@ import '../../services/api_service.dart';
 import '../../services/providers.dart';
 import '../../services/order_payment.dart';
 import '../../widgets/handoff_code.dart';
+import '../../widgets/order_issues.dart';
 import '../../widgets/rating_sheet.dart';
 import '../../utils/friendly_error.dart';
 
@@ -24,6 +25,7 @@ class OrderTrackingScreen extends StatefulWidget {
 class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   late Order _order;
   Timer? _pollTimer;
+  String? _issueNote;
   bool _busy = false;
 
   List<Map<String, Object>> get _steps => _order.fulfillmentMethod == 'pickup'
@@ -85,12 +87,33 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     super.initState();
     _order = widget.order;
     _startPolling();
+    _loadIssueNote();
   }
 
   @override
   void dispose() {
     _pollTimer?.cancel();
     super.dispose();
+  }
+
+  /// The admin's note on a resolved problem report, if any.
+  Future<void> _loadIssueNote() async {
+    if (_order.issueStatus == null) return;
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
+    try {
+      final reports = await ApiService.getOrderIssues(token, _order.id);
+      if (mounted && reports.isNotEmpty) {
+        setState(() => _issueNote = reports.first['resolution_note'] as String?);
+      }
+    } catch (_) {
+      // The status card still shows without the note.
+    }
+  }
+
+  Future<void> _reportProblem() async {
+    if (!await showReportProblemSheet(context, _order) || !mounted) return;
+    setState(() => _order = _order.copyWith(issueStatus: 'open'));
   }
 
   // ── Poll backend every 4s for live status updates ──────────────────────────
@@ -403,6 +426,25 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 ]),
               ),
             ],
+          ],
+          // ── Problem report ──────────────────────────────
+          if (_order.issueStatus != null) ...[
+            const SizedBox(height: 12),
+            IssueStatusCard(status: _order.issueStatus!, note: _issueNote),
+          ] else if (reportableReasons(_order, DateTime.now()).isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                key: const Key('tracking-report-problem'),
+                onPressed: _reportProblem,
+                style: TextButton.styleFrom(foregroundColor: AppTheme.danger),
+                icon: const Icon(Icons.report_gmailerrorred_rounded, size: 20),
+                label: Text(_order.isCompleted
+                    ? 'Something wrong with your order? Report a problem'
+                    : 'Order not arrived? Report it'),
+              ),
+            ),
           ],
           const SizedBox(height: 28),
 

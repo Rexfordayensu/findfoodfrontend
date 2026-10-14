@@ -137,6 +137,9 @@ class Order {
   /// When the restaurant handed the food to the rider.
   final DateTime? collectedAt;
 
+  /// Latest problem report: 'open', 'refunded' or 'dismissed' (null: none).
+  final String? issueStatus;
+
   /// The customer's code: shown only to the customer, who gives it to the
   /// rider (or the restaurant counter for pickup orders).
   final String? deliveryCode;
@@ -168,6 +171,7 @@ class Order {
     this.items = const [],
     this.riderName,
     this.collectedAt,
+    this.issueStatus,
     this.deliveryCode,
     this.pickupCode,
   });
@@ -237,6 +241,7 @@ class Order {
         restaurantBannerUrl: json['restaurant_banner_url'],
         riderName: json['rider_name'],
         collectedAt: _parseDate(json['collected_at']),
+        issueStatus: json['issue_status'],
         deliveryCode: json['delivery_code'],
         pickupCode: json['pickup_code'],
         items: [
@@ -264,6 +269,7 @@ class Order {
     double? deliveryLongitude,
     DateTime? scheduledFor,
     bool? isRated,
+    String? issueStatus,
   }) {
     return Order(
       id: id ?? this.id,
@@ -288,6 +294,7 @@ class Order {
       items: items,
       riderName: riderName,
       collectedAt: collectedAt,
+      issueStatus: issueStatus ?? this.issueStatus,
       deliveryCode: deliveryCode,
       pickupCode: pickupCode,
     );

@@ -28,7 +28,11 @@ class PrimaryButton extends StatelessWidget {
                     Icon(icon, size: 20, color: Colors.black),
                     const SizedBox(width: 8),
                   ],
-                  Text(label),
+                  // Long labels shorten instead of overflowing on small phones.
+                  Flexible(
+                    child: Text(label,
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
                 ],
               ),
       ),

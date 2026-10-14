@@ -969,6 +969,68 @@ class ApiService {
     }
   }
 
+  // ── PROBLEM REPORTS ─────────────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> reportOrderIssue({
+    required String token,
+    required int orderId,
+    required String reason,
+    String? details,
+  }) async {
+    final response = await _http.post(
+      Uri.parse('$baseUrl/orders/$orderId/issues'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+      body: jsonEncode({
+        'reason': reason,
+        if (details != null && details.isNotEmpty) 'details': details,
+      }),
+    );
+    if (response.statusCode == 201) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not send your report'));
+  }
+
+  static Future<List<Map<String, dynamic>>> getOrderIssues(
+      String token, int orderId) async {
+    final response = await _http.get(
+      Uri.parse('$baseUrl/orders/$orderId/issues'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(_decodeList(response));
+    }
+    throw Exception(_errorDetail(response, 'Could not load your report'));
+  }
+
+  static Future<List<Map<String, dynamic>>> getAdminIssues(String token,
+      {String status = 'open'}) async {
+    final response = await _http.get(
+      Uri.parse('$baseUrl/admin/issues?status=$status'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(_decodeList(response));
+    }
+    throw Exception(_errorDetail(response, 'Could not load problem reports'));
+  }
+
+  static Future<Map<String, dynamic>> resolveIssue({
+    required String token,
+    required int issueId,
+    required String action, // 'refund' or 'dismiss'
+    String? note,
+  }) async {
+    final response = await _http.post(
+      Uri.parse('$baseUrl/admin/issues/$issueId/resolve'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+      body: jsonEncode({
+        'action': action,
+        if (note != null && note.isNotEmpty) 'note': note,
+      }),
+    );
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not resolve the report'));
+  }
+
   /// Public reviews of a restaurant, newest first.
   static Future<List<Review>> getRestaurantReviews(int restaurantId) async {
     final response =

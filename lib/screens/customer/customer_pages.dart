@@ -452,6 +452,16 @@ class _OrderRow extends StatelessWidget {
                 ),
                 if (order.isRated)
                   const TextSpan(text: ' · You rated this'),
+                if (order.issueStatus == 'open')
+                  const TextSpan(
+                      text: ' · Problem reported',
+                      style: TextStyle(
+                          color: AppTheme.accentDeep, fontWeight: FontWeight.w600)),
+                if (order.issueStatus == 'refunded')
+                  const TextSpan(
+                      text: ' · Refunded',
+                      style: TextStyle(
+                          color: AppTheme.success, fontWeight: FontWeight.w600)),
               ]),
               style: TextStyle(color: textSec, fontSize: 13),
             ),

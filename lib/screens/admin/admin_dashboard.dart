@@ -12,6 +12,7 @@ import '../../services/providers.dart';
 import '../../services/api_service.dart';
 import '../../models/models.dart';
 import '../../utils/friendly_error.dart';
+import '../../widgets/order_issues.dart';
 
 int getPendingApprovalsCount(List<Map<String, dynamic>> restaurants) =>
     restaurants.length;
@@ -35,6 +36,7 @@ class _AdminDashboardState extends State<AdminDashboard>
     'refund': Icons.report_problem_outlined,
     'orders': Icons.receipt_long_outlined,
     'overdue': Icons.timer_off_outlined,
+    'issues': Icons.report_gmailerrorred_rounded,
     'releases': Icons.undo_rounded,
   };
 
@@ -65,7 +67,7 @@ class _AdminDashboardState extends State<AdminDashboard>
       final items = await ApiService.getAdminNotifications(token);
       if (!mounted) return;
       final count = items
-          .where((n) => const {'approval', 'refund', 'overdue', 'releases'}
+          .where((n) => const {'approval', 'refund', 'overdue', 'releases', 'issues'}
               .contains(n['kind']))
           .length;
       if (count != _attentionCount) setState(() => _attentionCount = count);
@@ -874,6 +876,7 @@ class _OverviewPageState extends State<_OverviewPage>
                 );
               }),
             const SizedBox(height: 30),
+            const AdminIssuesPanel(),
             Text('Quick actions',
                 style: TextStyle(
                     color: textPri,
@@ -965,6 +968,8 @@ class _OverviewPageState extends State<_OverviewPage>
     'promotion': (Icons.local_offer_outlined, AppTheme.accent),
     'collected': (Icons.delivery_dining_outlined, Color(0xFF60A5FA)),
     'release': (Icons.undo_rounded, AppTheme.warning),
+    'issue': (Icons.report_gmailerrorred_rounded, AppTheme.danger),
+    'issue_resolved': (Icons.task_alt_rounded, AppTheme.success),
   };
 
   Widget _activityPanel(BuildContext context) {
