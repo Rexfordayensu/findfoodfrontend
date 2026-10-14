@@ -84,6 +84,15 @@
       background: #FED700;
       animation: slide 1.1s ease-in-out infinite;
     }
+    #splash-problem { text-align: center; margin-top: 4px; max-width: 280px; padding: 0 16px; }
+    #splash-problem .problem-title { color: var(--text); font-size: 16px; font-weight: 800; }
+    #splash-problem .problem-detail { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    #splash-problem button {
+      margin-top: 14px; border: 0; border-radius: 999px; padding: 11px 22px;
+      background: #FED700; color: #111; font: inherit; font-size: 14px; font-weight: 800;
+      cursor: pointer;
+    }
+    #splash.stuck .bar { display: none; }
     @keyframes slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
     @keyframes pop { 0% { transform: scale(.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
     @media (prefers-reduced-motion: reduce) {
@@ -100,31 +109,98 @@
   </div>
 
   <script>
-    // Crashes before the app has drawn anything (e.g. main.dart.js failed to
-    // load) can't be reported by the app itself; report them from here.
+    // If the app's code fails to download (a mobile-network hiccup, the tab
+    // put in the background), retry once on our own; if that fails too, say
+    // so on the splash with a Try again button instead of loading forever.
+    // Only a failure that survives the retry is reported to admins, with the
+    // connection details; offline phones and pages being closed are ignored.
     (function () {
-      var drawn = false, sent = 0;
-      window.addEventListener('flutter-first-frame', function () { drawn = true; });
-      window.addEventListener('error', function (event) {
-        if (drawn || sent >= 3) return;
-        sent++;
-        var target = event.target && event.target !== window ? event.target : null;
-        var message = target
-          ? 'Could not load ' + (target.src || target.href || target.tagName)
-          : (event.message || 'Unknown error');
+      var drawn = false, leaving = false, handled = false;
+      var RETRY_KEY = 'findfood-load-retry';
+      window.addEventListener('flutter-first-frame', function () {
+        drawn = true;
+        try { sessionStorage.removeItem(RETRY_KEY); } catch (e) {}
+      });
+      window.addEventListener('pagehide', function () { leaving = true; });
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') leaving = true;
+      });
+
+      function retries() {
+        try { return Number(sessionStorage.getItem(RETRY_KEY) || 0); } catch (e) { return 1; }
+      }
+
+      function showProblem(title, detail) {
+        var splash = document.getElementById('splash');
+        if (!splash || document.getElementById('splash-problem')) return;
+        var box = document.createElement('div');
+        box.id = 'splash-problem';
+        box.innerHTML = '<div class="problem-title"></div><div class="problem-detail"></div>' +
+          '<button type="button">Try again</button>';
+        box.querySelector('.problem-title').textContent = title;
+        box.querySelector('.problem-detail').textContent = detail;
+        box.querySelector('button').addEventListener('click', function () {
+          try { sessionStorage.removeItem(RETRY_KEY); } catch (e) {}
+          location.reload();
+        });
+        splash.appendChild(box);
+        splash.classList.add('stuck');
+      }
+
+      function report(message, extra) {
         try {
+          var connection = navigator.connection || {};
           fetch('https://findfooddelivery-backend.onrender.com/client-errors', {
             method: 'POST', keepalive: true,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               error_type: 'LoadError',
               message: String(message).slice(0, 1000),
-              stack: event.filename ? event.filename + ':' + event.lineno + ':' + event.colno : null,
+              stack: [
+                extra || '',
+                'online: ' + navigator.onLine,
+                'connection: ' + (connection.effectiveType || 'unknown'),
+                'retried: ' + retries()
+              ].join('\n'),
               route: location.pathname
             })
           }).catch(function () {});
         } catch (e) {}
+      }
+
+      window.addEventListener('error', function (event) {
+        if (drawn || handled) return;
+        var target = event.target && event.target !== window ? event.target : null;
+        // The preload hint failing doesn't matter; the script itself does.
+        if (target && target.tagName === 'LINK') return;
+        if (target && target.tagName !== 'SCRIPT') return;
+        var what = target ? target.src : (event.message || 'Unknown error');
+        if (!target) {
+          // A script error before the first frame: report it as it is.
+          report(what, event.filename ? event.filename + ':' + event.lineno + ':' + event.colno : '');
+          return;
+        }
+        handled = true;
+        if (leaving) return; // the page was being closed or hidden
+        if (!navigator.onLine) {
+          showProblem("You're offline", 'Connect to the internet, then try again.');
+          return;
+        }
+        if (retries() < 1) {
+          try { sessionStorage.setItem(RETRY_KEY, '1'); } catch (e) {}
+          setTimeout(function () { location.reload(); }, 800);
+          return;
+        }
+        report('Could not load ' + what);
+        showProblem("Couldn't load FindFood", 'Check your connection, then try again.');
       }, true);
+
+      // Very slow networks: offer a reload instead of an endless spinner.
+      setTimeout(function () {
+        if (!drawn && !leaving) {
+          showProblem('Taking longer than usual', 'Your connection may be slow.');
+        }
+      }, 20000);
     })();
   </script>
 
