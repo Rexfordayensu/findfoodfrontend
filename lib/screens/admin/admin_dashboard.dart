@@ -14,6 +14,7 @@ import '../../models/models.dart';
 import '../../utils/friendly_error.dart';
 import '../../widgets/order_issues.dart';
 import '../../widgets/notification_bell.dart';
+import '../../widgets/app_health.dart';
 
 int getPendingApprovalsCount(List<Map<String, dynamic>> restaurants) =>
     restaurants.length;
@@ -758,6 +759,7 @@ class _OverviewPageState extends State<_OverviewPage>
               }),
             const SizedBox(height: 30),
             const AdminIssuesPanel(),
+            const AppHealthPanel(),
             Text('Quick actions',
                 style: TextStyle(
                     color: textPri,

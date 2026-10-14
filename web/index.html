@@ -100,6 +100,35 @@
   </div>
 
   <script>
+    // Crashes before the app has drawn anything (e.g. main.dart.js failed to
+    // load) can't be reported by the app itself; report them from here.
+    (function () {
+      var drawn = false, sent = 0;
+      window.addEventListener('flutter-first-frame', function () { drawn = true; });
+      window.addEventListener('error', function (event) {
+        if (drawn || sent >= 3) return;
+        sent++;
+        var target = event.target && event.target !== window ? event.target : null;
+        var message = target
+          ? 'Could not load ' + (target.src || target.href || target.tagName)
+          : (event.message || 'Unknown error');
+        try {
+          fetch('https://findfooddelivery-backend.onrender.com/client-errors', {
+            method: 'POST', keepalive: true,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              error_type: 'LoadError',
+              message: String(message).slice(0, 1000),
+              stack: event.filename ? event.filename + ':' + event.lineno + ':' + event.colno : null,
+              route: location.pathname
+            })
+          }).catch(function () {});
+        } catch (e) {}
+      }, true);
+    })();
+  </script>
+
+  <script>
     // Fade the splash out as soon as Flutter has drawn its first frame.
     window.addEventListener('flutter-first-frame', function () {
       var splash = document.getElementById('splash');

@@ -81,6 +81,15 @@ Map<String, dynamic> order(int id, String status,
     };
 
 final routes = <String, Object>{
+  '/admin/errors': [
+    {'id': 2, 'source': 'app', 'error_type': 'TypeError',
+     'message': 'Null check operator used on a null value', 'count': 12,
+     'route': '/cart', 'role': 'customer', 'app_version': '1.0.0',
+     'first_seen': ago(60 * 20), 'last_seen': ago(4), 'resolved': false},
+    {'id': 1, 'source': 'server', 'error_type': 'KeyError',
+     'message': "'delivery_fee'", 'count': 3, 'route': 'POST /orders',
+     'first_seen': ago(90), 'last_seen': ago(35), 'resolved': false},
+  ],
   '/notifications': {
     'unread': 3,
     'items': [
@@ -397,6 +406,8 @@ void main() {
       size: const Size(400, 2600)));
   testWidgets('privacy dark', (t) => shoot(t, 'privacy_dark',
       role: 'guest', name: '', dark: true, tab: 'Sign in', then: 'key:login-privacy'));
+  testWidgets('admin health light', (t) => shoot(t, 'admin_health_light',
+      role: 'admin', name: 'Ade', dark: false, size: const Size(400, 1900)));
   testWidgets('admin desktop light', (t) => shoot(t, 'admin_desktop_light',
       role: 'admin', name: 'Ade', dark: false, size: const Size(1280, 860)));
 }

@@ -10,6 +10,7 @@ import 'theme.dart';
 import 'services/providers.dart';
 import 'services/otp_provider.dart';
 import 'services/notifications_provider.dart';
+import 'services/crash_reporter.dart';
 import 'screens/auth/google_oauth_flow.dart';
 import 'router.dart';
 import 'package:go_router/go_router.dart';
@@ -69,6 +70,11 @@ class _FindFoodAppState extends State<FindFoodApp> {
     super.initState();
     final auth = Provider.of<AuthProvider>(context, listen: false);
     _router = createAppRouter(auth, navigatorKey: _navigatorKey);
+    CrashReporter.install(
+      token: () => auth.token,
+      route: () => _router.routeInformationProvider.value.uri.path,
+    );
+    if (!kDebugMode) ErrorWidget.builder = (_) => const BrokenSection();
     // A notification tapped while the app is open goes to its page.
     context.read<NotificationsProvider?>()?.onOpen = (location) {
       if (location.startsWith('/order-tracking/') || location.startsWith('/chat/')) {

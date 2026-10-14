@@ -1509,4 +1509,53 @@ class ApiService {
       throw Exception(_errorDetail(response, 'Could not change your status'));
     }
   }
+
+  // ── CRASH REPORTS ───────────────────────────────────────────────────────────
+
+  /// Sends an app crash to the server (see CrashReporter).
+  static Future<void> reportClientError({
+    String? token,
+    required String errorType,
+    required String message,
+    String? stack,
+    String? route,
+    String? appVersion,
+  }) async {
+    await _http.post(
+      Uri.parse('$baseUrl/client-errors'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'error_type': errorType,
+        'message': message,
+        if (stack != null) 'stack': stack.length > 8000 ? stack.substring(0, 8000) : stack,
+        if (route != null) 'route': route,
+        if (appVersion != null) 'app_version': appVersion,
+      }),
+    );
+  }
+
+  static Future<List<Map<String, dynamic>>> getErrorReports(String token,
+      {String status = 'open'}) async {
+    final response = await _http.get(
+      Uri.parse('$baseUrl/admin/errors?status=$status'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(_decodeList(response));
+    }
+    throw Exception(_errorDetail(response, 'Could not load app errors'));
+  }
+
+  static Future<void> resolveErrorReport(String token, int id) async {
+    final response = await _http.post(
+      Uri.parse('$baseUrl/admin/errors/$id/resolve'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode != 200) {
+      throw Exception(_errorDetail(response, 'Could not update the error'));
+    }
+  }
 }
