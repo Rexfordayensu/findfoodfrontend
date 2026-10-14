@@ -16,6 +16,7 @@ import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
 import '../../utils/friendly_error.dart';
+import '../../widgets/notification_bell.dart';
 
 class RestaurantDashboard extends StatefulWidget {
   const RestaurantDashboard(
@@ -517,6 +518,8 @@ class _OrdersPageState extends State<_OrdersPage> {
                           Icon(Icons.refresh_rounded, color: textPri, size: 18),
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  const NotificationBell(size: 36),
                 ],
               ),
             ),

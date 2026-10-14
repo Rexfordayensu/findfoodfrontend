@@ -28,6 +28,15 @@ if [ -f "$font" ]; then
   sed -i "s#fonts/MaterialIcons-Regular.otf#fonts/MaterialIcons-Regular.$hash.otf#"     build/web/assets/FontManifest.json
 fi
 
+# Flutter's own service worker is deprecated: it unregisters itself and
+# reloads the page, which would also remove our push worker (web/sw.js, which
+# shares the "/" scope). Load the app without registering it.
+perl -0pi -e 's/_flutter\.loader\.load\(\{\s*serviceWorkerSettings:\s*\{.*?\}\s*\}\);/_flutter.loader.load();/s'   build/web/flutter_bootstrap.js
+if ! grep -q "_flutter.loader.load();" build/web/flutter_bootstrap.js; then
+  echo "Could not remove Flutter's service worker from flutter_bootstrap.js" >&2
+  exit 1
+fi
+
 cp -r build/web/. web/
 # Success: drop the previous build instead of restoring it on exit.
 trap - EXIT

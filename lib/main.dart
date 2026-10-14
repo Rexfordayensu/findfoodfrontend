@@ -9,6 +9,7 @@ import 'web_url_strategy_stub.dart'
 import 'theme.dart';
 import 'services/providers.dart';
 import 'services/otp_provider.dart';
+import 'services/notifications_provider.dart';
 import 'screens/auth/google_oauth_flow.dart';
 import 'router.dart';
 import 'package:go_router/go_router.dart';
@@ -29,10 +30,12 @@ void main() {
 
   final authProvider = AuthProvider();
   final cartProvider = CartProvider();
+  final notificationsProvider = NotificationsProvider();
   authProvider.addListener(() {
     if (!authProvider.isLoggedIn && !cartProvider.isEmpty) {
       cartProvider.clearCart();
     }
+    notificationsProvider.updateAuth(authProvider);
   });
 
   runApp(
@@ -41,6 +44,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider.value(value: cartProvider),
+        ChangeNotifierProvider.value(value: notificationsProvider),
         ChangeNotifierProvider(create: (_) => OtpProvider()),
         ChangeNotifierProvider(create: (_) => OrderPollingProvider()), // NEW
       ],
@@ -65,6 +69,14 @@ class _FindFoodAppState extends State<FindFoodApp> {
     super.initState();
     final auth = Provider.of<AuthProvider>(context, listen: false);
     _router = createAppRouter(auth, navigatorKey: _navigatorKey);
+    // A notification tapped while the app is open goes to its page.
+    context.read<NotificationsProvider?>()?.onOpen = (location) {
+      if (location.startsWith('/order-tracking/') || location.startsWith('/chat/')) {
+        _router.push(location);
+      } else {
+        _router.go(location);
+      }
+    };
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await auth.initializeFromSecureStorage();
       try {

@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../services/providers.dart';
 import '../theme.dart';
 import '../legal/legal_documents.dart' show supportEmail;
+import '../services/notifications_provider.dart';
 import '../screens/legal_screen.dart';
 import 'widgets.dart';
 import '../utils/friendly_error.dart';
@@ -769,6 +770,42 @@ class _NotificationPreferencesFormState
     }
   }
 
+  /// Turning push on asks this device straight away (browsers only prompt
+  /// in response to a tap); turning it off stops pushes to this device.
+  Future<void> _setPush(bool on) async {
+    setState(() => _push = on);
+    final notes = context.read<NotificationsProvider?>();
+    if (notes == null) return;
+    if (!on) {
+      await notes.disablePush();
+      return;
+    }
+    final result = await notes.enablePush();
+    if (!mounted) return;
+    final problem = switch (result) {
+      PushResult.denied =>
+        'Notifications are blocked. Allow them for this site in your browser settings.',
+      PushResult.needsHomeScreen =>
+        'On iPhone, add FindFood to your Home Screen first, then turn this on there.',
+      PushResult.unsupported => "This browser can't show notifications.",
+      PushResult.failed => "Couldn't turn on notifications on this device.",
+      PushResult.enabled => null,
+    };
+    if (problem != null) showSettingsMessage(context, problem, isError: true);
+    setState(() {});
+  }
+
+  String _pushSubtitle() {
+    final notes = context.read<NotificationsProvider?>();
+    if (notes == null || !_push) return 'Alerts on this device, even when FindFood is closed';
+    final push = notes.push;
+    if (push.needsHomeScreen) return 'Add FindFood to your Home Screen to get alerts';
+    if (!push.supported) return "This browser can't show notifications";
+    if (push.permission == 'denied') return 'Blocked in your browser settings';
+    if (push.permission == 'granted') return 'On for this device';
+    return 'Alerts on this device, even when FindFood is closed';
+  }
+
   Widget _switch(String key, String title, String subtitle, bool value,
       ValueChanged<bool> onChanged) {
     return SwitchListTile(
@@ -806,8 +843,7 @@ class _NotificationPreferencesFormState
               'Order and account updates by email', _email,
               (v) => setState(() => _email = v)),
           _switch('notif-push', 'Push notifications',
-              'Real-time alerts on this device', _push,
-              (v) => setState(() => _push = v)),
+              _pushSubtitle(), _push, _setPush),
           _switch('notif-orders', 'Order alerts',
               'New and updated orders', _orders,
               (v) => setState(() => _orders = v)),

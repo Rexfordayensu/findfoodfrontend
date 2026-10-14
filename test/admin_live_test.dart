@@ -63,7 +63,6 @@ void main() {
       ));
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('3'), findsWidgets);
-      expect(find.byKey(const Key('admin-attention-badge')), findsNothing);
       expect(find.textContaining('No activity yet'), findsOneWidget);
       expect(find.text('Local preview'), findsNothing);
 
@@ -100,9 +99,6 @@ void main() {
     expect(find.text('7'), findsWidgets, reason: 'order count refreshed live');
     expect(find.byType(CircularProgressIndicator), findsNothing,
         reason: 'background refresh does not flash a spinner');
-    final badge =
-        tester.widget<Badge>(find.byKey(const Key('admin-attention-badge')));
-    expect((badge.label as Text).data, '2');
     expect(find.text('Order #42 placed'), findsOneWidget,
         reason: 'recent activity refreshed live');
     expect(find.text('Just now'), findsOneWidget);

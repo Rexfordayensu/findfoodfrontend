@@ -17,6 +17,7 @@ import 'screens/customer/payment_return_screen.dart';
 import 'screens/customer/menu_detail_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/legal_screen.dart';
+import 'screens/notifications_screen.dart';
 import 'screens/rider/rider_dashboard.dart';
 import 'screens/restaurant/restaurant_pending_approval_screen.dart';
 import 'screens/restaurants/restaurant_dashboard.dart';
@@ -93,6 +94,9 @@ GoRouter createAppRouter(
           returnRoute: state.uri.queryParameters['returnTo'] ?? '/home',
         ),
       ),
+      GoRoute(
+          path: '/notifications',
+          builder: (_, __) => const NotificationsScreen()),
       GoRoute(path: '/terms', builder: (_, __) => const LegalScreen()),
       GoRoute(
           path: '/privacy', builder: (_, __) => const LegalScreen(privacy: true)),
@@ -281,8 +285,10 @@ GoRouter createAppRouter(
 
       final restaurantRoute = location.startsWith('/restaurant/');
       final roleRoute = location == '/rider' || location == '/admin';
-      final conversationRoute =
-          location.startsWith('/chat/') || location.startsWith('/order-chat/');
+      // Pages every signed-in role uses.
+      final conversationRoute = location.startsWith('/chat/') ||
+          location.startsWith('/order-chat/') ||
+          location == '/notifications';
       if (restaurantRoute && !auth.isRestaurant) return _homeForRole(auth);
       if (location == '/rider' && !auth.isRider) return _homeForRole(auth);
       if (location == '/admin' && !auth.isAdmin) return _homeForRole(auth);

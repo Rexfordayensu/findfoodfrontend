@@ -13,6 +13,7 @@ import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
 import '../../utils/friendly_error.dart';
+import '../../widgets/notification_bell.dart';
 
 class RiderDashboard extends StatefulWidget {
   const RiderDashboard({super.key});
@@ -77,6 +78,21 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
   bool _isOnline = true;
   RiderAnalytics? _today;
 
+  /// Going offline also stops new-job notifications (saved on the server).
+  Future<void> _toggleOnline() async {
+    final online = !_isOnline;
+    setState(() => _isOnline = online);
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
+    try {
+      await ApiService.setRiderOnline(token, online);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isOnline = !online);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(friendlyMessage(error))));
+    }
+  }
+
   Future<void> _loadTodayStats(String token) async {
     try {
       final json = await ApiService.getRiderAnalytics(token);
@@ -120,6 +136,9 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
     _load();
     // Poll every 6 seconds for new available jobs
     _pollTimer = Timer.periodic(const Duration(seconds: 6), (_) => _poll());
+    // The page opens online; make sure job alerts match.
+    final token = context.read<AuthProvider>().token;
+    if (token != null) ApiService.setRiderOnline(token, true).catchError((_) {});
   }
 
   @override
@@ -243,7 +262,8 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
                   const SizedBox(width: 12),
                   // Online / Offline toggle
                   GestureDetector(
-                    onTap: () => setState(() => _isOnline = !_isOnline),
+                    key: const Key('rider-online-toggle'),
+                    onTap: _toggleOnline,
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       padding: const EdgeInsets.symmetric(
@@ -287,6 +307,8 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 10),
+                  const NotificationBell(size: 38),
                 ],
               ),
             ),

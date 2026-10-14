@@ -1437,4 +1437,76 @@ class ApiService {
     }
     throw Exception(_errorDetail(response, 'Failed to load notifications'));
   }
+
+  // ── NOTIFICATIONS AND WEB PUSH ──────────────────────────────────────────────
+
+  /// The bell's list (read and unread, newest first) and the unread count.
+  static Future<Map<String, dynamic>> getNotifications(String token) async {
+    final response = await _http.get(
+      Uri.parse('$baseUrl/notifications?limit=100'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load notifications'));
+  }
+
+  /// Marks one notification read; returns the new unread count.
+  static Future<int> markNotificationRead(String token, int id) async {
+    final response = await _http.post(
+      Uri.parse('$baseUrl/notifications/$id/read'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) return (_decode(response)['unread'] as num).toInt();
+    throw Exception(_errorDetail(response, 'Could not update the notification'));
+  }
+
+  static Future<void> markAllNotificationsRead(String token) async {
+    final response = await _http.post(
+      Uri.parse('$baseUrl/notifications/read-all'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode != 200) {
+      throw Exception(_errorDetail(response, 'Could not update notifications'));
+    }
+  }
+
+  static Future<String> getPushPublicKey() async {
+    final response = await _http.get(Uri.parse('$baseUrl/push/public-key'));
+    if (response.statusCode == 200) return '${_decode(response)['key']}';
+    throw Exception(_errorDetail(response, 'Notifications are unavailable right now'));
+  }
+
+  static Future<void> subscribePush(String token, Map<String, dynamic> subscription) async {
+    final response = await _http.post(
+      Uri.parse('$baseUrl/push/subscribe'),
+      headers: _jsonAuth(token),
+      body: jsonEncode({
+        'endpoint': subscription['endpoint'],
+        'keys': subscription['keys'],
+      }),
+    );
+    if (response.statusCode != 201) {
+      throw Exception(_errorDetail(response, 'Could not turn on notifications'));
+    }
+  }
+
+  static Future<void> unsubscribePush(String token, String endpoint) async {
+    await _http.post(
+      Uri.parse('$baseUrl/push/unsubscribe'),
+      headers: _jsonAuth(token),
+      body: jsonEncode({'endpoint': endpoint}),
+    );
+  }
+
+  /// Online riders are told about new delivery jobs.
+  static Future<void> setRiderOnline(String token, bool online) async {
+    final response = await _http.put(
+      Uri.parse('$baseUrl/riders/me/online'),
+      headers: _jsonAuth(token),
+      body: jsonEncode({'online': online}),
+    );
+    if (response.statusCode != 200) {
+      throw Exception(_errorDetail(response, 'Could not change your status'));
+    }
+  }
 }

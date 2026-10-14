@@ -9,6 +9,7 @@ import 'dart:ui' as ui;
 
 import 'package:findfood_app/main.dart';
 import 'package:findfood_app/models/models.dart';
+import 'package:findfood_app/services/notifications_provider.dart';
 import 'package:findfood_app/services/otp_provider.dart';
 import 'package:findfood_app/services/providers.dart';
 import 'package:findfood_app/widgets/live_refresh.dart';
@@ -80,6 +81,29 @@ Map<String, dynamic> order(int id, String status,
     };
 
 final routes = <String, Object>{
+  '/notifications': {
+    'unread': 3,
+    'items': [
+      {'id': 6, 'kind': 'on_the_way', 'title': 'Your order is on the way',
+       'body': 'Kofi has collected order #41. Only give them your delivery code once you have your food.',
+       'link': '/order-tracking/41', 'created_at': ago(2), 'read': false},
+      {'id': 5, 'kind': 'chat', 'title': "Mama's Kitchen · order #41",
+       'body': 'We added extra shito for you!', 'link': '/chat/41?with=restaurant',
+       'created_at': ago(9), 'read': false},
+      {'id': 4, 'kind': 'preparing', 'title': 'Your food is being prepared',
+       'body': "Mama's Kitchen has started on order #41.", 'link': '/order-tracking/41',
+       'created_at': ago(25), 'read': false},
+      {'id': 3, 'kind': 'order_placed', 'title': 'Order placed',
+       'body': "Mama's Kitchen has your order #41. We'll let you know when it's being prepared.",
+       'link': '/order-tracking/41', 'created_at': ago(31), 'read': true},
+      {'id': 2, 'kind': 'issue_resolved', 'title': 'Refund approved',
+       'body': "We've refunded GH₵ 15.00 for order #37. It can take a few days to show.",
+       'link': '/order-tracking/37', 'created_at': ago(60 * 26), 'read': true},
+      {'id': 1, 'kind': 'delivered', 'title': 'Delivered. Enjoy your meal!',
+       'body': 'How was order #37 from Chop Bar? Tap to rate it.',
+       'link': '/order-tracking/37', 'created_at': ago(60 * 24 * 4), 'read': true},
+    ],
+  },
   '/restaurants': [
     restaurant(1, "Mama's Kitchen", 'Ghanaian', rating: 4.7, count: 128),
     restaurant(2, 'Burger Lab', 'Fast food', rating: 4.4, count: 56),
@@ -212,6 +236,7 @@ Future<GlobalKey> launch(WidgetTester tester,
   }
   final theme = ThemeProvider();
   if (theme.isDark != dark) theme.toggle();
+  final notifications = NotificationsProvider()..updateAuth(auth);
   final key = GlobalKey();
   await tester.pumpWidget(RepaintBoundary(
     key: key,
@@ -219,6 +244,7 @@ Future<GlobalKey> launch(WidgetTester tester,
       providers: [
         ChangeNotifierProvider.value(value: theme),
         ChangeNotifierProvider.value(value: auth),
+        ChangeNotifierProvider.value(value: notifications),
         ChangeNotifierProvider(create: (_) => cart ?? CartProvider()),
         ChangeNotifierProvider(create: (_) => OtpProvider()),
         ChangeNotifierProvider(create: (_) => OrderPollingProvider()),
@@ -236,6 +262,7 @@ void main() {
   }
   setUpAll(() async {
     AuthProvider.refreshInterval = null;
+    NotificationsProvider.pollInterval = null;
     LiveRefresh.interval = null;
     PromotionCarousel.autoAdvanceEvery = null;
     Directory(outDir).createSync(recursive: true);
@@ -360,6 +387,11 @@ void main() {
   testWidgets('menu reviews light', (t) => shoot(t, 'menu_reviews_light',
       role: 'customer', name: 'Rexford', dark: false, then: 'Ghanaian',
       cart: menuCart(), size: const Size(400, 1700)));
+  for (final dark in [false, true]) {
+    final mode = dark ? 'dark' : 'light';
+    testWidgets('notifications $mode', (t) => shoot(t, 'notifications_$mode',
+        role: 'customer', name: 'Rexford', dark: dark, then: 'key:notification-bell'));
+  }
   testWidgets('terms light', (t) => shoot(t, 'terms_light',
       role: 'guest', name: '', dark: false, tab: 'Sign in', then: 'key:login-terms',
       size: const Size(400, 2600)));

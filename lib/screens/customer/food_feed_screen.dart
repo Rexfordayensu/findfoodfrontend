@@ -15,6 +15,7 @@ import 'menu_detail_screen.dart';
 import '../../widgets/greeting_header.dart';
 import '../../utils/friendly_error.dart';
 import '../../widgets/error_view.dart';
+import '../../widgets/notification_bell.dart';
 
 // ── Cuisine colors used for image-free restaurant cards ──────────────────────
 const _cuisineData = {
@@ -595,6 +596,10 @@ class _Header extends StatelessWidget {
                     : 'Switch to dark mode',
               ),
               const SizedBox(width: 10),
+              if (auth.isLoggedIn) ...[
+                const NotificationBell(size: 36),
+                const SizedBox(width: 10),
+              ],
               if (!auth.isLoggedIn)
                 _SignInButton(onTap: () => context.go('/login'))
               else

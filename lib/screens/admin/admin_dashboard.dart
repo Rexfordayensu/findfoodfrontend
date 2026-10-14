@@ -13,6 +13,7 @@ import '../../services/api_service.dart';
 import '../../models/models.dart';
 import '../../utils/friendly_error.dart';
 import '../../widgets/order_issues.dart';
+import '../../widgets/notification_bell.dart';
 
 int getPendingApprovalsCount(List<Map<String, dynamic>> restaurants) =>
     restaurants.length;
@@ -27,18 +28,8 @@ class _AdminDashboardState extends State<AdminDashboard>
     with LiveRefresh<AdminDashboard> {
   int _selectedIndex = 0;
   int _pendingApprovalsCount = 0;
-  int _attentionCount = 0;
   String _navQuery = '';
   bool _sidebarCollapsed = false;
-
-  static const _notificationIcons = {
-    'approval': Icons.storefront_outlined,
-    'refund': Icons.report_problem_outlined,
-    'orders': Icons.receipt_long_outlined,
-    'overdue': Icons.timer_off_outlined,
-    'issues': Icons.report_gmailerrorred_rounded,
-    'releases': Icons.undo_rounded,
-  };
 
   final _navItems = [
     {'icon': Icons.grid_view_rounded,           'label': 'Overview'},
@@ -56,35 +47,7 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   Future<void> _refreshBadges() async {
-    await Future.wait([_loadPendingApprovalsCount(), _loadAttentionCount()]);
-  }
-
-  /// Notifications that need the admin to act (approvals, failed refunds).
-  Future<void> _loadAttentionCount() async {
-    final token = context.read<AuthProvider>().token;
-    if (token == null) return;
-    try {
-      final items = await ApiService.getAdminNotifications(token);
-      if (!mounted) return;
-      final count = items
-          .where((n) => const {'approval', 'refund', 'overdue', 'releases', 'issues'}
-              .contains(n['kind']))
-          .length;
-      if (count != _attentionCount) setState(() => _attentionCount = count);
-    } catch (_) {
-      // Keep the last known count.
-    }
-  }
-
-  Widget _bellIcon() {
-    const bell = Icon(Icons.notifications_none_rounded);
-    if (_attentionCount == 0) return bell;
-    return Badge(
-      key: const Key('admin-attention-badge'),
-      label: Text('$_attentionCount'),
-      backgroundColor: AppTheme.danger,
-      child: bell,
-    );
+    await _loadPendingApprovalsCount();
   }
 
   Future<void> _loadPendingApprovalsCount() async {
@@ -101,82 +64,6 @@ class _AdminDashboardState extends State<AdminDashboard>
     } catch (_) {
       // Keep the last known count if a background refresh fails.
     }
-  }
-
-  void _showNotifications() {
-    final token = context.read<AuthProvider>().token;
-    if (token == null) return;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.card(context),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-          child: FutureBuilder<List<Map<String, dynamic>>>(
-            future: ApiService.getAdminNotifications(token),
-            builder: (context, snapshot) {
-              final items = snapshot.data ?? const [];
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(child: Container(width: 36, height: 4,
-                      decoration: BoxDecoration(color: AppColors.border(context),
-                          borderRadius: BorderRadius.circular(4)))),
-                  const SizedBox(height: 18),
-                  Text('Notifications', style: TextStyle(
-                      color: AppColors.textPrimary(context), fontSize: 20,
-                      fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 12),
-                  if (snapshot.connectionState != ConnectionState.done)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Center(child: CircularProgressIndicator(color: AppTheme.accent)),
-                    )
-                  else if (snapshot.hasError)
-                    Text(friendlyMessage(snapshot.error!),
-                        style: TextStyle(color: AppColors.textSecondary(context)))
-                  else if (items.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Text("You're all caught up.",
-                          style: TextStyle(color: AppColors.textSecondary(context))),
-                    )
-                  else
-                    ...items.map((item) => ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: Container(
-                            padding: const EdgeInsets.all(9),
-                            decoration: BoxDecoration(
-                                color: AppTheme.accent.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(10)),
-                            child: Icon(
-                                _notificationIcons[item['kind']] ??
-                                    Icons.notifications_outlined,
-                                color: AppTheme.accent, size: 19),
-                          ),
-                          title: Text(item['title']?.toString() ?? '',
-                              style: TextStyle(color: AppColors.textPrimary(context),
-                                  fontWeight: FontWeight.w700, fontSize: 13)),
-                          subtitle: Text(item['detail']?.toString() ?? '',
-                              style: TextStyle(color: AppColors.textSecondary(context),
-                                  fontSize: 12)),
-                          onTap: item['kind'] == 'approval'
-                              ? () {
-                                  Navigator.pop(sheetContext);
-                                  setState(() => _selectedIndex = 1);
-                                }
-                              : null,
-                        )),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
   }
 
   Widget _buildPage() {
@@ -576,11 +463,8 @@ class _AdminDashboardState extends State<AdminDashboard>
                             padding: const EdgeInsets.fromLTRB(24, 18, 12, 12),
                           ),
                         ),
-                        IconButton(
-                          tooltip: 'Notifications',
-                          icon: _bellIcon(),
-                          onPressed: _showNotifications,
-                        ),
+                        const NotificationBell(size: 38),
+                        const SizedBox(width: 4),
                         IconButton(
                           tooltip: 'Toggle theme',
                           icon: Icon(theme.isDark
@@ -611,11 +495,8 @@ class _AdminDashboardState extends State<AdminDashboard>
         centerTitle: false,
         title: const Text('FindFood Admin'),
         actions: [
-          IconButton(
-            tooltip: 'Notifications',
-            icon: _bellIcon(),
-            onPressed: _showNotifications,
-          ),
+          const NotificationBell(size: 38),
+          const SizedBox(width: 4),
           IconButton(
             icon: Icon(theme.isDark
                 ? Icons.light_mode_rounded
