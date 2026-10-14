@@ -360,6 +360,11 @@ void main() {
   testWidgets('menu reviews light', (t) => shoot(t, 'menu_reviews_light',
       role: 'customer', name: 'Rexford', dark: false, then: 'Ghanaian',
       cart: menuCart(), size: const Size(400, 1700)));
+  testWidgets('terms light', (t) => shoot(t, 'terms_light',
+      role: 'guest', name: '', dark: false, tab: 'Sign in', then: 'key:login-terms',
+      size: const Size(400, 2600)));
+  testWidgets('privacy dark', (t) => shoot(t, 'privacy_dark',
+      role: 'guest', name: '', dark: true, tab: 'Sign in', then: 'key:login-privacy'));
   testWidgets('admin desktop light', (t) => shoot(t, 'admin_desktop_light',
       role: 'admin', name: 'Ade', dark: false, size: const Size(1280, 860)));
 }

@@ -16,6 +16,7 @@ import 'screens/customer/order_tracking_screen.dart';
 import 'screens/customer/payment_return_screen.dart';
 import 'screens/customer/menu_detail_screen.dart';
 import 'screens/chat_screen.dart';
+import 'screens/legal_screen.dart';
 import 'screens/rider/rider_dashboard.dart';
 import 'screens/restaurant/restaurant_pending_approval_screen.dart';
 import 'screens/restaurants/restaurant_dashboard.dart';
@@ -92,6 +93,9 @@ GoRouter createAppRouter(
           returnRoute: state.uri.queryParameters['returnTo'] ?? '/home',
         ),
       ),
+      GoRoute(path: '/terms', builder: (_, __) => const LegalScreen()),
+      GoRoute(
+          path: '/privacy', builder: (_, __) => const LegalScreen(privacy: true)),
       GoRoute(
           path: '/forgot-password',
           builder: (_, __) => const ForgotPasswordScreen()),
@@ -251,7 +255,9 @@ GoRouter createAppRouter(
           location == '/email-verification' ||
           location == '/forgot-password' ||
           location == '/reset-password' ||
-          location == '/google-oauth';
+          location == '/google-oauth' ||
+          location == '/terms' ||
+          location == '/privacy';
       if (location == '/login' && auth.isLoggedIn) {
         final returnTo = state.uri.queryParameters['returnTo'];
         if (auth.isCustomer && returnTo != null && _isCustomerRoute(returnTo)) {

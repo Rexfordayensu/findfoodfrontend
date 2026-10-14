@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../services/providers.dart';
 import '../theme.dart';
+import '../legal/legal_documents.dart' show supportEmail;
+import '../screens/legal_screen.dart';
 import 'widgets.dart';
 import '../utils/friendly_error.dart';
 
@@ -92,10 +94,10 @@ class AccountSettingsSection extends StatelessWidget {
           SettingsTile(
             key: const Key('settings-terms'),
             icon: Icons.policy_outlined,
-            title: 'Terms & policies',
-            subtitle: 'How FindFood works',
+            title: 'Terms & privacy',
+            subtitle: 'Your rights and how we use your data',
             onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => TermsPolicyScreen(role: role))),
+                builder: (_) => const LegalScreen())),
           ),
         ]),
       ],
@@ -824,7 +826,6 @@ class _NotificationPreferencesFormState
 
 // ─── SUPPORT PAGES ───────────────────────────────────────────────────────────
 
-const _supportEmail = 'support@findfood.app';
 
 class HelpSupportScreen extends StatelessWidget {
   final String role;
@@ -913,70 +914,13 @@ class HelpSupportScreen extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: SelectableText(
-                    'Still need help? Email us at $_supportEmail',
+                    'Still need help? Email us at $supportEmail',
                     style: TextStyle(color: AppColors.textPrimary(context)),
                   ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class TermsPolicyScreen extends StatelessWidget {
-  final String role;
-  const TermsPolicyScreen({super.key, required this.role});
-
-  @override
-  Widget build(BuildContext context) {
-    final sections = <(String, String)>[
-      ('Terms of Service',
-          'By using FindFood you agree to provide accurate information, keep your account secure and use the platform lawfully.'),
-      ('Privacy Policy',
-          'FindFood uses your data only to operate ordering, delivery and payments. It is never sold to third parties and is stored securely.'),
-      ('Payments & Refunds',
-          'Payments are processed by our payment partners. Orders cancelled before preparation, or rejected by a restaurant, are refunded in full.'),
-      if (role == 'restaurant')
-        ('Restaurant Guidelines',
-            'Keep your menu, prices and opening status accurate and follow local food-safety rules. Repeated cancellations may lead to suspension.'),
-      if (role == 'rider')
-        ('Rider Conduct',
-            'Deliver promptly, communicate professionally and follow traffic laws. Repeated violations may lead to suspension.'),
-      if (role == 'admin')
-        ('Administrator Responsibilities',
-            'Review restaurants fairly, protect user data and only suspend accounts that break platform rules.'),
-      ('Data Retention',
-          'Order history, chats and payment records are kept while your account is active and afterwards as required by law.'),
-    ];
-    return Scaffold(
-      backgroundColor: AppColors.bg(context),
-      appBar: AppBar(title: const Text('Terms & Policies')),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          for (final (title, body) in sections)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: TextStyle(
-                          color: AppColors.textPrimary(context),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 8),
-                  Text(body,
-                      style: TextStyle(
-                          color: AppColors.textSecondary(context),
-                          fontSize: 14,
-                          height: 1.6)),
-                ],
-              ),
-            ),
         ],
       ),
     );

@@ -381,6 +381,8 @@ class _LoginScreenState extends State<LoginScreen>
                     loading: _googleLoading,
                     onPressed: _googleSignIn,
                   ),
+                  const SizedBox(height: 20),
+                  const _LegalConsent(),
                 ],
               ),
             ),
@@ -677,6 +679,52 @@ class _LoginScreenState extends State<LoginScreen>
                         selected ? Colors.black : AppColors.textHint(context))),
           ]),
         ),
+      ),
+    );
+  }
+}
+
+/// "By continuing, you agree to…" with links to the Terms and Privacy Policy.
+class _LegalConsent extends StatelessWidget {
+  const _LegalConsent();
+
+  @override
+  Widget build(BuildContext context) {
+    final hint = AppColors.textHint(context);
+    final link = TextStyle(
+      color: AppColors.textSecondary(context),
+      fontWeight: FontWeight.w700,
+      decoration: TextDecoration.underline,
+      decorationColor: hint,
+    );
+    return Text.rich(
+      key: const Key('login-legal'),
+      textAlign: TextAlign.center,
+      TextSpan(
+        style: TextStyle(color: hint, fontSize: 12, height: 1.5),
+        children: [
+          const TextSpan(text: 'By continuing, you agree to our '),
+          WidgetSpan(
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
+            child: GestureDetector(
+              key: const Key('login-terms'),
+              onTap: () => context.push('/terms'),
+              child: Text('Terms of Service', style: link.copyWith(fontSize: 12)),
+            ),
+          ),
+          const TextSpan(text: ' and '),
+          WidgetSpan(
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
+            child: GestureDetector(
+              key: const Key('login-privacy'),
+              onTap: () => context.push('/privacy'),
+              child: Text('Privacy Policy', style: link.copyWith(fontSize: 12)),
+            ),
+          ),
+          const TextSpan(text: '.'),
+        ],
       ),
     );
   }
