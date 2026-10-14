@@ -18,6 +18,7 @@ import '../../services/providers.dart';
 import '../../utils/friendly_error.dart';
 import '../../widgets/notification_bell.dart';
 import '../../widgets/doorstep.dart';
+import '../../widgets/assign_rider.dart';
 
 class RestaurantDashboard extends StatefulWidget {
   const RestaurantDashboard(
@@ -682,6 +683,7 @@ class _OrdersPageState extends State<_OrdersPage> {
                                   order: _filtered[i],
                                   onUpdateStatus: _updateStatus,
                                   onHandOver: _handOver,
+                                  onRiderChanged: _load,
                                 ),
                               ),
                             ),
@@ -698,11 +700,13 @@ class _OrderCard extends StatelessWidget {
   final Order order;
   final Future<void> Function(Order, String) onUpdateStatus;
   final Future<void> Function(Order) onHandOver;
+  final Future<void> Function() onRiderChanged;
 
   const _OrderCard({
     required this.order,
     required this.onUpdateStatus,
     required this.onHandOver,
+    required this.onRiderChanged,
   });
 
   @override
@@ -845,12 +849,27 @@ class _OrderCard extends StatelessWidget {
                     Icon(Icons.electric_bike_outlined,
                         size: 15, color: AppColors.textSecondary(context)),
                     const SizedBox(width: 6),
-                    Text('Rider: ${order.riderName ?? 'assigned'}',
-                        style: TextStyle(
-                            color: AppColors.textSecondary(context),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600)),
+                    Flexible(
+                      child: Text(
+                          'Rider: ${order.riderName ?? 'assigned'}'
+                          '${order.riderAssignedVia == 'restaurant' ? ' · chosen by you' : ''}',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: AppColors.textSecondary(context),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                    if (order.riderPhone != null) ...[
+                      const SizedBox(width: 8),
+                      CallButton(phone: order.riderPhone!, who: order.riderName ?? 'the rider'),
+                    ],
                   ]),
+                ],
+                // A delivery still without a rider: choose one, or see who
+                // was asked.
+                if (!isPickup && !hasRider && (isPending || isPreparing || isReady)) ...[
+                  const SizedBox(height: 10),
+                  RiderAssignmentRow(order: order, onChanged: onRiderChanged),
                 ],
               ],
             ),
@@ -944,14 +963,16 @@ class _OrderCard extends StatelessWidget {
                   border: Border.all(
                       color: AppTheme.success.withValues(alpha: 0.3)),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.delivery_dining_rounded,
+                    const Icon(Icons.delivery_dining_rounded,
                         color: AppTheme.success, size: 16),
-                    SizedBox(width: 8),
-                    Text('Waiting for a rider to accept',
-                        style: TextStyle(
+                    const SizedBox(width: 8),
+                    Text(order.offeredRiderName != null
+                        ? 'Waiting for ${order.offeredRiderName} to accept'
+                        : 'Waiting for a rider to accept',
+                        style: const TextStyle(
                             color: AppTheme.success,
                             fontWeight: FontWeight.w600,
                             fontSize: 13)),

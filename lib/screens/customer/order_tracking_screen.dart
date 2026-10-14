@@ -14,6 +14,7 @@ import '../../widgets/doorstep.dart';
 import '../../widgets/order_issues.dart';
 import '../../widgets/rating_sheet.dart';
 import '../../utils/friendly_error.dart';
+import '../../widgets/assign_rider.dart';
 
 class OrderTrackingScreen extends StatefulWidget {
   final Order order;
@@ -462,6 +463,16 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       'About your delivery'),
                 ]),
               ),
+              if (_order.riderPhone != null && _order.isActive) ...[
+                const SizedBox(height: 8),
+                Row(children: [
+                  CallButton(phone: _order.riderPhone!, who: _order.riderName ?? 'your rider'),
+                  const SizedBox(width: 10),
+                  Text('Call ${_order.riderName ?? 'your rider'} · ${_order.riderPhone}',
+                      key: const Key('tracking-call-rider'),
+                      style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13)),
+                ]),
+              ],
             ],
           ],
           // ── Problem report ──────────────────────────────

@@ -147,6 +147,17 @@ class Order {
   /// The customer's check before giving their code: 'all_there' or 'problem'.
   final String? doorstepCheck;
 
+  /// The rider's phone and photo, when they've shared them.
+  final String? riderPhone;
+  final String? riderAvatarUrl;
+
+  /// 'rider' (took the job) or 'restaurant' (the restaurant chose them).
+  final String? riderAssignedVia;
+
+  /// A rider the restaurant has asked, and when the request runs out.
+  final String? offeredRiderName;
+  final DateTime? offerExpiresAt;
+
   /// The customer's code: shown only to the customer, who gives it to the
   /// rider (or the restaurant counter for pickup orders).
   final String? deliveryCode;
@@ -182,6 +193,11 @@ class Order {
     this.packedPhotoUrl,
     this.sealed,
     this.doorstepCheck,
+    this.riderPhone,
+    this.riderAvatarUrl,
+    this.riderAssignedVia,
+    this.offeredRiderName,
+    this.offerExpiresAt,
     this.deliveryCode,
     this.pickupCode,
   });
@@ -261,6 +277,11 @@ class Order {
         packedPhotoUrl: json['packed_photo_url'],
         sealed: json['sealed'],
         doorstepCheck: json['doorstep_check'],
+        riderPhone: json['rider_phone'],
+        riderAvatarUrl: json['rider_avatar_url'],
+        riderAssignedVia: json['rider_assigned_via'],
+        offeredRiderName: json['offered_rider_name'],
+        offerExpiresAt: _parseDate(json['offer_expires_at']),
         deliveryCode: json['delivery_code'],
         pickupCode: json['pickup_code'],
         items: [
@@ -317,6 +338,11 @@ class Order {
       packedPhotoUrl: packedPhotoUrl,
       sealed: sealed,
       doorstepCheck: doorstepCheck,
+      riderPhone: riderPhone,
+      riderAvatarUrl: riderAvatarUrl,
+      riderAssignedVia: riderAssignedVia,
+      offeredRiderName: offeredRiderName,
+      offerExpiresAt: offerExpiresAt,
       deliveryCode: deliveryCode,
       pickupCode: pickupCode,
     );

@@ -360,17 +360,26 @@ class _EditProfileForm extends StatefulWidget {
 
 class _EditProfileFormState extends State<_EditProfileForm> {
   final _nameCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    _nameCtrl.text = context.read<AuthProvider>().name ?? '';
+    final auth = context.read<AuthProvider>();
+    _nameCtrl.text = auth.name ?? '';
+    final token = auth.token;
+    if (token != null) {
+      ApiService.getMyProfile(token).then((me) {
+        if (mounted && _phoneCtrl.text.isEmpty) _phoneCtrl.text = '${me['phone'] ?? ''}';
+      }).catchError((_) {});
+    }
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _phoneCtrl.dispose();
     super.dispose();
   }
 
@@ -383,8 +392,8 @@ class _EditProfileFormState extends State<_EditProfileForm> {
     }
     setState(() => _saving = true);
     try {
-      final data =
-          await ApiService.updateMyProfile(token: auth.token!, name: name);
+      final data = await ApiService.updateMyProfile(
+          token: auth.token!, name: name, phone: _phoneCtrl.text);
       await auth.updateName(data['name']?.toString() ?? name);
       if (!mounted) return;
       Navigator.of(context).pop();
@@ -409,9 +418,24 @@ class _EditProfileFormState extends State<_EditProfileForm> {
           controller: _nameCtrl,
           hint: 'Full name',
           prefixIcon: Icons.person_outline_rounded,
+          textInputAction: TextInputAction.next,
+        ),
+        const SizedBox(height: 12),
+        AppTextField(
+          key: const Key('profile-phone-field'),
+          controller: _phoneCtrl,
+          hint: 'Phone number (optional)',
+          prefixIcon: Icons.phone_outlined,
+          keyboardType: TextInputType.phone,
           textInputAction: TextInputAction.done,
           onFieldSubmitted: (_) => _save(),
         ),
+        const SizedBox(height: 6),
+        Text(
+            context.watch<AuthProvider>().isRider
+                ? 'Restaurants and customers see it while you have their delivery.'
+                : 'Used only to reach you about your orders.',
+            style: TextStyle(color: AppColors.textHint(context), fontSize: 12)),
         const SizedBox(height: 12),
         InputDecorator(
           decoration: const InputDecoration(

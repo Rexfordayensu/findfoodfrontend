@@ -81,6 +81,22 @@ Map<String, dynamic> order(int id, String status,
     };
 
 final routes = <String, Object>{
+  '/orders/44/riders': {
+    'offer': null,
+    'riders': [
+      {'id': 5, 'name': 'Kofi Mensah', 'phone': '024 123 4567', 'online': true,
+       'active_deliveries': 0, 'eligible': true, 'reason': null},
+      {'id': 6, 'name': 'Yaw Boateng', 'phone': '055 987 6543', 'online': true,
+       'active_deliveries': 1, 'eligible': true, 'reason': null},
+      {'id': 7, 'name': 'Abena Owusu', 'online': false, 'active_deliveries': 0,
+       'eligible': false, 'reason': 'Offline'},
+    ],
+  },
+  '/deliveries/offers': [
+    {'id': 9, 'order_id': 44, 'restaurant_name': "Mama's Kitchen",
+     'restaurant_address': 'Osu, Accra', 'total_amount': 6000, 'seconds_left': 142,
+     'items': [{'name': 'Jollof', 'quantity': 1}, {'name': 'Boiled egg', 'quantity': 1}]},
+  ],
   '/admin/issues': [
     {'id': 5, 'order_id': 43, 'reason': 'missing_item', 'reason_label': 'Missing item',
      'status': 'open', 'details': 'No egg in my rice', 'customer_name': 'Ama Mensah',
@@ -141,6 +157,7 @@ final routes = <String, Object>{
      'is_active': true, 'created_at': ago(90)},
   ],
   '/orders': [
+    {...order(44, 'pending', minutes: 3, total: 6000)},
     {...order(43, 'out_for_delivery', minutes: 25), 'sealed': true, 'rider_id': 2,
      'rider_name': 'Kofi', 'collected_at': ago(8)},
     order(41, 'preparing', minutes: 12),
@@ -411,6 +428,12 @@ void main() {
       role: 'customer', name: 'Rexford', dark: false, tab: 'Search'));
   testWidgets('feed basket dark', (t) => shoot(t, 'feed_basket_dark',
       role: 'customer', name: 'Rexford', dark: true, cart: menuCart()));
+  testWidgets('restaurant assign light', (t) => shoot(t, 'restaurant_assign_light',
+      role: 'restaurant', name: 'Esi', dark: false, size: const Size(400, 1100)));
+  testWidgets('assign sheet light', (t) => shoot(t, 'assign_sheet_light',
+      role: 'restaurant', name: 'Esi', dark: false, then: 'key:assign-rider-44'));
+  testWidgets('rider offers dark', (t) => shoot(t, 'rider_offers_dark',
+      role: 'rider', name: 'Kofi', dark: true));
   testWidgets('rider code dark', (t) => shoot(t, 'rider_code_dark',
       role: 'rider', name: 'Kofi', dark: true, tab: 'My Deliveries'));
   for (final dark in [false, true]) {

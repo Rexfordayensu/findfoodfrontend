@@ -511,7 +511,8 @@ class _PushPromptCardState extends State<PushPromptCard> {
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     shape: const StadiumBorder(),
-                    textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                    textStyle: const TextStyle(
+                        fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.w800, fontSize: 13),
                   ),
                   child: Text(_busy ? 'Turning on…' : 'Turn on notifications'),
                 ),

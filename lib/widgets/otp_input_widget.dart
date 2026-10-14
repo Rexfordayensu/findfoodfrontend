@@ -155,7 +155,7 @@ class OtpInputWidgetState extends State<OtpInputWidget> {
             label: const Text('Clear'),
             style: TextButton.styleFrom(
               foregroundColor: AppTheme.danger,
-              textStyle: const TextStyle(fontSize: 13),
+              textStyle: const TextStyle(fontFamily: AppTheme.fontFamily, fontSize: 13),
             ),
           ),
       ],

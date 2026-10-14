@@ -14,6 +14,7 @@ import '../../services/api_service.dart';
 import '../../services/providers.dart';
 import '../../utils/friendly_error.dart';
 import '../../widgets/notification_bell.dart';
+import '../../widgets/assign_rider.dart';
 
 class RiderDashboard extends StatefulWidget {
   const RiderDashboard({super.key});
@@ -313,6 +314,9 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
               ),
             ),
             const SizedBox(height: 16),
+
+            // ── Requests from restaurants ───────────────────────
+            RiderOffersPanel(onAccepted: _load),
 
             // ── Stats strip ─────────────────────────────────────
             SizedBox(

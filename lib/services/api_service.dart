@@ -1102,6 +1102,7 @@ class ApiService {
   static Future<Map<String, dynamic>> updateMyProfile({
     required String token,
     required String name,
+    String? phone,
   }) async {
     final response = await _http.patch(
       Uri.parse('$baseUrl/auth/me'),
@@ -1109,7 +1110,10 @@ class ApiService {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
-      body: jsonEncode({'name': name.trim()}),
+      body: jsonEncode({
+        'name': name.trim(),
+        if (phone != null) 'phone': phone.trim(),
+      }),
     );
     final data = _decode(response);
     if (response.statusCode == 200) return data;
@@ -1629,5 +1633,69 @@ class ApiService {
     );
     if (response.statusCode == 200) return _decode(response);
     throw Exception(_errorDetail(response, 'Could not load your credit'));
+  }
+
+  // ── RESTAURANTS CHOOSING A RIDER ────────────────────────────────────────────
+
+  /// Riders the restaurant can ask for this order, and any open request.
+  static Future<Map<String, dynamic>> getOrderRiders(String token, int orderId) async {
+    final response = await _http.get(
+      Uri.parse('$baseUrl/orders/$orderId/riders'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load riders'));
+  }
+
+  static Future<void> offerRider(String token, int orderId, int riderId) async {
+    final response = await _http.post(
+      Uri.parse('$baseUrl/orders/$orderId/rider-offer'),
+      headers: _jsonAuth(token),
+      body: jsonEncode({'rider_id': riderId}),
+    );
+    if (response.statusCode != 201) {
+      throw Exception(_errorDetail(response, 'Could not send the request'));
+    }
+  }
+
+  static Future<void> withdrawRiderOffer(String token, int orderId) async {
+    final response = await _http.delete(
+      Uri.parse('$baseUrl/orders/$orderId/rider-offer'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode != 200) {
+      throw Exception(_errorDetail(response, 'Could not cancel the request'));
+    }
+  }
+
+  /// Requests from restaurants waiting for this rider's answer.
+  static Future<List<Map<String, dynamic>>> getDeliveryOffers(String token) async {
+    final response = await _http.get(
+      Uri.parse('$baseUrl/deliveries/offers'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(_decodeList(response));
+    }
+    throw Exception(_errorDetail(response, 'Could not load requests'));
+  }
+
+  static Future<Order> acceptDeliveryOffer(String token, int offerId) async {
+    final response = await _http.post(
+      Uri.parse('$baseUrl/deliveries/offers/$offerId/accept'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) return Order.fromJson(_decode(response));
+    throw Exception(_errorDetail(response, 'Could not accept the delivery'));
+  }
+
+  static Future<void> declineDeliveryOffer(String token, int offerId) async {
+    final response = await _http.post(
+      Uri.parse('$baseUrl/deliveries/offers/$offerId/decline'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode != 200) {
+      throw Exception(_errorDetail(response, 'Could not decline'));
+    }
   }
 }
