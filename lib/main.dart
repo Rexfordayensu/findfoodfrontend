@@ -36,7 +36,6 @@ void main() {
     if (!authProvider.isLoggedIn && !cartProvider.isEmpty) {
       cartProvider.clearCart();
     }
-    notificationsProvider.updateAuth(authProvider);
   });
 
   runApp(
@@ -75,8 +74,15 @@ class _FindFoodAppState extends State<FindFoodApp> {
       route: () => _router.routeInformationProvider.value.uri.path,
     );
     if (!kDebugMode) ErrorWidget.builder = (_) => const BrokenSection();
+    // The bell follows sign-in and sign-out.
+    final notifications = context.read<NotificationsProvider?>();
+    if (notifications != null) {
+      void follow() => notifications.updateAuth(auth);
+      auth.addListener(follow);
+      follow();
+    }
     // A notification tapped while the app is open goes to its page.
-    context.read<NotificationsProvider?>()?.onOpen = (location) {
+    notifications?.onOpen = (location) {
       if (location.startsWith('/order-tracking/') || location.startsWith('/chat/')) {
         _router.push(location);
       } else {

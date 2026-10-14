@@ -16,6 +16,7 @@ import 'package:provider/provider.dart';
 
 import 'package:findfood_app/main.dart';
 import 'package:findfood_app/services/api_service.dart';
+import 'package:findfood_app/services/notifications_provider.dart';
 import 'package:findfood_app/services/otp_provider.dart';
 import 'package:findfood_app/services/providers.dart';
 import 'package:findfood_app/widgets/live_refresh.dart';
@@ -47,6 +48,7 @@ Future<void> startApp(WidgetTester tester, {Size size = const Size(430, 932)}) a
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => OtpProvider()),
         ChangeNotifierProvider(create: (_) => OrderPollingProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationsProvider()),
       ],
       child: const FindFoodApp(),
     ),
@@ -131,6 +133,7 @@ void main() {
   }
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() {
+    NotificationsProvider.pollInterval = null;
     HttpOverrides.global = null; // use the real network for these tests
     AuthProvider.refreshInterval = null;
   });
@@ -297,12 +300,12 @@ void main() {
         await login('customer@e2e-findfood.com', [password, 'NewPassword456!']);
     final asCustomer = await orderAs(customerToken);
     final asRestaurant = await orderAs(ownerToken);
-    final deliveryCode = asCustomer['delivery_code'] as String;
+    // The customer's code only appears after they've checked their food.
+    expect(asCustomer['delivery_code'], isNull);
     expect(asCustomer['pickup_code'], isNull);
     expect(asRestaurant['pickup_code'], isNull);
     expect(asRestaurant['delivery_code'], isNull);
     expect(asRestaurant['rider_name'], isNotNull);
-    expect(deliveryCode, isNot(pickupCode));
 
     // The restaurant must enter the rider's current code. The code from the
     // released acceptance is dead, so it counts as a wrong attempt.
@@ -315,6 +318,13 @@ void main() {
     final handed = await handover(ownerToken, pickupCode);
     expect(handed.statusCode, 200);
     expect(jsonDecode(handed.body)['status'], 'out_for_delivery');
+
+    // At the door the customer ticks their food; then their code shows.
+    final checked = await api(tester,
+        () => ApiService.doorstepCheck(customerToken, readyOrderId, true));
+    final deliveryCode = checked.deliveryCode!;
+    expect(deliveryCode, matches(RegExp(r'^\d{4}$')));
+    expect(deliveryCode, isNot(pickupCode));
 
     // The rider's list updates by itself; they finish with the customer's code.
     final complete = find.byKey(const Key('rider-complete-$readyOrderId'));
@@ -389,14 +399,16 @@ void main() {
   testWidgets('admin: notifications, suspend a user, settings', (tester) async {
     await startApp(tester, size: const Size(1280, 900));
     await signIn(tester, 'admin@e2e-findfood.com', password);
-    await waitFor(tester, find.byTooltip('Notifications'));
+    await waitFor(tester, find.byKey(const Key('notification-bell')));
 
     // The customer's paid order was cancelled without a configured Paystack
-    // key, so the refund is flagged for the admin.
-    await tapAndSettle(tester, find.byTooltip('Notifications'));
+    // key, so the refund is flagged for the admin: in the notification page's
+    // "Needs attention", and as a notification of its own.
+    await tapAndSettle(tester, find.byKey(const Key('notification-bell')));
     await waitFor(tester, find.text('Refund needs attention'));
-    await tester.tapAt(const Offset(10, 10));
-    await settle(tester);
+    await waitFor(tester, find.textContaining('Refund needs attention: order #'));
+    await tapAndSettle(tester, find.byTooltip('Back'));
+    await waitFor(tester, find.text('Users'));
 
     await tapAndSettle(tester, find.text('Users').first);
     await waitFor(tester, find.byKey(const Key('user-actions-$riderId')));

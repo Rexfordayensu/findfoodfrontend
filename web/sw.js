@@ -53,8 +53,10 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = new URL((event.notification.data && event.notification.data.url) || '/',
+  let target = new URL((event.notification.data && event.notification.data.url) || '/',
     self.location.origin);
+  // Only ever open this site, whatever the payload says.
+  if (target.origin !== self.location.origin) target = new URL('/', self.location.origin);
   const route = target.pathname + target.search;
   event.waitUntil((async () => {
     const windows = await sameOriginWindows();
