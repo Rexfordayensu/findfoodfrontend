@@ -7,6 +7,7 @@ import '../../services/providers.dart';
 import '../../theme.dart';
 import '../../models/models.dart';
 import '../../widgets/account_settings.dart';
+import '../../widgets/chat_button.dart';
 import '../../widgets/customer_nav_bar.dart';
 import '../../widgets/rating_sheet.dart';
 import '../../widgets/widgets.dart';
@@ -578,41 +579,224 @@ class _SmallButton extends StatelessWidget {
 class CustomerProfileScreen extends StatelessWidget {
   const CustomerProfileScreen({super.key});
 
+  void _onNavTap(BuildContext context, int slot) {
+    switch (slot) {
+      case 0:
+        context.go('/');
+      case 1:
+        context.go('/search');
+      case 2:
+        context.go('/orders');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/');
-            }
-          },
+      bottomNavigationBar: CustomerNavBar(
+        currentIndex: 3,
+        onTap: (slot) => _onNavTap(context, slot),
+        onCartTap: () => context.push('/cart'),
+      ),
+      body: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+          children: [
+            Row(children: [
+              if (context.canPop())
+                IconButton(
+                  tooltip: 'Back',
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+                  onPressed: () => context.pop(),
+                ),
+              Text('Profile',
+                  style: TextStyle(
+                    color: AppColors.textPrimary(context),
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.8,
+                  )),
+            ]),
+            const SizedBox(height: 16),
+            const _ProfileCard(),
+            const SizedBox(height: 16),
+            Row(children: [
+              Expanded(
+                child: _QuickAction(
+                  key: const Key('settings-my-orders'),
+                  icon: Icons.receipt_long_outlined,
+                  label: 'My orders',
+                  onTap: () => context.go('/orders'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _QuickAction(
+                  icon: Icons.support_agent_rounded,
+                  label: 'Get help',
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => const HelpSupportScreen(role: 'customer'))),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 24),
+            const AccountSettingsSection(role: 'customer'),
+            const SizedBox(height: 24),
+            const _SignOutTile(),
+          ],
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          const AccountHeader(subtitle: 'Customer'),
-          const SizedBox(height: 24),
-          SettingsGroup(title: 'ORDERS', children: [
-            SettingsTile(
-              key: const Key('settings-my-orders'),
-              icon: Icons.receipt_long_outlined,
-              title: 'My orders',
-              subtitle: 'Track, pay, cancel or rate',
-              onTap: () => context.push('/orders'),
+    );
+  }
+}
+
+/// Avatar, name and email with an Edit shortcut.
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final name = (auth.name?.trim().isNotEmpty ?? false) ? auth.name!.trim() : 'Your account';
+    final email = auth.email ?? '';
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.card(context),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.border(context)),
+      ),
+      child: Row(children: [
+        Container(
+          width: 64,
+          height: 64,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            gradient: AppTheme.brandGradient,
+            shape: BoxShape.circle,
+          ),
+          child: Text(name[0].toUpperCase(),
+              style: const TextStyle(
+                  color: Color(0xFF111111),
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800)),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(name,
+                  key: const Key('account-header-name'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: AppColors.textPrimary(context),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3)),
+              if (email.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(email,
+                    key: const Key('account-header-email'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: AppColors.textSecondary(context), fontSize: 13.5)),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        ActionPill(
+          key: const Key('profile-edit'),
+          icon: Icons.edit_outlined,
+          label: 'Edit',
+          semanticLabel: 'Edit your name',
+          onPressed: () => showEditProfileSheet(context),
+        ),
+      ]),
+    );
+  }
+}
+
+class _QuickAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickAction(
+      {super.key, required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.card(context),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: AppColors.border(context)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+          child: Row(children: [
+            Icon(icon, color: AppColors.accentText(context), size: 22),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(label,
+                  style: TextStyle(
+                      color: AppColors.textPrimary(context),
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700)),
             ),
           ]),
-          const SizedBox(height: 20),
-          const AccountSettingsSection(role: 'customer'),
-          const SizedBox(height: 24),
-          const SignOutButton(),
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Sign out, clearly marked as leaving the account.
+class _SignOutTile extends StatelessWidget {
+  const _SignOutTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppTheme.danger.withValues(alpha: 0.08),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: AppTheme.danger.withValues(alpha: 0.25)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const Key('settings-sign-out'),
+        onTap: () async {
+          if (!await confirmLogout(context) || !context.mounted) return;
+          await context.read<AuthProvider>().logout();
+          if (!context.mounted) return;
+          showLogoutSuccess(context);
+          context.go('/');
+        },
+        child: const Padding(
+          padding: EdgeInsets.symmetric(vertical: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.logout_rounded, color: AppTheme.danger, size: 20),
+              SizedBox(width: 8),
+              Text('Sign out',
+                  style: TextStyle(
+                      color: AppTheme.danger,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
       ),
     );
   }

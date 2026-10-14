@@ -155,6 +155,11 @@ class AccountHeader extends StatelessWidget {
   }
 }
 
+/// "ACCOUNT" -> "Account": calmer than shouting headings.
+String _sentenceCase(String text) => text.isEmpty
+    ? text
+    : text[0].toUpperCase() + text.substring(1).toLowerCase();
+
 class SettingsGroup extends StatelessWidget {
   final String title;
   final List<Widget> children;
@@ -167,21 +172,29 @@ class SettingsGroup extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 8, left: 4),
-          child: Text(title,
+          child: Text(_sentenceCase(title),
               style: TextStyle(
-                  color: AppColors.textHint(context),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8)),
+                  color: AppColors.textSecondary(context),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600)),
         ),
         Container(
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: AppColors.card(context),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(color: AppColors.border(context)),
           ),
-          child: Column(children: children),
+          child: Column(children: [
+            for (var i = 0; i < children.length; i++) ...[
+              if (i > 0)
+                Divider(
+                    height: 1,
+                    indent: 66,
+                    color: AppColors.border(context)),
+              children[i],
+            ],
+          ]),
         ),
       ],
     );
@@ -209,16 +222,17 @@ class SettingsTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
-                color: AppColors.surface(context),
-                borderRadius: BorderRadius.circular(8),
+                color: AppTheme.accent.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(11),
               ),
-              child: Icon(icon, color: AppColors.textSecondary(context), size: 18),
+              child: Icon(icon, color: AppColors.accentText(context), size: 19),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -231,15 +245,19 @@ class SettingsTile extends StatelessWidget {
                           fontSize: 14,
                           fontWeight: FontWeight.w600)),
                   if (subtitle != null)
-                    Text(subtitle!,
-                        style: TextStyle(
-                            color: AppColors.textHint(context), fontSize: 12)),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1),
+                      child: Text(subtitle!,
+                          style: TextStyle(
+                              color: AppColors.textSecondary(context),
+                              fontSize: 12.5)),
+                    ),
                 ],
               ),
             ),
             trailing ??
-                Icon(Icons.arrow_forward_ios_rounded,
-                    color: AppColors.textHint(context), size: 13),
+                Icon(Icons.chevron_right_rounded,
+                    color: AppColors.textHint(context), size: 22),
           ],
         ),
       ),

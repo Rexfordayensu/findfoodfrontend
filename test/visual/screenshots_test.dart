@@ -334,6 +334,11 @@ void main() {
       then: 'key:order-card-41'));
   testWidgets('rider code dark', (t) => shoot(t, 'rider_code_dark',
       role: 'rider', name: 'Kofi', dark: true, tab: 'My Deliveries'));
+  for (final dark in [false, true]) {
+    testWidgets('customer profile ${dark ? 'dark' : 'light'}', (t) => shoot(t,
+        'customer_profile_${dark ? 'dark' : 'light'}',
+        role: 'customer', name: 'Rexford Ayensu', dark: dark, tab: 'Profile'));
+  }
   testWidgets('admin desktop light', (t) => shoot(t, 'admin_desktop_light',
       role: 'admin', name: 'Ade', dark: false, size: const Size(1280, 860)));
 }

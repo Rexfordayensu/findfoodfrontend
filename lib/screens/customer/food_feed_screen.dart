@@ -276,11 +276,7 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
           context.go('/orders');
           break;
         case 4:
-          if (auth.isLoggedIn) {
-            _showProfileSheet(context, auth, themeP);
-          } else {
-            context.go('/login');
-          }
+          context.go(auth.isLoggedIn ? '/profile' : '/login');
           break;
       }
       if (i >= 0 && i <= 3) {
@@ -524,111 +520,6 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
     );
   }
 
-  void _showProfileSheet(
-      BuildContext ctx, AuthProvider auth, ThemeProvider themeP) {
-    showModalBottomSheet(
-      context: ctx,
-      backgroundColor: AppColors.card(ctx),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: AppColors.border(ctx),
-                    borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 24),
-            CircleAvatar(
-              radius: 34,
-              backgroundColor: AppTheme.accentDim,
-              child: Text(
-                ((auth.name?.trim().isNotEmpty ?? false) ? auth.name! : 'U')[0]
-                    .toUpperCase(),
-                style: TextStyle(color: AppColors.accentText(context),
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-                (auth.name?.trim().isNotEmpty ?? false)
-                    ? auth.name!
-                    : 'Your account',
-                style: TextStyle(
-                    color: AppColors.textPrimary(ctx),
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-              decoration: BoxDecoration(
-                color: AppTheme.accent.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(auth.email ?? auth.role ?? '',
-                  style: TextStyle(color: AppColors.accentText(context),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700)),
-            ),
-            const SizedBox(height: 28),
-            _SheetBtn(
-              icon: Icons.manage_accounts_outlined,
-              label: 'Account settings',
-              color: AppTheme.accent,
-              onTap: () {
-                Navigator.pop(ctx);
-                context.push('/profile');
-              },
-            ),
-            const SizedBox(height: 10),
-            _SheetBtn(
-              icon: Icons.receipt_long_outlined,
-              label: 'My orders',
-              color: AppTheme.accent,
-              onTap: () {
-                Navigator.pop(ctx);
-                context.push('/orders');
-              },
-            ),
-            const SizedBox(height: 10),
-            // Theme toggle
-            _SheetBtn(
-              icon: themeP.isDark
-                  ? Icons.wb_sunny_rounded
-                  : Icons.nightlight_round,
-              label: themeP.isDark
-                  ? 'Switch to light mode'
-                  : 'Switch to dark mode',
-              color: AppTheme.accent,
-              onTap: () {
-                Navigator.pop(ctx);
-                themeP.toggle();
-              },
-            ),
-            const SizedBox(height: 10),
-            _SheetBtn(
-              icon: Icons.logout_rounded,
-              label: 'Sign out',
-              color: AppTheme.danger,
-              onTap: () async {
-                Navigator.pop(ctx);
-                if (!await confirmLogout(context) || !mounted) return;
-                await auth.logout();
-                if (!mounted) return;
-                showLogoutSuccess(context);
-                context.go('/');
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 // ─── HEADER ───────────────────────────────────────────────────────────────────
@@ -727,7 +618,9 @@ class _Header extends StatelessWidget {
           if (auth.isLoggedIn && (auth.name ?? '').isNotEmpty)
             GreetingHeader(
               name: auth.name!,
-              role: auth.role ?? 'customer',
+              // The feed is where everyone orders food, so it greets them as a
+              // customer even when the account is a restaurant or admin.
+              role: 'customer',
               padding: const EdgeInsets.only(top: 12, bottom: 0),
             ),
           const SizedBox(height: 10),
@@ -1505,47 +1398,6 @@ class _IconBtnState extends State<_IconBtn> {
 }
 
 // ─── PROFILE SHEET BUTTON ─────────────────────────────────────────────────────
-class _SheetBtn extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _SheetBtn({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.25)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 18),
-            const SizedBox(width: 10),
-            Text(label,
-                style: TextStyle(
-                    color: color, fontWeight: FontWeight.w700, fontSize: 15)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── LOADING SHIMMER ─────────────────────────────────────────────────────────
 class _LoadingShimmer extends StatefulWidget {
   final Color bg, border;
   const _LoadingShimmer({required this.bg, required this.border});
