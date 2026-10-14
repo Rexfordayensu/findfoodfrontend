@@ -178,6 +178,7 @@ void main() {
   testWidgets('the restaurant answers a report about its order', (tester) async {
     final auth = await signIn('restaurant');
     Map<String, dynamic>? answer;
+    int? waiting;
     final client = MockClient((request) async {
       if (request.url.path == '/restaurants/mine/issues') {
         return json([
@@ -198,12 +199,12 @@ void main() {
     await http.runWithClient(() async {
       await tester.pumpWidget(ChangeNotifierProvider.value(
         value: auth,
-        child: const MaterialApp(home: Scaffold(body: RestaurantIssuesBanner())),
+        child: MaterialApp(
+            home: Scaffold(body: RestaurantReportsPage(onWaitingChanged: (n) => waiting = n))),
       ));
       await settle(tester);
-      expect(find.text('1 problem report to answer'), findsOneWidget);
-      await tester.tap(find.byKey(const Key('restaurant-issues')));
-      await settle(tester);
+      expect(find.text('TO ANSWER'), findsOneWidget);
+      expect(waiting, 1, reason: 'drives the tab badge');
       expect(find.text('“No egg”'), findsOneWidget);
       await tester.enterText(
           find.byKey(const Key('restaurant-issue-note-5')), 'Egg was in a side bowl');

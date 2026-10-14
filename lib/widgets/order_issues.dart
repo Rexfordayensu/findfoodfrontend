@@ -942,3 +942,150 @@ class _EvidenceCard extends StatelessWidget {
     );
   }
 }
+
+/// Every customer problem report, filterable; the admin's Reports tab.
+class AdminReportsList extends StatefulWidget {
+  const AdminReportsList({super.key});
+
+  @override
+  State<AdminReportsList> createState() => _AdminReportsListState();
+}
+
+class _AdminReportsListState extends State<AdminReportsList>
+    with LiveRefresh<AdminReportsList> {
+  String _status = 'open';
+  List<Map<String, dynamic>>? _issues;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+    startLiveRefresh(_load);
+  }
+
+  Future<void> _load() async {
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
+    final status = _status;
+    try {
+      final issues = await ApiService.getAdminIssues(token, status: status);
+      if (mounted && status == _status) {
+        setState(() {
+          _issues = issues;
+          _error = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = friendlyMessage(e));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final issues = _issues;
+    return Column(
+      key: const Key('admin-reports'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FilterChips(
+          options: const [
+            ('open', 'Open'),
+            ('refunded', 'Refunded'),
+            ('dismissed', 'Dismissed'),
+            ('all', 'All'),
+          ],
+          selected: _status,
+          onSelected: (value) {
+            setState(() {
+              _status = value;
+              _issues = null;
+            });
+            _load();
+          },
+        ),
+        const SizedBox(height: 14),
+        if (_error != null && issues == null)
+          EmptyState(
+              icon: Icons.wifi_off_rounded,
+              title: "Couldn't load reports",
+              subtitle: _error!,
+              actionLabel: 'Retry',
+              onAction: _load)
+        else if (issues == null)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Center(child: CircularProgressIndicator(color: AppTheme.accent)),
+          )
+        else if (issues.isEmpty)
+          EmptyState(
+            icon: Icons.verified_user_outlined,
+            title: _status == 'open' ? 'No open reports' : 'Nothing here',
+            subtitle: _status == 'open'
+                ? 'When a customer reports a wrong, missing or damaged order, it shows up here.'
+                : 'No reports with this status yet.',
+          )
+        else
+          for (final issue in issues) ...[
+            if (issue['status'] == 'open')
+              _IssueTile(issue: issue, onResolved: _load)
+            else
+              _ResolvedIssueTile(issue: issue),
+            const SizedBox(height: 8),
+          ],
+      ],
+    );
+  }
+}
+
+class _ResolvedIssueTile extends StatelessWidget {
+  final Map<String, dynamic> issue;
+  const _ResolvedIssueTile({required this.issue});
+
+  @override
+  Widget build(BuildContext context) {
+    final refunded = issue['status'] == 'refunded';
+    final amount = issue['refund_amount'] is int ? formatCedis(issue['refund_amount'] as int) : '';
+    final outcome = refunded
+        ? (issue['refund_method'] == 'credit' ? '$amount credit given' : '$amount refunded')
+        : 'Dismissed';
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.card(context),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border(context)),
+      ),
+      child: Row(children: [
+        Icon(refunded ? Icons.check_circle_rounded : Icons.block_rounded,
+            color: refunded ? AppTheme.success : AppColors.textHint(context), size: 22),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Order #${issue['order_id']} · ${issue['reason_label']}',
+                style: TextStyle(
+                    color: AppColors.textPrimary(context),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14)),
+            Text(
+              [
+                outcome,
+                if (issue['customer_name'] != null) issue['customer_name'],
+                if (issue['restaurant_name'] != null) issue['restaurant_name'],
+              ].join(' · '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12.5),
+            ),
+            if ((issue['resolution_note'] as String?)?.isNotEmpty ?? false)
+              Text('“${issue['resolution_note']}”',
+                  style: TextStyle(
+                      color: AppColors.textSecondary(context),
+                      fontSize: 12.5,
+                      fontStyle: FontStyle.italic)),
+          ]),
+        ),
+      ]),
+    );
+  }
+}

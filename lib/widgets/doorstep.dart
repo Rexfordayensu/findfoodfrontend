@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../models/models.dart';
@@ -447,11 +448,7 @@ class _RestaurantIssuesBannerState extends State<RestaurantIssuesBanner> {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           key: const Key('restaurant-issues'),
-          onTap: () async {
-            await showSettingsSheet<void>(
-                context, _ReportsSheet(reports: _reports));
-            await _load();
-          },
+          onTap: () => context.go('/restaurant/reports'),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(children: [
@@ -474,26 +471,6 @@ class _RestaurantIssuesBannerState extends State<RestaurantIssuesBanner> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _ReportsSheet extends StatelessWidget {
-  final List<Map<String, dynamic>> reports;
-  const _ReportsSheet({required this.reports});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SheetHeader(
-          title: 'Problem reports',
-          subtitle: 'Tell us what you packed. FindFood decides on any refund.',
-        ),
-        for (final report in reports) _ReportAnswer(report: report),
-      ],
     );
   }
 }
@@ -640,6 +617,166 @@ class _ReportAnswerState extends State<_ReportAnswer> {
             ),
           ]),
         ],
+      ]),
+    );
+  }
+}
+
+/// The restaurant's Reports tab: reports to answer, waiting on FindFood, and
+/// past ones with how they ended.
+class RestaurantReportsPage extends StatefulWidget {
+  /// Told the number still waiting for an answer (for the tab's badge).
+  final ValueChanged<int>? onWaitingChanged;
+  const RestaurantReportsPage({super.key, this.onWaitingChanged});
+
+  @override
+  State<RestaurantReportsPage> createState() => _RestaurantReportsPageState();
+}
+
+class _RestaurantReportsPageState extends State<RestaurantReportsPage> {
+  List<Map<String, dynamic>>? _reports;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
+    try {
+      final reports = await ApiService.getRestaurantIssues(token, status: 'all');
+      if (!mounted) return;
+      setState(() {
+        _reports = reports;
+        _error = null;
+      });
+      widget.onWaitingChanged?.call(reports
+          .where((r) => r['status'] == 'open' && r['restaurant_response'] == null)
+          .length);
+    } catch (e) {
+      if (mounted) setState(() => _error = friendlyMessage(e));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textPri = AppColors.textPrimary(context);
+    final reports = _reports;
+    final toAnswer = [
+      for (final r in reports ?? const <Map<String, dynamic>>[])
+        if (r['status'] == 'open' && r['restaurant_response'] == null) r
+    ];
+    final waiting = [
+      for (final r in reports ?? const <Map<String, dynamic>>[])
+        if (r['status'] == 'open' && r['restaurant_response'] != null) r
+    ];
+    final done = [
+      for (final r in reports ?? const <Map<String, dynamic>>[])
+        if (r['status'] != 'open') r
+    ];
+    Widget label(String text) => Padding(
+          padding: const EdgeInsets.only(top: 18, bottom: 10),
+          child: Text(text.toUpperCase(),
+              style: TextStyle(
+                  color: AppColors.textHint(context),
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8)),
+        );
+    return SafeArea(
+      child: RefreshIndicator(
+        color: AppTheme.accent,
+        onRefresh: _load,
+        child: ListView(
+          key: const Key('restaurant-reports'),
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+          children: [
+            Text('Problem reports',
+                style: TextStyle(
+                    color: textPri, fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -0.4)),
+            const SizedBox(height: 4),
+            Text('When a customer says food was wrong, missing or damaged, tell us what you '
+                'packed. Your packing photo and seal are your proof.',
+                style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13, height: 1.4)),
+            if (reports == null && _error == null)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 60),
+                child: Center(child: CircularProgressIndicator(color: AppTheme.accent)),
+              )
+            else if (reports == null)
+              EmptyState(
+                  icon: Icons.wifi_off_rounded,
+                  title: "Couldn't load reports",
+                  subtitle: _error!,
+                  actionLabel: 'Retry',
+                  onAction: _load)
+            else if (reports.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(top: 40),
+                child: EmptyState(
+                  icon: Icons.verified_rounded,
+                  title: 'No problem reports',
+                  subtitle: 'Keep taking packing photos and sealing packs, and it stays that way.',
+                ),
+              )
+            else ...[
+              if (toAnswer.isNotEmpty) ...[
+                label('To answer'),
+                for (final r in toAnswer) _ReportAnswer(report: r),
+              ],
+              if (waiting.isNotEmpty) ...[
+                label('Waiting for FindFood'),
+                for (final r in waiting) _ReportAnswer(report: r),
+              ],
+              if (done.isNotEmpty) ...[
+                label('Resolved'),
+                for (final r in done) _PastReport(report: r),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PastReport extends StatelessWidget {
+  final Map<String, dynamic> report;
+  const _PastReport({required this.report});
+
+  @override
+  Widget build(BuildContext context) {
+    final refunded = report['status'] == 'refunded';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.card(context),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border(context)),
+      ),
+      child: Row(children: [
+        Icon(refunded ? Icons.payments_outlined : Icons.verified_rounded,
+            color: refunded ? AppTheme.warning : AppTheme.success, size: 22),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Order #${report['order_id']} · ${report['reason_label']}',
+                style: TextStyle(
+                    color: AppColors.textPrimary(context),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14)),
+            Text(
+                refunded
+                    ? 'The customer was refunded.'
+                    : "Closed: we couldn't confirm a problem. You're in the clear.",
+                style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12.5)),
+          ]),
+        ),
       ]),
     );
   }

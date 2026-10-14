@@ -330,3 +330,42 @@ class EmptyState extends StatelessWidget {
     );
   }
 }
+
+/// A row of filter chips: [(value, label)], one selected.
+class FilterChips extends StatelessWidget {
+  final List<(String, String)> options;
+  final String selected;
+  final ValueChanged<String> onSelected;
+  const FilterChips(
+      {super.key, required this.options, required this.selected, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(children: [
+        for (final (value, label) in options)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              key: Key('filter-$value'),
+              label: Text(label),
+              selected: selected == value,
+              showCheckmark: false,
+              onSelected: (_) => onSelected(value),
+              selectedColor: AppTheme.accent,
+              backgroundColor: AppColors.card(context),
+              side: BorderSide(
+                  color: selected == value ? AppTheme.accent : AppColors.border(context)),
+              shape: const StadiumBorder(),
+              labelStyle: TextStyle(
+                color: selected == value ? Colors.black : AppColors.textSecondary(context),
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+          ),
+      ]),
+    );
+  }
+}

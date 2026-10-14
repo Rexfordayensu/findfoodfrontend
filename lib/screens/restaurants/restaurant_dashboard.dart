@@ -46,6 +46,32 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
     super.initState();
     _selectedIndex = widget.initialIndex;
     _checkApproval();
+    _loadReportsWaiting();
+  }
+
+  /// Reports waiting for this restaurant's answer: the Reports tab's badge.
+  int _reportsWaiting = 0;
+  // Opening the Reports tab again reloads it.
+  int _reportsVisit = 0;
+
+  Future<void> _loadReportsWaiting() async {
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
+    try {
+      final open = await ApiService.getRestaurantIssues(token);
+      final waiting = open.where((r) => r['restaurant_response'] == null).length;
+      if (mounted && waiting != _reportsWaiting) setState(() => _reportsWaiting = waiting);
+    } catch (_) {}
+  }
+
+  @override
+  void didUpdateWidget(RestaurantDashboard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialIndex != widget.initialIndex) {
+      _selectedIndex = widget.initialIndex;
+      if (_selectedIndex == 3) _reportsVisit++;
+      _loadReportsWaiting();
+    }
   }
 
   Future<void> _checkApproval() async {
@@ -134,6 +160,12 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       const _OrdersPage(),
       const _MenuManagerPage(),
       const _EarningsPage(),
+      RestaurantReportsPage(
+        key: ValueKey('reports-$_reportsVisit'),
+        onWaitingChanged: (n) {
+          if (n != _reportsWaiting) setState(() => _reportsWaiting = n);
+        },
+      ),
       _SettingsPage(
         restaurantId: _restaurantId,
         bannerUrl: _restaurantBannerUrl,
@@ -153,21 +185,26 @@ class _RestaurantDashboardState extends State<RestaurantDashboard> {
       bottomNavigationBar: GlassNavBar(
         currentIndex: _selectedIndex,
         onTap: (i) => context.go(
-            '/restaurant/${['orders', 'menu', 'earnings', 'settings'][i]}'),
-        items: const [
-          GlassNavItem(
+            '/restaurant/${['orders', 'menu', 'earnings', 'reports', 'settings'][i]}'),
+        items: [
+          const GlassNavItem(
               icon: Icons.receipt_long_outlined,
               activeIcon: Icons.receipt_long_rounded,
               label: 'Orders'),
-          GlassNavItem(
+          const GlassNavItem(
               icon: Icons.menu_book_outlined,
               activeIcon: Icons.menu_book_rounded,
               label: 'Menu'),
-          GlassNavItem(
+          const GlassNavItem(
               icon: Icons.bar_chart_outlined,
               activeIcon: Icons.bar_chart_rounded,
               label: 'Earnings'),
           GlassNavItem(
+              icon: Icons.report_gmailerrorred_outlined,
+              activeIcon: Icons.report_gmailerrorred_rounded,
+              label: 'Reports',
+              badge: _reportsWaiting),
+          const GlassNavItem(
               icon: Icons.settings_outlined,
               activeIcon: Icons.settings_rounded,
               label: 'Settings'),

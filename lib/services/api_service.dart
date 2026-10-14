@@ -1590,9 +1590,10 @@ class ApiService {
     throw Exception(_errorDetail(response, 'Could not save your check'));
   }
 
-  static Future<List<Map<String, dynamic>>> getRestaurantIssues(String token) async {
+  static Future<List<Map<String, dynamic>>> getRestaurantIssues(String token,
+      {String status = 'open'}) async {
     final response = await _http.get(
-      Uri.parse('$baseUrl/restaurants/mine/issues'),
+      Uri.parse('$baseUrl/restaurants/mine/issues?status=$status'),
       headers: {'Authorization': 'Bearer $token'},
     );
     if (response.statusCode == 200) {

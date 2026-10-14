@@ -195,10 +195,17 @@ GoRouter createAppRouter(
         ),
       ),
       GoRoute(
-        path: '/restaurant/settings',
+        path: '/restaurant/reports',
         builder: (context, __) => RestaurantDashboard(
           token: context.read<AuthProvider>().token ?? '',
           initialIndex: 3,
+        ),
+      ),
+      GoRoute(
+        path: '/restaurant/settings',
+        builder: (context, __) => RestaurantDashboard(
+          token: context.read<AuthProvider>().token ?? '',
+          initialIndex: 4,
         ),
       ),
       GoRoute(

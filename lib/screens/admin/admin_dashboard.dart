@@ -37,6 +37,7 @@ class _AdminDashboardState extends State<AdminDashboard>
     {'icon': Icons.storefront_outlined,          'label': 'Approvals'},
     {'icon': Icons.electric_bike_outlined,       'label': 'Riders'},
     {'icon': Icons.people_outline_rounded,       'label': 'Users'},
+    {'icon': Icons.report_gmailerrorred_outlined, 'label': 'Reports'},
     {'icon': Icons.settings_outlined,            'label': 'Settings'},
   ];
 
@@ -48,8 +49,32 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   Future<void> _refreshBadges() async {
-    await _loadPendingApprovalsCount();
+    await Future.wait([_loadPendingApprovalsCount(), _loadReportsCount()]);
   }
+
+  /// Open customer reports plus open app errors: the Reports badge.
+  int _reportsCount = 0;
+
+  Future<void> _loadReportsCount() async {
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
+    try {
+      final results = await Future.wait([
+        ApiService.getAdminIssues(token),
+        ApiService.getErrorReports(token),
+      ]);
+      final count = results[0].length + results[1].length;
+      if (mounted && count != _reportsCount) setState(() => _reportsCount = count);
+    } catch (_) {
+      // Keep the last known count.
+    }
+  }
+
+  int _badgeFor(int index) => switch (index) {
+        1 => _pendingApprovalsCount,
+        4 => _reportsCount,
+        _ => 0,
+      };
 
   Future<void> _loadPendingApprovalsCount() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
@@ -73,7 +98,8 @@ class _AdminDashboardState extends State<AdminDashboard>
       case 1: return _ApprovalsPage(onPendingCountChanged: _loadPendingApprovalsCount);
       case 2: return const _RiderDeskPage();
       case 3: return const _UsersPage();
-      case 4: return const _AdminSettingsPage();
+      case 4: return const _ReportsPage();
+      case 5: return const _AdminSettingsPage();
       default: return _OverviewPage(onNavigate: (i) => setState(() => _selectedIndex = i));
     }
   }
@@ -268,9 +294,8 @@ class _AdminDashboardState extends State<AdminDashboard>
                               child: Tooltip(
                                 message: item['label'] as String,
                                 child: Badge(
-                                  isLabelVisible:
-                                      i == 1 && _pendingApprovalsCount > 0,
-                                  label: Text('$_pendingApprovalsCount'),
+                                  isLabelVisible: _badgeFor(i) > 0,
+                                  label: Text('${_badgeFor(i)}'),
                                   backgroundColor: AppTheme.danger,
                                   child: Icon(item['icon'] as IconData,
                                       size: 20,
@@ -302,7 +327,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                                 fontSize: 14,
                               ))),
                           ],
-                          if (i == 1 && _pendingApprovalsCount > 0) ...[
+                          if (_badgeFor(i) > 0) ...[
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 7, vertical: 2),
@@ -310,7 +335,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                                 color: AppTheme.danger.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: Text(_pendingApprovalsCount.toString(),
+                              child: Text(_badgeFor(i).toString(),
                                   style: const TextStyle(
                                       color: AppTheme.danger,
                                       fontSize: 10,
@@ -546,12 +571,85 @@ class _AdminDashboardState extends State<AdminDashboard>
               icon: Icons.people_outline_rounded,
               activeIcon: Icons.people_rounded,
               label: 'Users'),
+          GlassNavItem(
+              icon: Icons.report_gmailerrorred_outlined,
+              activeIcon: Icons.report_gmailerrorred_rounded,
+              label: 'Reports',
+              badge: _reportsCount),
           const GlassNavItem(
               icon: Icons.settings_outlined,
               activeIcon: Icons.settings_rounded,
               label: 'Settings'),
         ],
       ),
+    );
+  }
+}
+
+// ─── REPORTS ──────────────────────────────────────────────────────────────────
+/// Customer problem reports and app errors, always reachable from the nav.
+class _ReportsPage extends StatefulWidget {
+  const _ReportsPage();
+
+  @override
+  State<_ReportsPage> createState() => _ReportsPageState();
+}
+
+class _ReportsPageState extends State<_ReportsPage> {
+  bool _errors = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final textPri = AppColors.textPrimary(context);
+    Widget tab(String label, bool value, Key key) {
+      final active = _errors == value;
+      return Expanded(
+        child: GestureDetector(
+          key: key,
+          onTap: () => setState(() => _errors = value),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: active ? AppTheme.accent : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(label,
+                style: TextStyle(
+                    color: active ? Colors.black : AppColors.textSecondary(context),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14)),
+          ),
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 120),
+      children: [
+        Text('Reports',
+            style: TextStyle(color: textPri, fontSize: 28, fontWeight: FontWeight.w800,
+                letterSpacing: -0.5)),
+        const SizedBox(height: 4),
+        Text('Customer complaints about orders, and errors in the app.',
+            style: TextStyle(color: AppColors.textSecondary(context), fontSize: 13.5)),
+        const SizedBox(height: 18),
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: AppColors.surface(context),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border(context)),
+          ),
+          child: Row(children: [
+            tab('Customer reports', false, const Key('reports-tab-customers')),
+            tab('App errors', true, const Key('reports-tab-errors')),
+          ]),
+        ),
+        const SizedBox(height: 18),
+        if (_errors) const AppErrorsList() else const AdminReportsList(),
+      ],
     );
   }
 }
@@ -783,7 +881,7 @@ class _OverviewPageState extends State<_OverviewPage>
                     _quickAction(ctx, 'View users', Icons.people_outline_rounded,
                         const Color(0xFF60A5FA), width, () => widget.onNavigate(3)),
                     _quickAction(ctx, 'Open settings', Icons.tune_rounded,
-                        AppTheme.accent, width, () => widget.onNavigate(4)),
+                        AppTheme.accent, width, () => widget.onNavigate(5)),
                   ],
                 );
               },

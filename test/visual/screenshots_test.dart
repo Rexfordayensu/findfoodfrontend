@@ -81,6 +81,20 @@ Map<String, dynamic> order(int id, String status,
     };
 
 final routes = <String, Object>{
+  '/admin/issues': [
+    {'id': 5, 'order_id': 43, 'reason': 'missing_item', 'reason_label': 'Missing item',
+     'status': 'open', 'details': 'No egg in my rice', 'customer_name': 'Ama Mensah',
+     'restaurant_name': "Mama's Kitchen", 'rider_name': 'Kofi', 'order_total': 4500,
+     'restaurant_response': 'packed', 'created_at': ago(14),
+     'customer': {'risk': 'high'}},
+  ],
+  '/restaurants/mine/issues': [
+    {'id': 5, 'order_id': 43, 'reason': 'missing_item', 'reason_label': 'Missing item',
+     'status': 'open', 'details': 'No egg in my rice', 'restaurant_response': null,
+     'items': [{'name': 'Jollof', 'quantity': 1}, {'name': 'Boiled egg', 'quantity': 1}]},
+    {'id': 3, 'order_id': 30, 'reason': 'damaged', 'reason_label': 'Damaged or spilled',
+     'status': 'dismissed', 'restaurant_response': 'packed', 'items': []},
+  ],
   '/admin/errors': [
     {'id': 2, 'source': 'app', 'error_type': 'TypeError',
      'message': 'Null check operator used on a null value', 'count': 12,
@@ -382,6 +396,12 @@ void main() {
       then: 'key:order-card-43', size: const Size(400, 1500)));
   testWidgets('pack sheet light', (t) => shoot(t, 'pack_sheet_light',
       role: 'restaurant', name: 'Esi', dark: false, then: 'Mark ready for pickup'));
+  testWidgets('admin reports light', (t) => shoot(t, 'admin_reports_light',
+      role: 'admin', name: 'Ade', dark: false, tab: 'Reports'));
+  testWidgets('admin reports desktop', (t) => shoot(t, 'admin_reports_desktop',
+      role: 'admin', name: 'Ade', dark: false, tab: 'Reports', size: const Size(1280, 860)));
+  testWidgets('restaurant reports light', (t) => shoot(t, 'restaurant_reports_light',
+      role: 'restaurant', name: 'Esi', dark: false, tab: 'Reports', size: const Size(400, 1300)));
   testWidgets('rider code dark', (t) => shoot(t, 'rider_code_dark',
       role: 'rider', name: 'Kofi', dark: true, tab: 'My Deliveries'));
   for (final dark in [false, true]) {

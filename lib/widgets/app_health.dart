@@ -254,3 +254,76 @@ class _ErrorDetailsState extends State<_ErrorDetails> {
     );
   }
 }
+
+/// Every app and server error, open or fixed; the admin's Reports tab.
+class AppErrorsList extends StatefulWidget {
+  const AppErrorsList({super.key});
+
+  @override
+  State<AppErrorsList> createState() => _AppErrorsListState();
+}
+
+class _AppErrorsListState extends State<AppErrorsList> with LiveRefresh<AppErrorsList> {
+  String _status = 'open';
+  List<Map<String, dynamic>>? _errors;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+    startLiveRefresh(_load);
+  }
+
+  Future<void> _load() async {
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
+    final status = _status;
+    try {
+      final errors = await ApiService.getErrorReports(token, status: status);
+      if (mounted && status == _status) setState(() => _errors = errors);
+    } catch (_) {
+      if (mounted) setState(() => _errors ??= const []);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final errors = _errors;
+    return Column(
+      key: const Key('admin-app-errors'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FilterChips(
+          options: const [('open', 'Open'), ('resolved', 'Fixed'), ('all', 'All')],
+          selected: _status,
+          onSelected: (value) {
+            setState(() {
+              _status = value;
+              _errors = null;
+            });
+            _load();
+          },
+        ),
+        const SizedBox(height: 14),
+        if (errors == null)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 40),
+            child: Center(child: CircularProgressIndicator(color: AppTheme.accent)),
+          )
+        else if (errors.isEmpty)
+          EmptyState(
+            icon: Icons.health_and_safety_outlined,
+            title: _status == 'open' ? 'No app errors' : 'Nothing here',
+            subtitle: _status == 'open'
+                ? 'Crashes in the app or on the server show up here automatically.'
+                : 'No errors with this status.',
+          )
+        else
+          for (final error in errors) ...[
+            _ErrorTile(error: error, onResolved: _load),
+            const SizedBox(height: 8),
+          ],
+      ],
+    );
+  }
+}
