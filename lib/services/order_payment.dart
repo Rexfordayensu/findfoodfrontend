@@ -22,6 +22,14 @@ class OrderPayment {
     final token = context.read<AuthProvider>().token;
     if (token == null) throw Exception('Please sign in to pay for your order.');
 
+    // FindFood credit is used first; it may cover the whole order.
+    final credit = await creditBalance(token);
+    if (credit >= order.totalAmount) {
+      final init = await ApiService.initializePayment(
+          token: token, orderId: order.id, provider: 'paystack');
+      if (init['paid'] == true) return true;
+    }
+
     final providers = await ApiService.getPaymentProviders();
     if (providers.isEmpty) {
       throw Exception(
@@ -30,7 +38,7 @@ class OrderPayment {
     if (!context.mounted) return false;
     final choice = providers.length == 1
         ? providers.first
-        : await _chooseProvider(context, providers, order);
+        : await _chooseProvider(context, providers, order, credit);
     if (choice == null || !context.mounted) return false;
 
     if (choice.requiresPhone) {
@@ -49,6 +57,7 @@ class OrderPayment {
         provider: provider,
         callbackUrl:
             kIsWeb ? '${Uri.base.origin}/payment/callback' : null);
+    if (init['paid'] == true) return true; // FindFood credit covered it
     final url = init['authorization_url'] as String?;
     final reference = init['reference'] as String?;
     if (url == null || reference == null) {
@@ -102,8 +111,18 @@ class OrderPayment {
     return false;
   }
 
+  /// FindFood credit the customer can spend (0 if it can't be loaded).
+  static Future<int> creditBalance(String token) async {
+    try {
+      final data = await ApiService.getMyCredit(token);
+      return (data['balance'] as num?)?.toInt() ?? 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   static Future<PaymentProviderOption?> _chooseProvider(BuildContext context,
-      List<PaymentProviderOption> providers, Order order) {
+      List<PaymentProviderOption> providers, Order order, int credit) {
     return showSettingsSheet<PaymentProviderOption>(
       context,
       Builder(
@@ -113,7 +132,10 @@ class OrderPayment {
           children: [
             SheetHeader(
                 title: 'Choose payment method',
-                subtitle: 'Total ${order.displayTotal}'),
+                subtitle: credit > 0
+                    ? 'Total ${order.displayTotal} · ${formatCedis(credit)} credit used · '
+                        'you pay ${formatCedis(order.totalAmount - credit)}'
+                    : 'Total ${order.displayTotal}'),
             for (final provider in providers)
               ListTile(
                 key: Key('pay-with-${provider.value}'),

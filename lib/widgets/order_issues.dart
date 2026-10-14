@@ -38,6 +38,9 @@ Future<IssuePhoto?> Function() pickIssuePhoto = () async {
 /// Problems can be reported up to this long after delivery (server rule).
 const reportWindow = Duration(hours: 48);
 
+/// Wrong, missing or damaged food: up to an hour after delivery (server rule).
+const foodReportWindow = Duration(hours: 1);
+
 /// After this long on the way, a customer may report "Never arrived".
 const notDeliveredAfter = Duration(minutes: 60);
 
@@ -55,7 +58,8 @@ Map<String, String> reportableReasons(Order order, DateTime now) {
       completed != null &&
       now.difference(completed) <= reportWindow &&
       order.issueStatus == null) {
-    return issueReasons;
+    if (now.difference(completed) <= foodReportWindow) return issueReasons;
+    return const {'other': 'Something else'};
   }
   return const {};
 }
@@ -319,12 +323,19 @@ class _HonestyNote extends StatelessWidget {
 class IssueStatusCard extends StatelessWidget {
   final String status; // open / refunded / dismissed
   final String? note;
+  final bool credit; // refunded as FindFood credit
 
-  const IssueStatusCard({super.key, required this.status, this.note});
+  const IssueStatusCard({super.key, required this.status, this.note, this.credit = false});
 
   @override
   Widget build(BuildContext context) {
     final (icon, color, title, body) = switch (status) {
+      'refunded' when credit => (
+          Icons.account_balance_wallet_rounded,
+          AppTheme.success,
+          'FindFood credit added',
+          "We've added credit to your account. It's used automatically on your next order.",
+        ),
       'refunded' => (
           Icons.check_circle_rounded,
           AppTheme.success,
@@ -535,7 +546,7 @@ class _ResolveFormState extends State<_ResolveForm> {
   Future<void> _resolve(String action) async {
     setState(() => _busy = action);
     try {
-      final amount = action == 'refund' ? _partialAmount : null;
+      final amount = action == 'dismiss' ? null : _partialAmount;
       await ApiService.resolveIssue(
         token: context.read<AuthProvider>().token!,
         issueId: widget.issue['id'] as int,
@@ -547,11 +558,15 @@ class _ResolveFormState extends State<_ResolveForm> {
       Navigator.of(context).pop(true);
       showSettingsMessage(
           context,
-          action == 'dismiss'
-              ? 'Report dismissed.'
-              : amount == null
-                  ? 'Refund started for the whole order.'
-                  : 'Refund of ${formatCedis(amount)} started.');
+          switch (action) {
+            'dismiss' => 'Report dismissed.',
+            'credit' => amount == null
+                ? 'Credit for the whole order added.'
+                : '${formatCedis(amount)} credit added.',
+            _ => amount == null
+                ? 'Refund started for the whole order.'
+                : 'Refund of ${formatCedis(amount)} started.',
+          });
     } catch (e) {
       if (mounted) showSettingsMessage(context, friendlyMessage(e), isError: true);
     } finally {
@@ -634,6 +649,42 @@ class _ResolveFormState extends State<_ResolveForm> {
           Text('No photo was attached.', style: TextStyle(color: textSec, fontSize: 13)),
           const SizedBox(height: 12),
         ],
+        if (issue['evidence'] is Map && (issue['evidence'] as Map)['packed_photo_url'] != null) ...[
+          Text("Kitchen's packing photo",
+              style: TextStyle(color: textSec, fontSize: 12, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 6),
+          GestureDetector(
+            key: const Key('issue-pack-photo'),
+            onTap: () => _viewPhoto('${(issue['evidence'] as Map)['packed_photo_url']}'),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Image.network('${(issue['evidence'] as Map)['packed_photo_url']}',
+                  height: 140, width: double.infinity, fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox(height: 40)),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (issue['restaurant_response'] != null) ...[
+          _InfoCard(
+            key: const Key('issue-restaurant-answer'),
+            title: "Restaurant's answer",
+            children: [
+              _Fact(
+                issue['restaurant_response'] == 'packed'
+                    ? Icons.inventory_2_rounded
+                    : Icons.thumb_up_alt_outlined,
+                issue['restaurant_response'] == 'packed'
+                    ? 'They say it was packed'
+                    : 'They say it was their mistake',
+                color: issue['restaurant_response'] == 'packed' ? AppTheme.warning : AppTheme.success,
+              ),
+              if ((issue['restaurant_note'] as String?)?.isNotEmpty ?? false)
+                _Fact(Icons.chat_bubble_outline_rounded, '“${issue['restaurant_note']}”'),
+            ],
+          ),
+          const SizedBox(height: 10),
+        ],
         if (customer != null) ...[
           _TrustCard(customer: customer),
           const SizedBox(height: 10),
@@ -677,12 +728,29 @@ class _ResolveFormState extends State<_ResolveForm> {
         ),
         const SizedBox(height: 16),
         PrimaryButton(
-          key: const Key('issue-refund'),
+          key: const Key('issue-credit'),
           label: partial != null
-              ? 'Refund ${formatCedis(partial)}'
-              : 'Refund whole order${total == null ? '' : ' (${formatCedis(total)})'}',
-          isLoading: _busy == 'refund',
-          onPressed: _busy == null ? () => _resolve('refund') : null,
+              ? 'Give ${formatCedis(partial)} credit'
+              : 'Give credit for the whole order${total == null ? '' : ' (${formatCedis(total)})'}',
+          isLoading: _busy == 'credit',
+          onPressed: _busy == null ? () => _resolve('credit') : null,
+        ),
+        const SizedBox(height: 4),
+        Text('Credit is used on their next order and can\'t be withdrawn.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: textSec, fontSize: 11.5)),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            key: const Key('issue-refund'),
+            onPressed: _busy == null ? () => _resolve('refund') : null,
+            child: Text(_busy == 'refund'
+                ? 'Refunding…'
+                : partial != null
+                    ? 'Refund ${formatCedis(partial)} to card / MoMo'
+                    : 'Refund whole order to card / MoMo'),
+          ),
         ),
         const SizedBox(height: 8),
         SizedBox(
@@ -835,10 +903,30 @@ class _EvidenceCard extends StatelessWidget {
     final collected = time('collected_at');
     final completed = time('completed_at');
     final confirmed = evidence['customer_confirmed_with_code'] == true;
+    final doorstep = evidence['doorstep_check'];
+    final sealed = evidence['sealed'];
     return _InfoCard(
       key: const Key('issue-evidence'),
       title: 'Handover evidence',
       children: [
+        _Fact(
+          evidence['packed_photo_url'] != null ? Icons.photo_camera_rounded : Icons.no_photography_outlined,
+          evidence['packed_photo_url'] != null
+              ? 'The kitchen photographed the packed food'
+              : 'No packing photo from the kitchen',
+          color: evidence['packed_photo_url'] != null ? AppTheme.success : null,
+        ),
+        if (sealed != null)
+          _Fact(Icons.verified_outlined,
+              sealed == true ? 'Packed and sealed with tape or a sticker' : 'Not sealed',
+              color: sealed == true ? AppTheme.success : AppTheme.warning),
+        if (doorstep == 'all_there')
+          const _Fact(Icons.fact_check_rounded,
+              'At the door the customer ticked every item and said everything was there',
+              color: AppTheme.success)
+        else if (doorstep == 'problem')
+          const _Fact(Icons.report_rounded, 'The customer flagged a problem at the door',
+              color: AppTheme.warning),
         if (collected != null)
           _Fact(Icons.storefront_outlined, 'Rider collected it with the pickup code at $collected'),
         if (completed != null)

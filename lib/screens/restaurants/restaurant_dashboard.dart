@@ -17,6 +17,7 @@ import '../../services/api_service.dart';
 import '../../services/providers.dart';
 import '../../utils/friendly_error.dart';
 import '../../widgets/notification_bell.dart';
+import '../../widgets/doorstep.dart';
 
 class RestaurantDashboard extends StatefulWidget {
   const RestaurantDashboard(
@@ -277,6 +278,7 @@ class _OrdersPage extends StatefulWidget {
 
 class _OrdersPageState extends State<_OrdersPage> {
   List<Order> _orders = [];
+  int _issuesTick = 0;
   bool _loading = true;
   String _error = '';
   String _filter = 'all';
@@ -315,7 +317,10 @@ class _OrdersPageState extends State<_OrdersPage> {
     try {
       final orders = await ApiService.getMyOrders(auth.token!);
       if (!mounted) return;
-      setState(() => _orders = orders);
+      setState(() {
+        _orders = orders;
+        _issuesTick++;
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = friendlyMessage(e));
@@ -362,11 +367,18 @@ class _OrdersPageState extends State<_OrdersPage> {
 
   Future<void> _updateStatus(Order order, String newStatus) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    bool? sealed;
+    if (newStatus == 'ready') {
+      // Photo of the packed food and the seal: proof of what left the kitchen.
+      sealed = await showPackSheet(context, order);
+      if (sealed == null || !mounted) return;
+    }
     try {
       final updated = await ApiService.updateOrderStatus(
         auth.token!,
         order.id,
         newStatus,
+        sealed: sealed,
       );
       if (!mounted) return;
       setState(() {
@@ -596,6 +608,8 @@ class _OrdersPageState extends State<_OrdersPage> {
                 },
               ),
             ),
+
+            RestaurantIssuesBanner(refreshTick: _issuesTick),
 
             // ── Orders list ─────────────────────────────────
             Expanded(
@@ -1122,7 +1136,7 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.card(context),
+      backgroundColor: AppColors.sheet(context),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
@@ -1301,7 +1315,7 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.card(context),
+      backgroundColor: AppColors.sheet(context),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(

@@ -531,10 +531,11 @@ class ApiService {
   }
 
   static Future<Order> updateOrderStatus(
-      String token, int orderId, String newStatus) async {
+      String token, int orderId, String newStatus, {bool? sealed}) async {
     final url = Uri.parse('$baseUrl/orders/$orderId/status').replace(
       queryParameters: {
         'new_status': newStatus,
+        if (sealed != null) 'sealed': '$sealed',
       },
     );
 
@@ -1557,5 +1558,75 @@ class ApiService {
     if (response.statusCode != 200) {
       throw Exception(_errorDetail(response, 'Could not update the error'));
     }
+  }
+
+  // ── PACKING PROOF, DOORSTEP CHECK, RESTAURANT ANSWERS, CREDIT ───────────────
+
+  /// The kitchen's photo of the packed order.
+  static Future<String> uploadPackPhoto({
+    required String token,
+    required int orderId,
+    required Uint8List imageBytes,
+    required String filename,
+  }) async {
+    final request =
+        http.MultipartRequest('POST', Uri.parse('$baseUrl/orders/$orderId/pack-photo'));
+    request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(http.MultipartFile.fromBytes('file', imageBytes,
+        filename: filename, contentType: _imageMediaType(filename)));
+    final response = await http.Response.fromStream(await _http.send(request));
+    if (response.statusCode == 200) return '${_decode(response)['packed_photo_url']}';
+    throw Exception(_errorDetail(response, 'Could not upload the photo'));
+  }
+
+  /// The customer checked their food; returns the order with their code.
+  static Future<Order> doorstepCheck(String token, int orderId, bool allThere) async {
+    final response = await _http.post(
+      Uri.parse('$baseUrl/orders/$orderId/doorstep-check'),
+      headers: _jsonAuth(token),
+      body: jsonEncode({'all_there': allThere}),
+    );
+    if (response.statusCode == 200) return Order.fromJson(_decode(response));
+    throw Exception(_errorDetail(response, 'Could not save your check'));
+  }
+
+  static Future<List<Map<String, dynamic>>> getRestaurantIssues(String token) async {
+    final response = await _http.get(
+      Uri.parse('$baseUrl/restaurants/mine/issues'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(_decodeList(response));
+    }
+    throw Exception(_errorDetail(response, 'Could not load problem reports'));
+  }
+
+  static Future<void> answerIssue({
+    required String token,
+    required int issueId,
+    required String response,
+    String? note,
+  }) async {
+    final result = await _http.post(
+      Uri.parse('$baseUrl/issues/$issueId/restaurant-response'),
+      headers: _jsonAuth(token),
+      body: jsonEncode({
+        'response': response,
+        if (note != null && note.isNotEmpty) 'note': note,
+      }),
+    );
+    if (result.statusCode != 200) {
+      throw Exception(_errorDetail(result, 'Could not send your answer'));
+    }
+  }
+
+  /// FindFood credit: {'balance': pesewas, 'entries': [...]}.
+  static Future<Map<String, dynamic>> getMyCredit(String token) async {
+    final response = await _http.get(
+      Uri.parse('$baseUrl/me/credit'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load your credit'));
   }
 }

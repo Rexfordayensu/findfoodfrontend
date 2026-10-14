@@ -140,6 +140,13 @@ class Order {
   /// Latest problem report: 'open', 'refunded' or 'dismissed' (null: none).
   final String? issueStatus;
 
+  /// The kitchen's photo of the packed food, and whether it was sealed.
+  final String? packedPhotoUrl;
+  final bool? sealed;
+
+  /// The customer's check before giving their code: 'all_there' or 'problem'.
+  final String? doorstepCheck;
+
   /// The customer's code: shown only to the customer, who gives it to the
   /// rider (or the restaurant counter for pickup orders).
   final String? deliveryCode;
@@ -172,6 +179,9 @@ class Order {
     this.riderName,
     this.collectedAt,
     this.issueStatus,
+    this.packedPhotoUrl,
+    this.sealed,
+    this.doorstepCheck,
     this.deliveryCode,
     this.pickupCode,
   });
@@ -205,6 +215,12 @@ class Order {
     final banner = restaurantBannerUrl;
     return banner != null && banner.isNotEmpty ? banner : null;
   }
+
+  /// The food is with the customer (or at the counter): time to check it
+  /// and give the code.
+  bool get atHandover => fulfillmentMethod == 'pickup'
+      ? status == 'preparing' || status == 'ready'
+      : status == 'out_for_delivery';
 
   bool get isCancelled => status == 'cancelled';
 
@@ -242,6 +258,9 @@ class Order {
         riderName: json['rider_name'],
         collectedAt: _parseDate(json['collected_at']),
         issueStatus: json['issue_status'],
+        packedPhotoUrl: json['packed_photo_url'],
+        sealed: json['sealed'],
+        doorstepCheck: json['doorstep_check'],
         deliveryCode: json['delivery_code'],
         pickupCode: json['pickup_code'],
         items: [
@@ -295,6 +314,9 @@ class Order {
       riderName: riderName,
       collectedAt: collectedAt,
       issueStatus: issueStatus ?? this.issueStatus,
+      packedPhotoUrl: packedPhotoUrl,
+      sealed: sealed,
+      doorstepCheck: doorstepCheck,
       deliveryCode: deliveryCode,
       pickupCode: pickupCode,
     );

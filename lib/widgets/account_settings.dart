@@ -274,7 +274,8 @@ Future<T?> showSettingsSheet<T>(BuildContext context, Widget child) {
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.card(context),
+    // Solid: a sheet must not show the page behind it.
+    backgroundColor: AppColors.sheet(context),
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
     builder: (sheetContext) => Padding(

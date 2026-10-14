@@ -10,6 +10,7 @@ import '../../services/api_service.dart';
 import '../../services/providers.dart';
 import '../../services/order_payment.dart';
 import '../../widgets/handoff_code.dart';
+import '../../widgets/doorstep.dart';
 import '../../widgets/order_issues.dart';
 import '../../widgets/rating_sheet.dart';
 import '../../utils/friendly_error.dart';
@@ -26,6 +27,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   late Order _order;
   Timer? _pollTimer;
   String? _issueNote;
+  bool _issueCredit = false;
   bool _busy = false;
 
   List<Map<String, Object>> get _steps => _order.fulfillmentMethod == 'pickup'
@@ -104,7 +106,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     try {
       final reports = await ApiService.getOrderIssues(token, _order.id);
       if (mounted && reports.isNotEmpty) {
-        setState(() => _issueNote = reports.first['resolution_note'] as String?);
+        setState(() {
+          _issueNote = reports.first['resolution_note'] as String?;
+          _issueCredit = reports.first['refund_method'] == 'credit';
+        });
       }
     } catch (_) {
       // The status card still shows without the note.
@@ -125,7 +130,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       try {
         final orders = await ApiService.getMyOrders(auth.token!);
         final updated = orders.where((o) => o.id == _order.id).firstOrNull;
-        if (updated != null && mounted && updated.status != _order.status) {
+        if (updated != null && mounted &&
+            (updated.status != _order.status ||
+                updated.deliveryCode != _order.deliveryCode)) {
           setState(() => _order = updated);
           if (updated.isCompleted) {
             _pollTimer?.cancel();
@@ -386,10 +393,40 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               ],
             ),
           ),
+          if (_order.deliveryCode == null &&
+              _order.isActive &&
+              _order.status != 'awaiting_payment') ...[
+            const SizedBox(height: 16),
+            if (_order.atHandover)
+              DoorstepCheckCard(
+                order: _order,
+                onChecked: (updated) => setState(() => _order = updated),
+              )
+            else
+              CodeComingCard(pickup: _order.fulfillmentMethod == 'pickup'),
+          ],
           if (_order.deliveryCode != null &&
               _order.isActive &&
               _order.status != 'awaiting_payment') ...[
             const SizedBox(height: 16),
+            if (_order.doorstepCheck == 'problem') ...[
+              Container(
+                key: const Key('doorstep-flagged'),
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppTheme.warning.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.warning.withValues(alpha: 0.4)),
+                ),
+                child: const Text(
+                  "You flagged a problem. Once you've taken the food, report it here "
+                  'with a photo. We can see you raised it at handover.',
+                  style: TextStyle(fontSize: 13, height: 1.4),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             HandoffCodeCard(
               key: const Key('tracking-delivery-code'),
               title: _order.fulfillmentMethod == 'pickup'
@@ -430,7 +467,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
           // ── Problem report ──────────────────────────────
           if (_order.issueStatus != null) ...[
             const SizedBox(height: 12),
-            IssueStatusCard(status: _order.issueStatus!, note: _issueNote),
+            IssueStatusCard(
+                status: _order.issueStatus!, note: _issueNote, credit: _issueCredit),
           ] else if (reportableReasons(_order, DateTime.now()).isNotEmpty) ...[
             const SizedBox(height: 8),
             Align(

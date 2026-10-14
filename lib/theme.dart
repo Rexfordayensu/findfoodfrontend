@@ -279,6 +279,10 @@ class AppColors {
       _dark(context) ? AppTheme.darkBg : AppTheme.lightBg;
   static Color surface(BuildContext context) =>
       _dark(context) ? const Color(0xFF1A1D24) : const Color(0xFFF4F6FA);
+  /// Bottom sheets and dialogs: always solid, even inside the glass look.
+  static Color sheet(BuildContext context) =>
+      _dark(context) ? AppTheme.darkCard : AppTheme.lightCard;
+
   static Color card(BuildContext context) {
     if (GlassScope.isActive(context)) {
       // Slightly translucent so cards pick up the backdrop's colour.

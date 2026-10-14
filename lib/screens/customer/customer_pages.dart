@@ -652,6 +652,7 @@ class CustomerProfileScreen extends StatelessWidget {
               ),
             ]),
             const SizedBox(height: 24),
+            const _CreditCard(),
             const AccountSettingsSection(role: 'customer'),
             const SizedBox(height: 24),
             const _SignOutTile(),
@@ -807,6 +808,75 @@ class _SignOutTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+
+/// FindFood credit, when the customer has some or has had some.
+class _CreditCard extends StatefulWidget {
+  const _CreditCard();
+
+  @override
+  State<_CreditCard> createState() => _CreditCardState();
+}
+
+class _CreditCardState extends State<_CreditCard> {
+  Map<String, dynamic>? _credit;
+
+  @override
+  void initState() {
+    super.initState();
+    final token = context.read<AuthProvider>().token;
+    if (token != null) {
+      ApiService.getMyCredit(token).then((data) {
+        if (mounted) setState(() => _credit = data);
+      }).catchError((_) {});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final credit = _credit;
+    final entries = (credit?['entries'] as List? ?? const []);
+    if (credit == null || entries.isEmpty) return const SizedBox.shrink();
+    final balance = (credit['balance'] as num?)?.toInt() ?? 0;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Container(
+        key: const Key('profile-credit'),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.success.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppTheme.success.withValues(alpha: 0.3)),
+        ),
+        child: Row(children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppTheme.success.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.account_balance_wallet_rounded, color: AppTheme.success),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('FindFood credit',
+                  style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12.5)),
+              Text(formatCedis(balance),
+                  style: TextStyle(
+                      color: AppColors.textPrimary(context),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800)),
+              Text('Used automatically at checkout',
+                  style: TextStyle(color: AppColors.textHint(context), fontSize: 12)),
+            ]),
+          ),
+        ]),
       ),
     );
   }

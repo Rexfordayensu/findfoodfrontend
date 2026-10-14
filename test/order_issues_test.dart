@@ -56,8 +56,11 @@ void main() {
 
   test('who can report what, and when', () {
     final now = DateTime(2026, 10, 14, 12);
-    expect(reportableReasons(order(completedAt: now.subtract(const Duration(hours: 2))), now).keys,
+    expect(reportableReasons(order(completedAt: now.subtract(const Duration(minutes: 30))), now).keys,
         containsAll(['wrong_item', 'missing_item', 'damaged', 'other']));
+    // Food problems show when the pack is opened: after an hour, only "Something else".
+    expect(reportableReasons(order(completedAt: now.subtract(const Duration(hours: 2))), now).keys,
+        ['other']);
     expect(reportableReasons(order(completedAt: now.subtract(const Duration(days: 3))), now), isEmpty);
     expect(reportableReasons(
         order(completedAt: now.subtract(const Duration(hours: 1)), issueStatus: 'open'), now), isEmpty);
@@ -85,7 +88,7 @@ void main() {
       }
       return inner(request);
     });
-    final delivered = order(completedAt: DateTime.now().subtract(const Duration(hours: 1)));
+    final delivered = order(completedAt: DateTime.now().subtract(const Duration(minutes: 20)));
     await pump(tester, 'customer', OrderTrackingScreen(order: delivered), client);
     pickIssuePhoto = () async => (bytes: Uint8List.fromList([1, 2, 3]), name: 'food.jpg');
 
@@ -167,7 +170,8 @@ void main() {
       // Refund only the drinks: 2 × GH₵ 5.00.
       await tester.tap(find.byKey(const Key('refund-item-1')));
       await tester.pump();
-      expect(find.text('Refund GH₵ 10.00'), findsOneWidget);
+      expect(find.text('Give GH₵ 10.00 credit'), findsOneWidget);
+      expect(find.text('Refund GH₵ 10.00 to card / MoMo'), findsOneWidget);
       await tester.enterText(find.byKey(const Key('issue-note')), 'Sorry about that!');
       await tester.tap(find.byKey(const Key('issue-refund')));
       await frames(tester);

@@ -101,7 +101,7 @@ Future<bool> showHandoffCodeEntry(
   final result = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.card(context),
+    backgroundColor: AppColors.sheet(context),
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
     builder: (_) => _CodeEntrySheet(

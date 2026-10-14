@@ -127,6 +127,8 @@ final routes = <String, Object>{
      'is_active': true, 'created_at': ago(90)},
   ],
   '/orders': [
+    {...order(43, 'out_for_delivery', minutes: 25), 'sealed': true, 'rider_id': 2,
+     'rider_name': 'Kofi', 'collected_at': ago(8)},
     order(41, 'preparing', minutes: 12),
     order(39, 'delivered', minutes: 60 * 26, total: 4099),
     order(37, 'delivered', minutes: 60 * 24 * 3, total: 3879, rated: true),
@@ -375,6 +377,11 @@ void main() {
   testWidgets('tracking code light', (t) => shoot(t, 'tracking_code_light',
       role: 'customer', name: 'Rexford', dark: false, tab: 'Orders',
       then: 'key:order-card-41'));
+  testWidgets('tracking doorstep light', (t) => shoot(t, 'tracking_doorstep_light',
+      role: 'customer', name: 'Rexford', dark: false, tab: 'Orders',
+      then: 'key:order-card-43', size: const Size(400, 1500)));
+  testWidgets('pack sheet light', (t) => shoot(t, 'pack_sheet_light',
+      role: 'restaurant', name: 'Esi', dark: false, then: 'Mark ready for pickup'));
   testWidgets('rider code dark', (t) => shoot(t, 'rider_code_dark',
       role: 'rider', name: 'Kofi', dark: true, tab: 'My Deliveries'));
   for (final dark in [false, true]) {

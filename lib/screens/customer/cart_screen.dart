@@ -24,6 +24,19 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   bool _isLoading = false;
+
+  /// FindFood credit, taken off what the customer pays.
+  int _credit = 0;
+
+  Future<void> _loadCredit() async {
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
+    final credit = await OrderPayment.creditBalance(token);
+    if (mounted && credit != _credit) setState(() => _credit = credit);
+  }
+
+  int _toPay(CartProvider cart) =>
+      (cart.totalAmount - _credit).clamp(0, cart.totalAmount);
   bool _isDelivery = true;
   bool _isDetectingLocation = false;
   double? _deliveryLatitude;
@@ -41,6 +54,7 @@ class _CartScreenState extends State<CartScreen> {
     super.initState();
     _pickupNameController.text =
         context.read<AuthProvider>().name?.trim() ?? '';
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadCredit());
     if (widget.paymentReference != null &&
         widget.paymentReference!.trim().isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -369,6 +383,19 @@ class _CartScreenState extends State<CartScreen> {
                   _summaryRow('Subtotal', cart.displayTotal),
                   const SizedBox(height: 10),
                   _summaryRow(_isDelivery ? 'Delivery fee' : 'Pickup fee', 'Free'),
+                  if (_credit > 0) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      key: const Key('checkout-credit'),
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('FindFood credit', style: _muted(14)),
+                        Text('−${formatCedis(_credit.clamp(0, cart.totalAmount))}',
+                            style: const TextStyle(
+                                color: AppTheme.success, fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                  ],
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     child: Divider(height: 1, color: AppColors.border(context)),
@@ -376,8 +403,8 @@ class _CartScreenState extends State<CartScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Total', style: _strong(16)),
-                      Text(cart.displayTotal, style: _strong(16)),
+                      Text(_credit > 0 ? 'To pay' : 'Total', style: _strong(16)),
+                      Text(formatCedis(_toPay(cart)), style: _strong(16)),
                     ],
                   ),
                 ],
@@ -526,9 +553,9 @@ class _CartScreenState extends State<CartScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Total', style: _muted(12)),
+                  Text(_credit > 0 ? 'To pay' : 'Total', style: _muted(12)),
                   const SizedBox(height: 1),
-                  Text(cart.displayTotal, style: _strong(19)),
+                  Text(formatCedis(_toPay(cart)), style: _strong(19)),
                 ],
               ),
               const SizedBox(width: 20),
