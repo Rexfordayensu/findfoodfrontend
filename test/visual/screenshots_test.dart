@@ -345,6 +345,11 @@ void main() {
         role: 'admin', name: 'Rexford', dark: dark, tab: 'Collapse sidebar',
         size: const Size(1280, 860)));
   }
+  for (final dark in [false, true]) {
+    testWidgets('guest feed ${dark ? 'dark' : 'light'}', (t) => shoot(t,
+        'guest_feed_${dark ? 'dark' : 'light'}',
+        role: 'guest', name: '', dark: dark));
+  }
   testWidgets('admin desktop light', (t) => shoot(t, 'admin_desktop_light',
       role: 'admin', name: 'Ade', dark: false, size: const Size(1280, 860)));
 }

@@ -588,30 +588,34 @@ class _Header extends StatelessWidget {
                 color: textPri,
                 bg: surf,
                 border: border,
+                size: 40,
                 onTap: themeP.toggle,
-                tooltip: 'Toggle theme',
+                tooltip: themeP.isDark
+                    ? 'Switch to light mode'
+                    : 'Switch to dark mode',
               ),
-              const SizedBox(width: 8),
-              _IconBtn(
-                icon: auth.isLoggedIn
-                    ? Icons.account_circle_rounded
-                    : Icons.login_rounded,
-                color: auth.isLoggedIn ? AppTheme.accent : textPri,
-                bg: auth.isLoggedIn ? AppTheme.accentDim : surf,
-                border: auth.isLoggedIn
-                    ? AppTheme.accent.withValues(alpha: 0.3)
-                    : border,
-                onTap: () {
-                  if (!auth.isLoggedIn) {
-                    context.go('/login');
-                  } else if (auth.isCustomer) {
-                    context.push('/profile');
-                  } else {
-                    context.go('/');
-                  }
-                },
-                tooltip: auth.isLoggedIn ? 'Profile' : 'Sign in',
-              ),
+              const SizedBox(width: 10),
+              if (!auth.isLoggedIn)
+                _SignInButton(onTap: () => context.go('/login'))
+              else
+                _AvatarButton(
+                  name: auth.name,
+                  // Customers manage their account here; other roles have
+                  // their own dashboard with settings.
+                  tooltip: auth.isCustomer ? 'Profile' : 'Your dashboard',
+                  onTap: () {
+                    if (auth.isCustomer) {
+                      context.push('/profile');
+                    } else {
+                      context.go(switch (auth.role) {
+                        'admin' => '/admin',
+                        'rider' => '/rider',
+                        'restaurant' => '/restaurant/orders',
+                        _ => '/',
+                      });
+                    }
+                  },
+                ),
             ],
           ),
           // Personalized greeting — only shown when signed in
@@ -1345,6 +1349,7 @@ class _IconBtn extends StatefulWidget {
   final Color color, bg, border;
   final VoidCallback onTap;
   final String tooltip;
+  final double size;
 
   const _IconBtn({
     required this.icon,
@@ -1353,6 +1358,7 @@ class _IconBtn extends StatefulWidget {
     required this.border,
     required this.onTap,
     required this.tooltip,
+    this.size = 44,
   });
 
   @override
@@ -1374,8 +1380,8 @@ class _IconBtnState extends State<_IconBtn> {
           onTap: widget.onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
-            width: 44,
-            height: 44,
+            width: widget.size,
+            height: widget.size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: _hovered
@@ -1479,6 +1485,81 @@ class _LoadingShimmerState extends State<_LoadingShimmer>
       decoration: BoxDecoration(
         color: Color.lerp(bg, border, 0.3 + 0.3 * t),
         borderRadius: BorderRadius.circular(6),
+      ),
+    );
+  }
+}
+
+/// A labelled "Sign in" button: clearer than an icon for new visitors.
+class _SignInButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _SignInButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Sign in',
+      child: Material(
+        color: AppTheme.accent,
+        shape: const StadiumBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: const Key('feed-sign-in'),
+          onTap: onTap,
+          child: const Padding(
+            padding: EdgeInsets.fromLTRB(14, 10, 16, 10),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.person_outline_rounded, size: 18, color: Color(0xFF111111)),
+              SizedBox(width: 6),
+              Text('Sign in',
+                  style: TextStyle(
+                      color: Color(0xFF111111),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700)),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The signed-in person's initial: the familiar way into "my account".
+class _AvatarButton extends StatelessWidget {
+  final String? name;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  const _AvatarButton({required this.name, required this.tooltip, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmed = name?.trim() ?? '';
+    final initial = trimmed.isEmpty ? '' : trimmed[0].toUpperCase();
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        shape: CircleBorder(
+            side: BorderSide(color: AppTheme.accent.withValues(alpha: 0.5), width: 2)),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: const Key('feed-account'),
+          onTap: onTap,
+          child: Ink(
+            width: 42,
+            height: 42,
+            decoration: const BoxDecoration(gradient: AppTheme.brandGradient),
+            child: Center(
+              child: initial.isEmpty
+                  ? const Icon(Icons.person_rounded, size: 22, color: Color(0xFF111111))
+                  : Text(initial,
+                      style: const TextStyle(
+                          color: Color(0xFF111111),
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800)),
+            ),
+          ),
+        ),
       ),
     );
   }
