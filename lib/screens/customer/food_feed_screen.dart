@@ -588,7 +588,7 @@ class _Header extends StatelessWidget {
                 color: textPri,
                 bg: surf,
                 border: border,
-                size: 40,
+                size: 36,
                 onTap: themeP.toggle,
                 tooltip: themeP.isDark
                     ? 'Switch to light mode'
@@ -1506,17 +1506,19 @@ class _SignInButton extends StatelessWidget {
         child: InkWell(
           key: const Key('feed-sign-in'),
           onTap: onTap,
-          child: const Padding(
-            padding: EdgeInsets.fromLTRB(14, 10, 16, 10),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.person_outline_rounded, size: 18, color: Color(0xFF111111)),
-              SizedBox(width: 6),
-              Text('Sign in',
-                  style: TextStyle(
-                      color: Color(0xFF111111),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700)),
-            ]),
+          // Same height as the theme button beside it.
+          child: const SizedBox(
+            height: 36,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 14),
+              child: Center(
+                child: Text('Sign in',
+                    style: TextStyle(
+                        color: Color(0xFF111111),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700)),
+              ),
+            ),
           ),
         ),
       ),
