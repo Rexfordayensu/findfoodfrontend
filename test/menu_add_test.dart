@@ -50,7 +50,10 @@ void main() {
       expect(find.byKey(const Key('menu-add-hint')), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('menu-add-Waakye and salad')));
-      await tester.pump(const Duration(milliseconds: 300));
+      // Let the "+ Add" finish fading into the stepper.
+      for (var i = 0; i < 4; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
       expect(cart.items.single.quantity, 1);
       expect(find.text('1 in your basket'), findsOneWidget);
       expect(find.byKey(const Key('menu-add-Waakye and salad')), findsNothing,
