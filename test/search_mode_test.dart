@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:findfood_app/models/models.dart';
 import 'package:findfood_app/screens/customer/food_feed_screen.dart';
+import 'package:findfood_app/services/local_customer_store.dart';
 import 'package:findfood_app/services/providers.dart';
 import 'package:findfood_app/widgets/live_refresh.dart';
 import 'package:flutter/material.dart';
@@ -112,6 +113,51 @@ void main() {
       await tester.tap(find.byKey(const Key('nav-basket')));
       await settle(tester);
       expect(find.text('Basket page'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    }, () => client);
+  });
+
+  test('half-typed searches are tidied away', () {
+    expect(LocalCustomerStore.tidySearches(['profil', 'profile', 'profi', 'prof', 'pro', 'pr']),
+        ['profile']);
+    expect(LocalCustomerStore.tidySearches(['waakye', 'Jollof', 'jol', 'w', 'pizza']),
+        ['waakye', 'Jollof', 'pizza']);
+  });
+
+  testWidgets('only real searches are remembered, and only shown while searching',
+      (tester) async {
+    await http.runWithClient(() async {
+      await pumpFeed(tester);
+      await tester.tap(find.text('Search'));
+      await settle(tester);
+      // Typing letter by letter saves nothing.
+      for (final partial in ['w', 'wa', 'waa', 'waakye']) {
+        await tester.enterText(find.byKey(const Key('feed-search')), partial);
+        await tester.pump();
+      }
+      await tester.tap(find.byKey(const Key('search-cancel')));
+      await settle(tester);
+      expect(await LocalCustomerStore.recentSearches(), isEmpty);
+
+      // Pressing search does.
+      await tester.tap(find.text('Search'));
+      await settle(tester);
+      await tester.enterText(find.byKey(const Key('feed-search')), 'waakye');
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await settle(tester);
+      expect(await LocalCustomerStore.recentSearches(), ['waakye']);
+
+      await tester.tap(find.byKey(const Key('search-cancel')));
+      await settle(tester);
+      expect(find.byKey(const Key('search-recent')), findsNothing,
+          reason: 'not on the home screen');
+      await tester.tap(find.text('Search'));
+      await settle(tester);
+      expect(find.byKey(const Key('search-recent')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('search-clear-recent')));
+      await settle(tester);
+      expect(find.byKey(const Key('search-recent')), findsNothing);
+      expect(await LocalCustomerStore.recentSearches(), isEmpty);
       await tester.pumpWidget(const SizedBox());
     }, () => client);
   });

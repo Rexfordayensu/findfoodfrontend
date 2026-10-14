@@ -278,12 +278,19 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
     if (query.length < 2) return;
     await LocalCustomerStore.addSearch(query);
     if (!mounted) return;
-    setState(() {
-      _recentSearches
-          .removeWhere((item) => item.toLowerCase() == query.toLowerCase());
-      _recentSearches.insert(0, query);
-      if (_recentSearches.length > 8) _recentSearches.removeLast();
-    });
+    setState(() => _recentSearches =
+        LocalCustomerStore.tidySearches([query, ..._recentSearches]));
+  }
+
+  Future<void> _clearSearches() async {
+    await LocalCustomerStore.clearSearches();
+    if (mounted) setState(() => _recentSearches = []);
+  }
+
+  /// Opening a restaurant from the results is what makes a search worth
+  /// remembering (not every letter typed).
+  void _rememberActiveSearch() {
+    if (_search.trim().isNotEmpty) _rememberSearch(_search);
   }
 
   @override
@@ -352,8 +359,9 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
                   _search = v;
                   _applyFilter();
                 });
-                _rememberSearch(v);
               },
+              onSubmitSearch: _rememberSearch,
+              onClearRecent: _clearSearches,
             ),
 
             // ── FILTER CHIPS ──────────────────────────────────
@@ -477,6 +485,7 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
                                             }
                                           : () {
                                               _rememberViewed(r);
+                                              _rememberActiveSearch();
                                               Navigator.push(
                                                   context,
                                                   MaterialPageRoute(
@@ -581,6 +590,8 @@ class _Header extends StatelessWidget {
   final VoidCallback onCancelSearch;
   final List<String> recentSearches;
   final ValueChanged<String> onSearch;
+  final ValueChanged<String> onSubmitSearch;
+  final VoidCallback onClearRecent;
 
   /// Shown in search mode before anything has been searched.
   static const _suggestions = ['Jollof', 'Waakye', 'Fried rice', 'Kelewele', 'Pizza', 'Burger'];
@@ -591,6 +602,8 @@ class _Header extends StatelessWidget {
     required this.searchPulse,
     required this.onSearchFocused,
     required this.onCancelSearch,
+    required this.onSubmitSearch,
+    required this.onClearRecent,
     required this.auth,
     required this.cart,
     required this.themeP,
@@ -749,6 +762,7 @@ class _Header extends StatelessWidget {
                   surf: surf,
                   border: border,
                   onChanged: onSearch,
+                  onSubmitted: onSubmitSearch,
                   onFocused: onSearchFocused,
                 ),
               ),
@@ -769,6 +783,7 @@ class _Header extends StatelessWidget {
                   : const SizedBox.shrink(),
             ),
           ]),
+          // Popular searches until the customer has some of their own.
           if (searching && recentSearches.isEmpty && searchCtrl.text.isEmpty) ...[
             const SizedBox(height: 10),
             SizedBox(
@@ -789,35 +804,54 @@ class _Header extends StatelessWidget {
                   onPressed: () {
                     searchCtrl.text = _suggestions[i];
                     onSearch(_suggestions[i]);
+                    onSubmitSearch(_suggestions[i]);
                   },
                 ),
               ),
             ),
           ],
-          if (recentSearches.isNotEmpty) ...[
+          // Your recent searches: only in search mode, before typing.
+          if (searching && recentSearches.isNotEmpty && searchCtrl.text.isEmpty) ...[
+            const SizedBox(height: 10),
+            Row(children: [
+              Icon(Icons.history_rounded, size: 15, color: textHint),
+              const SizedBox(width: 6),
+              Text('Recent searches',
+                  style: TextStyle(color: textSec, fontSize: 12.5, fontWeight: FontWeight.w700)),
+              const Spacer(),
+              GestureDetector(
+                key: const Key('search-clear-recent'),
+                onTap: onClearRecent,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  child: Text('Clear',
+                      style: TextStyle(
+                          color: AppColors.accentText(context),
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ]),
             const SizedBox(height: 8),
             SizedBox(
-              height: 26,
+              height: 30,
               child: ListView.separated(
+                key: const Key('search-recent'),
                 scrollDirection: Axis.horizontal,
                 itemCount: recentSearches.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 6),
-                itemBuilder: (_, i) => GestureDetector(
-                  onTap: () {
+                itemBuilder: (_, i) => ActionChip(
+                  visualDensity: VisualDensity.compact,
+                  label: Text(recentSearches[i],
+                      style: TextStyle(color: textSec, fontSize: 12)),
+                  backgroundColor: surf.withValues(alpha: 0.62),
+                  side: BorderSide(color: border.withValues(alpha: 0.7)),
+                  shape: const StadiumBorder(),
+                  onPressed: () {
                     searchCtrl.text = recentSearches[i];
                     onSearch(recentSearches[i]);
+                    onSubmitSearch(recentSearches[i]);
                   },
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: surf.withValues(alpha: 0.62),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: border.withValues(alpha: 0.7)),
-                    ),
-                    child: Text(recentSearches[i],
-                        style: TextStyle(color: textSec, fontSize: 11)),
-                  ),
                 ),
               ),
             ),
@@ -834,12 +868,14 @@ class _AnimatedSearchBar extends StatefulWidget {
   final FocusNode focusNode;
   final Color textPri, textHint, surf, border;
   final ValueChanged<String> onChanged;
+  final ValueChanged<String> onSubmitted;
   final VoidCallback onFocused;
 
   const _AnimatedSearchBar({
     required this.controller,
     required this.focusNode,
     required this.onFocused,
+    required this.onSubmitted,
     required this.textPri,
     required this.textHint,
     required this.surf,
@@ -914,6 +950,8 @@ class _AnimatedSearchBarState extends State<_AnimatedSearchBar> {
                   isDense: true,
                 ),
                 onChanged: widget.onChanged,
+                // Pressing search/enter is a real search: remember it.
+                onSubmitted: widget.onSubmitted,
               ),
             ),
           ),

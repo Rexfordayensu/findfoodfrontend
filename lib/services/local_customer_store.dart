@@ -30,16 +30,42 @@ class LocalCustomerStore {
     return await _getIntList(_recentViewsKey);
   }
 
-  // Fetch historical keyword searches (Still strings because text words are letters)
+  /// Searches kept in history, newest first.
+  static const maxSearches = 8;
+
+  /// Newest first, without half-typed duplicates: "pr", "pro" and "prof"
+  /// are dropped when "profile" is there too (older versions saved every
+  /// keystroke).
+  static List<String> tidySearches(Iterable<String> searches) {
+    final kept = <String>[];
+    for (final raw in searches) {
+      final query = raw.trim();
+      if (query.length < 2) continue;
+      final lower = query.toLowerCase();
+      final covered = kept.any((k) => k.toLowerCase().startsWith(lower));
+      if (covered) continue;
+      kept.removeWhere((k) => lower.startsWith(k.toLowerCase()));
+      kept.add(query);
+    }
+    return kept.take(maxSearches).toList();
+  }
+
   static Future<List<String>> recentSearches() async {
     final data = await _storage.read(key: _recentSearchesKey);
     if (data == null) return [];
     try {
-      return List<String>.from(json.decode(data));
+      final stored = List<String>.from(json.decode(data));
+      final tidy = tidySearches(stored);
+      if (tidy.length != stored.length) {
+        await _storage.write(key: _recentSearchesKey, value: json.encode(tidy));
+      }
+      return tidy;
     } catch (_) {
       return [];
     }
   }
+
+  static Future<void> clearSearches() => _storage.delete(key: _recentSearchesKey);
 
   // Toggle restaurant favorite status natively using an integer
   static Future<void> toggleFavorite(int restaurantId) async {
@@ -75,10 +101,7 @@ class LocalCustomerStore {
     if (data != null) {
       try { searches = List<String>.from(json.decode(data)); } catch (_) {}
     }
-    final cleanQuery = query.trim();
-    searches.remove(cleanQuery);
-    searches.insert(0, cleanQuery);
-    if (searches.length > 15) searches.removeLast();
+    searches = tidySearches([query.trim(), ...searches]);
     await _storage.write(key: _recentSearchesKey, value: json.encode(searches));
   }
 }
