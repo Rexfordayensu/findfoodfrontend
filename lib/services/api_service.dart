@@ -976,6 +976,7 @@ class ApiService {
     required int orderId,
     required String reason,
     String? details,
+    String? photoUrl,
   }) async {
     final response = await _http.post(
       Uri.parse('$baseUrl/orders/$orderId/issues'),
@@ -983,10 +984,32 @@ class ApiService {
       body: jsonEncode({
         'reason': reason,
         if (details != null && details.isNotEmpty) 'details': details,
+        if (photoUrl != null) 'photo_url': photoUrl,
       }),
     );
     if (response.statusCode == 201) return _decode(response);
     throw Exception(_errorDetail(response, 'Could not send your report'));
+  }
+
+  /// Uploads a photo of what arrived; returns its URL for [reportOrderIssue].
+  static Future<String> uploadIssuePhoto({
+    required String token,
+    required int orderId,
+    required Uint8List imageBytes,
+    required String filename,
+  }) async {
+    final request = http.MultipartRequest(
+        'POST', Uri.parse('$baseUrl/orders/$orderId/issues/photo'));
+    request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(http.MultipartFile.fromBytes(
+      'file',
+      imageBytes,
+      filename: filename,
+      contentType: _imageMediaType(filename),
+    ));
+    final response = await http.Response.fromStream(await _http.send(request));
+    if (response.statusCode == 200) return '${_decode(response)['photo_url']}';
+    throw Exception(_errorDetail(response, 'Could not upload your photo'));
   }
 
   static Future<List<Map<String, dynamic>>> getOrderIssues(
@@ -1018,6 +1041,7 @@ class ApiService {
     required int issueId,
     required String action, // 'refund' or 'dismiss'
     String? note,
+    int? amount, // pesewas for a partial refund; null refunds the whole order
   }) async {
     final response = await _http.post(
       Uri.parse('$baseUrl/admin/issues/$issueId/resolve'),
@@ -1025,6 +1049,7 @@ class ApiService {
       body: jsonEncode({
         'action': action,
         if (note != null && note.isNotEmpty) 'note': note,
+        if (amount != null) 'amount': amount,
       }),
     );
     if (response.statusCode == 200) return _decode(response);

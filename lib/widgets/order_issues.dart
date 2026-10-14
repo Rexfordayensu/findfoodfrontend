@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../models/models.dart';
@@ -16,6 +18,21 @@ const issueReasons = {
   'missing_item': 'Missing item',
   'damaged': 'Damaged or spilled',
   'other': 'Something else',
+};
+
+/// Reasons that need a photo of what arrived (server rule).
+const photoRequiredReasons = {'wrong_item', 'missing_item', 'damaged'};
+
+/// A picked photo: its bytes and file name.
+typedef IssuePhoto = ({Uint8List bytes, String name});
+
+/// Picks a photo for a report; replaced in tests.
+@visibleForTesting
+Future<IssuePhoto?> Function() pickIssuePhoto = () async {
+  final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery, imageQuality: 80, maxWidth: 1600, maxHeight: 1600);
+  if (picked == null) return null;
+  return (bytes: await picked.readAsBytes(), name: picked.name);
 };
 
 /// Problems can be reported up to this long after delivery (server rule).
@@ -65,7 +82,21 @@ class _ReportFormState extends State<_ReportForm> {
   late String? _reason =
       widget.reasons.length == 1 ? widget.reasons.keys.single : null;
   final _details = TextEditingController();
+  IssuePhoto? _photo;
   bool _sending = false;
+
+  bool get _needsPhoto => photoRequiredReasons.contains(_reason);
+  bool get _takesPhoto => _reason != null && _reason != 'not_delivered';
+
+  Future<void> _pickPhoto() async {
+    final photo = await pickIssuePhoto();
+    if (photo == null || !mounted) return;
+    if (photo.bytes.length > 5 * 1024 * 1024) {
+      showSettingsMessage(context, 'That photo is too large. Try a smaller one.', isError: true);
+      return;
+    }
+    setState(() => _photo = photo);
+  }
 
   @override
   void dispose() {
@@ -78,13 +109,28 @@ class _ReportFormState extends State<_ReportForm> {
       showSettingsMessage(context, 'Choose what went wrong.', isError: true);
       return;
     }
+    if (_needsPhoto && _photo == null) {
+      showSettingsMessage(context, 'Add a photo of what you received.', isError: true);
+      return;
+    }
     setState(() => _sending = true);
     try {
+      final token = context.read<AuthProvider>().token!;
+      final photo = _takesPhoto ? _photo : null;
+      final photoUrl = photo == null
+          ? null
+          : await ApiService.uploadIssuePhoto(
+              token: token,
+              orderId: widget.order.id,
+              imageBytes: photo.bytes,
+              filename: photo.name,
+            );
       await ApiService.reportOrderIssue(
-        token: context.read<AuthProvider>().token!,
+        token: token,
         orderId: widget.order.id,
         reason: _reason!,
         details: _details.text.trim(),
+        photoUrl: photoUrl,
       );
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -121,7 +167,16 @@ class _ReportFormState extends State<_ReportForm> {
               ),
           ]),
         ),
-        const SizedBox(height: 8),
+        if (_takesPhoto) ...[
+          const SizedBox(height: 8),
+          _PhotoField(
+            photo: _photo,
+            required: _needsPhoto,
+            onPick: _pickPhoto,
+            onRemove: () => setState(() => _photo = null),
+          ),
+        ],
+        const SizedBox(height: 12),
         AppTextField(
           key: const Key('issue-details'),
           controller: _details,
@@ -129,7 +184,9 @@ class _ReportFormState extends State<_ReportForm> {
           prefixIcon: Icons.edit_note_rounded,
           maxLines: 3,
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 14),
+        const _HonestyNote(),
+        const SizedBox(height: 16),
         PrimaryButton(
           key: const Key('issue-submit'),
           label: 'Send report',
@@ -138,6 +195,123 @@ class _ReportFormState extends State<_ReportForm> {
         ),
       ],
     );
+  }
+}
+
+class _PhotoField extends StatelessWidget {
+  final IssuePhoto? photo;
+  final bool required;
+  final VoidCallback onPick;
+  final VoidCallback onRemove;
+
+  const _PhotoField({
+    required this.photo,
+    required this.required,
+    required this.onPick,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textPri = AppColors.textPrimary(context);
+    final textSec = AppColors.textSecondary(context);
+    final picked = photo;
+    if (picked != null) {
+      return Container(
+        key: const Key('issue-photo-preview'),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppColors.surface(context),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border(context)),
+        ),
+        child: Row(children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.memory(picked.bytes, width: 64, height: 64, fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox(width: 64, height: 64)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Photo added',
+                  style: TextStyle(color: textPri, fontWeight: FontWeight.w700, fontSize: 14)),
+              const SizedBox(height: 2),
+              Text(picked.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: textSec, fontSize: 12)),
+            ]),
+          ),
+          TextButton(onPressed: onPick, child: const Text('Change')),
+          IconButton(
+            tooltip: 'Remove photo',
+            onPressed: onRemove,
+            icon: Icon(Icons.close_rounded, color: textSec, size: 20),
+          ),
+        ]),
+      );
+    }
+    return Material(
+      color: AppTheme.accent.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        key: const Key('issue-add-photo'),
+        borderRadius: BorderRadius.circular(14),
+        onTap: onPick,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppTheme.accentDeep.withValues(alpha: 0.35)),
+          ),
+          child: Row(children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppTheme.accent.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.add_a_photo_rounded, color: AppTheme.accentDeep, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Add a photo of what arrived',
+                    style: TextStyle(color: textPri, fontWeight: FontWeight.w700, fontSize: 14)),
+                const SizedBox(height: 2),
+                Text(
+                    required
+                        ? 'Needed for this report. Show the food and the packaging.'
+                        : 'Optional, but it helps us sort it out faster.',
+                    style: TextStyle(color: textSec, fontSize: 12, height: 1.35)),
+              ]),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _HonestyNote extends StatelessWidget {
+  const _HonestyNote();
+
+  @override
+  Widget build(BuildContext context) {
+    final textSec = AppColors.textSecondary(context);
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Icon(Icons.verified_user_outlined, size: 16, color: textSec),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Text(
+          'We check every report with the restaurant, the rider and the delivery code. '
+          'False reports can get an account suspended.',
+          style: TextStyle(color: textSec, fontSize: 12, height: 1.4),
+        ),
+      ),
+    ]);
   }
 }
 
@@ -308,7 +482,10 @@ class _IssueTile extends StatelessWidget {
               '${created.day}/${created.month} ${created.hour.toString().padLeft(2, '0')}:${created.minute.toString().padLeft(2, '0')}',
           ].join(' · '),
         ),
-        trailing: const Icon(Icons.chevron_right_rounded),
+        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+          _RiskChip(risk: (issue['customer'] as Map?)?['risk'] as String?),
+          const Icon(Icons.chevron_right_rounded),
+        ]),
         onTap: () async {
           final resolved = await showSettingsSheet<bool>(
               context, _ResolveForm(issue: issue));
@@ -329,7 +506,25 @@ class _ResolveForm extends StatefulWidget {
 
 class _ResolveFormState extends State<_ResolveForm> {
   final _note = TextEditingController();
+  final _refundItems = <int>{};
   String? _busy;
+
+  List<Map> get _items =>
+      (widget.issue['items'] as List? ?? const []).whereType<Map>().toList();
+
+  int? get _total => widget.issue['order_total'] as int?;
+
+  int _lineTotal(Map line) =>
+      ((line['price'] as num?) ?? 0).toInt() * ((line['quantity'] as num?) ?? 1).toInt();
+
+  /// Pesewas for the ticked items, or null to refund the whole order.
+  int? get _partialAmount {
+    if (_refundItems.isEmpty) return null;
+    final amount = _refundItems.fold<int>(0, (sum, i) => sum + _lineTotal(_items[i]));
+    final total = _total;
+    if (amount <= 0 || (total != null && amount >= total)) return null;
+    return amount;
+  }
 
   @override
   void dispose() {
@@ -340,16 +535,23 @@ class _ResolveFormState extends State<_ResolveForm> {
   Future<void> _resolve(String action) async {
     setState(() => _busy = action);
     try {
+      final amount = action == 'refund' ? _partialAmount : null;
       await ApiService.resolveIssue(
         token: context.read<AuthProvider>().token!,
         issueId: widget.issue['id'] as int,
         action: action,
         note: _note.text.trim(),
+        amount: amount,
       );
       if (!mounted) return;
       Navigator.of(context).pop(true);
-      showSettingsMessage(context,
-          action == 'refund' ? 'Refund started for the customer.' : 'Report dismissed.');
+      showSettingsMessage(
+          context,
+          action == 'dismiss'
+              ? 'Report dismissed.'
+              : amount == null
+                  ? 'Refund started for the whole order.'
+                  : 'Refund of ${formatCedis(amount)} started.');
     } catch (e) {
       if (mounted) showSettingsMessage(context, friendlyMessage(e), isError: true);
     } finally {
@@ -357,14 +559,38 @@ class _ResolveFormState extends State<_ResolveForm> {
     }
   }
 
+  void _viewPhoto(String url) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: const EdgeInsets.all(12),
+        child: Stack(children: [
+          InteractiveViewer(child: Image.network(url, fit: BoxFit.contain)),
+          Positioned(
+            top: 4,
+            right: 4,
+            child: IconButton(
+              tooltip: 'Close',
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              icon: const Icon(Icons.close_rounded, color: Colors.white),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final issue = widget.issue;
+    final textPri = AppColors.textPrimary(context);
     final textSec = AppColors.textSecondary(context);
-    final items = (issue['items'] as List? ?? const [])
-        .map((line) => '${line['quantity']}× ${line['name']}')
-        .join(', ');
-    final total = issue['order_total'] is int ? formatCedis(issue['order_total'] as int) : null;
+    final total = _total;
+    final photoUrl = issue['photo_url'] as String?;
+    final customer = issue['customer'] as Map?;
+    final evidence = issue['evidence'] as Map?;
+    final partial = _partialAmount;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -377,18 +603,71 @@ class _ResolveFormState extends State<_ResolveForm> {
             if (issue['rider_name'] != null) 'Rider: ${issue['rider_name']}',
           ].join(' · '),
         ),
-        if (items.isNotEmpty)
-          Text('Ordered: $items${total == null ? '' : ' ($total)'}',
-              style: TextStyle(color: textSec, fontSize: 13)),
         if ((issue['details'] as String?)?.isNotEmpty ?? false) ...[
-          const SizedBox(height: 10),
           Text('“${issue['details']}”',
-              style: TextStyle(
-                  color: AppColors.textPrimary(context),
-                  fontSize: 14,
-                  fontStyle: FontStyle.italic)),
+              style: TextStyle(color: textPri, fontSize: 14, fontStyle: FontStyle.italic)),
+          const SizedBox(height: 12),
         ],
-        const SizedBox(height: 16),
+        if (photoUrl != null) ...[
+          GestureDetector(
+            key: const Key('issue-photo'),
+            onTap: () => _viewPhoto(photoUrl),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Image.network(
+                photoUrl,
+                height: 180,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 80,
+                  alignment: Alignment.center,
+                  color: AppColors.surface(context),
+                  child: Text("Couldn't load the photo",
+                      style: TextStyle(color: textSec, fontSize: 13)),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ] else if (photoRequiredReasons.contains(issue['reason'])) ...[
+          Text('No photo was attached.', style: TextStyle(color: textSec, fontSize: 13)),
+          const SizedBox(height: 12),
+        ],
+        if (customer != null) ...[
+          _TrustCard(customer: customer),
+          const SizedBox(height: 10),
+        ],
+        if (evidence != null && evidence.isNotEmpty) ...[
+          _EvidenceCard(evidence: evidence),
+          const SizedBox(height: 16),
+        ],
+        if (_items.isNotEmpty) ...[
+          Text('What to refund',
+              style: TextStyle(color: textPri, fontWeight: FontWeight.w700, fontSize: 14)),
+          Text('Tick only what went wrong, or leave all unticked to refund the whole order.',
+              style: TextStyle(color: textSec, fontSize: 12, height: 1.35)),
+          const SizedBox(height: 4),
+          for (var i = 0; i < _items.length; i++)
+            CheckboxListTile(
+              key: Key('refund-item-$i'),
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: _refundItems.contains(i),
+              onChanged: _busy != null
+                  ? null
+                  : (checked) => setState(() =>
+                      checked == true ? _refundItems.add(i) : _refundItems.remove(i)),
+              title: Text('${_items[i]['quantity']}× ${_items[i]['name']}',
+                  style: TextStyle(color: textPri, fontSize: 14)),
+              secondary: _items[i]['price'] == null
+                  ? null
+                  : Text(formatCedis(_lineTotal(_items[i])),
+                      style: TextStyle(color: textSec, fontSize: 13)),
+            ),
+          const SizedBox(height: 8),
+        ],
         AppTextField(
           key: const Key('issue-note'),
           controller: _note,
@@ -399,7 +678,9 @@ class _ResolveFormState extends State<_ResolveForm> {
         const SizedBox(height: 16),
         PrimaryButton(
           key: const Key('issue-refund'),
-          label: 'Refund customer${total == null ? '' : ' ($total)'}',
+          label: partial != null
+              ? 'Refund ${formatCedis(partial)}'
+              : 'Refund whole order${total == null ? '' : ' (${formatCedis(total)})'}',
           isLoading: _busy == 'refund',
           onPressed: _busy == null ? () => _resolve('refund') : null,
         ),
@@ -411,6 +692,163 @@ class _ResolveFormState extends State<_ResolveForm> {
             onPressed: _busy == null ? () => _resolve('dismiss') : null,
             child: const Text('Dismiss report'),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RiskChip extends StatelessWidget {
+  final String? risk;
+  const _RiskChip({required this.risk});
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, color) = switch (risk) {
+      'high' => ('High risk', AppTheme.danger),
+      'new' => ('New customer', AppTheme.warning),
+      'normal' => ('Good standing', AppTheme.success),
+      _ => (null, AppTheme.info),
+    };
+    if (label == null) return const SizedBox.shrink();
+    return Container(
+      key: Key('risk-$risk'),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(label,
+          style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 11)),
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  final String title;
+  final Widget? trailing;
+  final List<Widget> children;
+  const _InfoCard({super.key, required this.title, this.trailing, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface(context),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border(context)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(
+            child: Text(title,
+                style: TextStyle(
+                    color: AppColors.textPrimary(context),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13)),
+          ),
+          if (trailing != null) trailing!,
+        ]),
+        const SizedBox(height: 6),
+        ...children,
+      ]),
+    );
+  }
+}
+
+class _Fact extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final Color? color;
+  const _Fact(this.icon, this.text, {this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final tint = color ?? AppColors.textSecondary(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(icon, size: 15, color: tint),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(text,
+              style: TextStyle(
+                  color: color ?? AppColors.textSecondary(context), fontSize: 12.5, height: 1.35)),
+        ),
+      ]),
+    );
+  }
+}
+
+class _TrustCard extends StatelessWidget {
+  final Map customer;
+  const _TrustCard({required this.customer});
+
+  @override
+  Widget build(BuildContext context) {
+    final days = customer['account_days'] as int?;
+    final completed = customer['completed_orders'] ?? 0;
+    final reports = customer['reports_90d'] ?? 0;
+    final refunds = customer['refunds_90d'] ?? 0;
+    final refunded = (customer['refunded_amount_90d'] as num?)?.toInt() ?? 0;
+    return _InfoCard(
+      key: const Key('issue-trust'),
+      title: 'Customer track record',
+      trailing: _RiskChip(risk: customer['risk'] as String?),
+      children: [
+        _Fact(Icons.person_outline_rounded,
+            days == null ? 'Account age unknown' : 'Account ${_age(days)} old'),
+        _Fact(Icons.receipt_long_outlined,
+            '$completed completed order${completed == 1 ? '' : 's'}'),
+        _Fact(
+          Icons.flag_outlined,
+          '$reports report${reports == 1 ? '' : 's'} and $refunds refund${refunds == 1 ? '' : 's'} '
+          'in the last 90 days${refunded > 0 ? ' (${formatCedis(refunded)} refunded)' : ''}',
+          color: customer['risk'] == 'high' ? AppTheme.danger : null,
+        ),
+      ],
+    );
+  }
+
+  static String _age(int days) {
+    if (days < 1) return 'less than a day';
+    if (days < 60) return '$days day${days == 1 ? '' : 's'}';
+    return '${days ~/ 30} months';
+  }
+}
+
+class _EvidenceCard extends StatelessWidget {
+  final Map evidence;
+  const _EvidenceCard({required this.evidence});
+
+  @override
+  Widget build(BuildContext context) {
+    String? time(String key) {
+      final value = DateTime.tryParse('${evidence[key]}')?.toLocal();
+      if (value == null) return null;
+      return '${value.day}/${value.month} ${value.hour.toString().padLeft(2, '0')}:'
+          '${value.minute.toString().padLeft(2, '0')}';
+    }
+
+    final collected = time('collected_at');
+    final completed = time('completed_at');
+    final confirmed = evidence['customer_confirmed_with_code'] == true;
+    return _InfoCard(
+      key: const Key('issue-evidence'),
+      title: 'Handover evidence',
+      children: [
+        if (collected != null)
+          _Fact(Icons.storefront_outlined, 'Rider collected it with the pickup code at $collected'),
+        if (completed != null)
+          _Fact(Icons.home_outlined, 'Delivered at $completed'),
+        _Fact(
+          confirmed ? Icons.verified_rounded : Icons.help_outline_rounded,
+          confirmed
+              ? 'The customer gave the rider their delivery code'
+              : 'Not confirmed with the customer\'s delivery code',
+          color: confirmed ? AppTheme.success : AppTheme.warning,
         ),
       ],
     );
