@@ -7,6 +7,7 @@ import '../../services/api_service.dart';
 import '../../services/providers.dart';
 import '../../widgets/glass.dart';
 import '../../widgets/promotion_card.dart';
+import '../../widgets/reviews.dart';
 import '../../utils/friendly_error.dart';
 import '../../widgets/error_view.dart';
 
@@ -32,6 +33,8 @@ class MenuDetailScreen extends StatefulWidget {
 class _MenuDetailScreenState extends State<MenuDetailScreen> {
   List<MenuItem> _menu = [];
   List<Promotion> _promotions = [];
+  List<Review> _reviews = [];
+  bool _reviewsLoading = true;
   bool _loading = true;
   String _error = '';
 
@@ -47,6 +50,7 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
       _error = '';
     });
     _loadPromotions();
+    _loadReviews();
     try {
       final items = await ApiService.getMenu(widget.restaurant.id);
       if (!mounted) return;
@@ -56,6 +60,17 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
       setState(() => _error = friendlyMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _loadReviews() async {
+    try {
+      final reviews = await ApiService.getRestaurantReviews(widget.restaurant.id);
+      if (mounted) setState(() => _reviews = reviews);
+    } catch (_) {
+      // Reviews are extra; the menu still works without them.
+    } finally {
+      if (mounted) setState(() => _reviewsLoading = false);
     }
   }
 
@@ -440,7 +455,7 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
             )
           else
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (_, i) => _MenuItemCard(
@@ -449,6 +464,14 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
                   ),
                   childCount: _menu.length,
                 ),
+              ),
+            ),
+          if (!_loading && _error.isEmpty)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
+              sliver: SliverToBoxAdapter(
+                child: ReviewsSection(
+                    reviews: _reviews, loading: _reviewsLoading),
               ),
             ),
         ],

@@ -29,10 +29,14 @@ class Restaurant {
     this.ratingCount = 0,
   });
 
-  /// "4.5 (12)" for rated restaurants, "New" otherwise.
-  String get ratingLabel => averageRating == null
-      ? 'New'
-      : '${averageRating!.toStringAsFixed(1)} ($ratingCount)';
+  /// Fewer reviews than this and one bad night would define a restaurant.
+  static const minReviewsForScore = 5;
+
+  /// "4.5 (12)" once a restaurant has enough reviews, "New" until then.
+  String get ratingLabel =>
+      averageRating == null || ratingCount < minReviewsForScore
+          ? 'New'
+          : '${averageRating!.toStringAsFixed(1)} ($ratingCount)';
 
   factory Restaurant.fromJson(Map<String, dynamic> json) => Restaurant(
         id: json['id'],

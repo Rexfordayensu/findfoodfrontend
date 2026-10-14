@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../models/models.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
+import '../widgets/reviews.dart';
 
 // Custom exception for email not verified during login
 class EmailNotVerifiedException implements Exception {
@@ -948,6 +949,7 @@ class ApiService {
     required int restaurantRating,
     int? riderRating, // omitted for pickup orders
     String? comment,
+    List<String> issues = const [],
   }) async {
     final response = await _http.post(
       Uri.parse('$baseUrl/orders/$orderId/rate'),
@@ -959,11 +961,22 @@ class ApiService {
         'restaurant_rating': restaurantRating,
         if (riderRating != null) 'rider_rating': riderRating,
         if (comment != null) 'comment': comment,
+        if (issues.isNotEmpty) 'issues': issues,
       }),
     );
     if (response.statusCode != 201 && response.statusCode != 200) {
       throw Exception(_errorDetail(response, 'Failed to submit rating'));
     }
+  }
+
+  /// Public reviews of a restaurant, newest first.
+  static Future<List<Review>> getRestaurantReviews(int restaurantId) async {
+    final response =
+        await _http.get(Uri.parse('$baseUrl/restaurants/$restaurantId/reviews'));
+    if (response.statusCode == 200) {
+      return _decodeList(response).map((r) => Review.fromJson(r)).toList();
+    }
+    throw Exception('Failed to load reviews (${response.statusCode})');
   }
 
   static Future<void> changeMyPassword({

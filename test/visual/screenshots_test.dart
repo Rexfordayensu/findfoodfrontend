@@ -128,6 +128,13 @@ final routes = <String, Object>{
     ],
   },
   '/restaurants/1/promotions': [],
+  '/restaurants/1/reviews': [
+    {'id': 2, 'rating': 5, 'comment': 'Best waakye in Accra, still hot on arrival.',
+     'issues': [], 'reviewer': 'Kwame A.', 'verified': true, 'created_at': ago(90)},
+    {'id': 1, 'rating': 2, 'comment': 'Got jollof instead of the fried rice I ordered.',
+     'issues': ['wrong_item'], 'reviewer': 'Ama M.', 'verified': true,
+     'created_at': ago(60 * 26)},
+  ],
   '/restaurants/1/menu': [
     {'id': 1, 'name': 'waakye and salad', 'description': 'Tasty',
      'price': 5000, 'is_available': true, 'restaurant_id': 1},
@@ -350,6 +357,9 @@ void main() {
         'guest_feed_${dark ? 'dark' : 'light'}',
         role: 'guest', name: '', dark: dark));
   }
+  testWidgets('menu reviews light', (t) => shoot(t, 'menu_reviews_light',
+      role: 'customer', name: 'Rexford', dark: false, then: 'Ghanaian',
+      cart: menuCart(), size: const Size(400, 1700)));
   testWidgets('admin desktop light', (t) => shoot(t, 'admin_desktop_light',
       role: 'admin', name: 'Ade', dark: false, size: const Size(1280, 860)));
 }

@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../services/providers.dart';
 import '../theme.dart';
 import 'account_settings.dart';
+import 'reviews.dart';
 import 'widgets.dart';
 import '../utils/friendly_error.dart';
 
@@ -28,7 +29,11 @@ class _RateOrderFormState extends State<_RateOrderForm> {
   int _restaurantRating = 0;
   int _riderRating = 0;
   final _commentCtrl = TextEditingController();
+  final Set<String> _issues = {};
   bool _saving = false;
+
+  /// Problems are only asked about when the food was rated 3 stars or less.
+  bool get _askWhatWentWrong => _restaurantRating > 0 && _restaurantRating <= 3;
 
   bool get _hasRider => widget.order.fulfillmentMethod == 'delivery';
 
@@ -51,6 +56,7 @@ class _RateOrderFormState extends State<_RateOrderForm> {
         restaurantRating: _restaurantRating,
         riderRating: _hasRider ? _riderRating : null,
         comment: _commentCtrl.text.trim().isEmpty ? null : _commentCtrl.text.trim(),
+        issues: _askWhatWentWrong ? _issues.toList() : const [],
       );
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -104,6 +110,27 @@ class _RateOrderFormState extends State<_RateOrderForm> {
         ),
         _stars('rate-restaurant', 'How was the food?', _restaurantRating,
             (v) => setState(() => _restaurantRating = v)),
+        if (_askWhatWentWrong) ...[
+          Text('What went wrong?',
+              style: TextStyle(
+                  color: AppColors.textPrimary(context),
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final entry in {
+              ...restaurantIssueLabels,
+              if (_hasRider) ...deliveryIssueLabels,
+            }.entries)
+              FilterChip(
+                key: Key('issue-${entry.key}'),
+                label: Text(entry.value),
+                selected: _issues.contains(entry.key),
+                onSelected: (on) => setState(
+                    () => on ? _issues.add(entry.key) : _issues.remove(entry.key)),
+              ),
+          ]),
+          const SizedBox(height: 16),
+        ],
         if (_hasRider)
           _stars('rate-rider', 'How was the delivery?', _riderRating,
               (v) => setState(() => _riderRating = v)),
