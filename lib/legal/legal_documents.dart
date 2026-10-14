@@ -9,7 +9,7 @@
 /// and **text** is bold.
 library;
 
-const supportEmail = 'rexfordayensu10@gmail.com';
+const supportEmail = 'findfood.support@gmail.com';
 const legalUpdated = '14 October 2026';
 
 class LegalSection {
