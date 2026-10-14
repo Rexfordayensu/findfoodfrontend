@@ -9,7 +9,7 @@
 /// and **text** is bold.
 library;
 
-const supportEmail = 'support@findfood.app';
+const supportEmail = 'rexfordayensu10@gmail.com';
 const legalUpdated = '14 October 2026';
 
 class LegalSection {
@@ -299,8 +299,8 @@ const privacyPolicy = LegalDocument(
       '- ask us to delete your data, unless we must keep it by law;',
       '- object to us using your data, or ask us to stop direct marketing;',
       '- withdraw consent you have given, such as for notifications or location.',
-      'Email $supportEmail and we will reply within 21 days. If you are not happy with our answer, you can '
-          'complain to the Data Protection Commission of Ghana.',
+      'Just email $supportEmail and we will take care of it for you. We usually reply within a few days. '
+          'If anything still isn\'t right, reply to us and we\'ll keep working with you until it is sorted.',
     ]),
     LegalSection('children', 'Children', [
       'FindFood is not meant for anyone under 18, and we do not knowingly collect children\'s data. If you think '

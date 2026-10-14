@@ -918,7 +918,7 @@ a.l()
 return l},
 nj(a){return new A.UD(a)},
 bpH(a){var s,r,q,p,o,n,m
-A:for(s=a.length,r=0;r<6;++r){q=B.Ub[r]
+A:for(s=a.length,r=0;r<6;++r){q=B.Ua[r]
 p=q.c
 o=p.length
 if(s<o)continue A
@@ -11806,7 +11806,7 @@ acX:function acX(a){this.a=a},
 acY:function acY(a){this.a=a},
 b1l(a){var s,r,q,p,o=J.by(a),n=B.c.ak(A.fj(o,"Exception: ","")),m=n.toLowerCase()
 if(a instanceof A.It||B.c.m(m,"taking too long")||B.c.aT(m,"waking up findfood"))return B.Pc
-if(B.b.fX(B.UX,B.c.glh(o.toLowerCase())))return B.P7
+if(B.b.fX(B.UY,B.c.glh(o.toLowerCase())))return B.P7
 s=$.bds().r6(n)
 s=s==null?null:s.b[1]
 r=A.fd(s==null?"":s,null)
@@ -16495,7 +16495,7 @@ case 4:s=l.a
 s===$&&A.a()
 s=A.c9(s,200)
 r=A.c9(A.agy(l,B.v6,B.UJ),24)
-q=A.c9(A.agy(l,B.v6,B.VG),32)
+q=A.c9(A.agy(l,B.v6,B.VH),32)
 p=A.c9(l.a,10)
 o=A.c9(l.a,12)
 l.d===$&&A.a()
@@ -26440,7 +26440,7 @@ r.toString
 A.em(r)
 q=a.h(0,"swipeEdge")
 q.toString
-return new A.pP(s,r,B.Vl[A.dj(q)])},
+return new A.pP(s,r,B.Vm[A.dj(q)])},
 IZ:function IZ(a,b){this.a=a
 this.b=b},
 pP:function pP(a,b,c){this.a=a
@@ -30093,7 +30093,7 @@ t.Dn.a(a)
 s=J.bk(a)
 r=s.h(a,0)
 r.toString
-switch(B.Ul[A.dj(r)].a){case 0:s=s.hL(a,1)
+switch(B.Uk[A.dj(r)].a){case 0:s=s.hL(a,1)
 r=s[0]
 r.toString
 A.dj(r)
@@ -35878,7 +35878,7 @@ $1(a){this.a.b=A.baC(a.getOutputBounds(A.dt(this.b)))},
 $S:3}
 A.x6.prototype={
 garp(){var s,r,q=new Float32Array(20)
-for(s=this.a,r=0;r<20;++r)if(B.b.m(B.U9,r))q[r]=s[r]/255
+for(s=this.a,r=0;r<20;++r)if(B.b.m(B.U8,r))q[r]=s[r]/255
 else q[r]=s[r]
 return q},
 xf(){return $.br.bg().ColorFilter.MakeMatrix(this.garp())},
@@ -36752,7 +36752,7 @@ l.push(new A.ff(n[0],n[1],n[2],n[3],B.on[m]))}return l},
 dG(a){var s,r,q=this.a
 q===$&&A.a()
 s=q.a.getGlyphPositionAtCoordinate(a.a,a.b)
-r=B.Vn[J.aL(s.affinity.value)]
+r=B.Vq[J.aL(s.affinity.value)]
 return new A.aK(J.aL(s.pos),r)},
 S0(a){var s=this.a
 s===$&&A.a()
@@ -37251,7 +37251,7 @@ A.rG.prototype={
 L(){return"CanvasKitVariant."+this.b}}
 A.aig.prototype={
 goE(){var s=this.b,r=s==null?null:s.canvasKitVariant
-return A.bgi(B.Vx,r==null?"auto":r)},
+return A.bgi(B.Vz,r==null?"auto":r)},
 gNZ(){var s,r=this.b
 if(r==null)s=null
 else{r=r.canvasKitMaximumSurfaces
@@ -39100,7 +39100,7 @@ if(e.b){q=t.f
 d=q.a(q.a(B.ds.i2(a2)).h(0,"data"))
 c=A.cA(d.h(0,"message"))
 if(c!=null&&c.length!==0){b=A.b_i(d,"assertiveness")
-e.a.a2N(c,B.UE[b==null?0:b])}}a.h5(a3,B.ds.cP(!0))
+e.a.a2N(c,B.UD[b==null?0:b])}}a.h5(a3,B.ds.cP(!0))
 return
 case"flutter/navigation":q=a.gdu().b
 p=t.e8
@@ -42063,7 +42063,7 @@ ale(){var s=this,r=s.r
 if(r==null){r=s.r=new A.R6(s.c)
 r.d=new A.ahX(s)}return r},
 R7(a){var s,r=this
-if(B.b.m(B.WL,a.type)){s=r.ale()
+if(B.b.m(B.WM,a.type)){s=r.ale()
 s.toString
 s.saCw(r.c.$0().J8(5e5))
 if(r.f!==B.tR){r.f=B.tR
@@ -43663,7 +43663,7 @@ o=A.dj(s.h(0,"textAlignIndex"))
 n=A.dj(s.h(0,"textDirectionIndex"))
 m=A.he(s.h(0,"fontWeightIndex"))
 l=m!=null?A.b1j(m):"normal"
-p=new A.ayf(new A.ahn(A.alK(s,"fontSize"),l,A.cA(s.h(0,"fontFamily")),B.UB[o],B.on[n],A.alK(s,"letterSpacing"),A.alK(s,"wordSpacing"),A.alK(s,"lineHeight")))
+p=new A.ayf(new A.ahn(A.alK(s,"fontSize"),l,A.cA(s.h(0,"fontFamily")),B.UA[o],B.on[n],A.alK(s,"letterSpacing"),A.alK(s,"wordSpacing"),A.alK(s,"lineHeight")))
 break
 case"TextInput.clearClient":p=B.Jr
 break
@@ -49742,7 +49742,7 @@ if(r>255||r<0){if(s>b){q=this.a
 q.toString
 q.F(0,A.hu(a,b,s))}q=this.a
 q.toString
-q.F(0,A.hu(B.Up,0,1))
+q.F(0,A.hu(B.Uo,0,1))
 b=s+1}}if(b<c)this.Un(a,b,c,!1)}}
 A.kT.prototype={
 F(a,b){this.fs(b,0,b.length,!1)},
@@ -56113,10 +56113,10 @@ r=this.c
 r.toString
 return new A.ab(B.OC,A.a5(A.b([s,new A.ab(B.NF,A.l("My orders",q,q,q,q,A.v(q,q,A.f(r).ax.a===B.d?B.w:B.v,q,q,q,q,q,q,q,q,32,q,q,B.M,q,q,!0,q,-0.8,q,q,q,q,q,q),q,q,q),q)],t.p),B.u,q,B.f,B.h),q)},
 aiz(){var s,r,q,p,o=this
-if(o.d)return B.UG
+if(o.d)return B.UF
 s=o.e
 if(s!=null)return A.b([A.awV(new A.t7(s,o.gYQ(),null),!1)],t.p)
-if(J.dw(o.f))return B.UW
+if(J.dw(o.f))return B.UX
 s=J.eA(o.f,new A.aF_())
 r=A.a9(s,s.$ti.i("N.E"))
 s=J.eA(o.f,new A.aF0())
@@ -56801,7 +56801,7 @@ $S:0}
 A.a78.prototype={
 A(a){return A.b5X(A.aB(B.uz,A.f(a).ax.a===B.d?B.A:B.z,null,null,19),this.c,new A.aTY(),null,this.d,B.Z,"Sort restaurants",t.N)}}
 A.aTY.prototype={
-$1(a){return B.Vc},
+$1(a){return B.Vd},
 $S:475}
 A.a_0.prototype={
 A(a){return A.fG(this.e,new A.aAw(this),null)}}
@@ -58000,7 +58000,7 @@ q=new A.x(!0,q,p,p,p,p,p,B.B,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p,p)}else q=p
 n.push(new A.e1(r,p,p,B.aQ,p,p,p,p,p,p,q))}return A.b6y(A.dg(n,p,p,p,p,p,p,p,p,this.d,p))}}
 A.a1W.prototype={
 A(a){var s=null,r=A.f(a).ax.a===B.d?B.A:B.z,q=A.bM(a),p=A.a0(18),o=A.aZ(A.f(a).ax.a===B.d?B.G:B.H,B.m,1),n=A.v(s,s,r,s,s,s,s,s,s,s,s,14,s,s,s,s,1.5,!0,s,s,s,s,s,s,s,s),m=t.p
-return A.a5(A.b([A.a3(s,A.ad(A.b([B.RJ,B.aU,A.aI(A.b6y(A.dg(A.b([B.a60,A.dg(s,s,s,s,s,s,s,s,s,A.v(s,s,A.f(a).ax.a===B.d?B.w:B.v,s,s,s,s,s,s,s,s,s,s,s,B.B,s,s,!0,s,s,s,s,s,s,s,s),"support@findfood.app")],t.VO),s,s,s,s,s,s,s,s,n,s)),1)],m),B.j,s,B.f,B.h,0),B.i,s,s,new A.W(q,s,o,p,s,s,B.p),s,s,s,s,B.eE,s,s,1/0),B.W,A.Z_(B.R4,s,B.abB,this.c,s)],m),B.j,s,B.f,B.h)}}
+return A.a5(A.b([A.a3(s,A.ad(A.b([B.RJ,B.aU,A.aI(A.b6y(A.dg(A.b([B.a60,A.dg(s,s,s,s,s,s,s,s,s,A.v(s,s,A.f(a).ax.a===B.d?B.w:B.v,s,s,s,s,s,s,s,s,s,s,s,B.B,s,s,!0,s,s,s,s,s,s,s,s),"rexfordayensu10@gmail.com")],t.VO),s,s,s,s,s,s,s,s,n,s)),1)],m),B.j,s,B.f,B.h,0),B.i,s,s,new A.W(q,s,o,p,s,s,B.p),s,s,s,s,B.eE,s,s,1/0),B.W,A.Z_(B.R4,s,B.abB,this.c,s)],m),B.j,s,B.f,B.h)}}
 A.uc.prototype={
 O(){return new A.MJ(B.W1)}}
 A.MJ.prototype={
@@ -62148,8 +62148,8 @@ $S:0}
 A.ts.prototype={
 gakj(){var s,r=this.c
 A:{if("restaurant"===r){s=B.UP
-break A}if("rider"===r){s=B.Vf
-break A}if("admin"===r){s=B.Vv
+break A}if("rider"===r){s=B.Vh
+break A}if("admin"===r){s=B.Vx
 break A}s=B.WF
 break A}return s},
 A(a){var s,r,q,p,o,n,m,l,k,j,i=null
@@ -62165,7 +62165,7 @@ j=A.f(a).ax.a===B.d?B.A:B.z
 p.push(A.b4c(A.b([new A.ab(B.eC,A.l(l.b,i,i,i,i,new A.x(!0,j,i,i,i,i,i,i,i,i,i,i,1.5,i,i,i,i,i,i,i,i,i,i,i,i,i),i,i,i),i)],q),i,i,i,B.Z,k))}p.push(B.aq)
 o=A.a0(16)
 n=A.aZ(B.n.a_(0.3),B.m,1)
-p.push(A.a3(i,A.ad(A.b([B.RD,B.aU,A.aI(A.av2("Still need help? Email us at support@findfood.app",A.v(i,i,A.f(a).ax.a===B.d?B.w:B.v,i,i,i,i,i,i,i,i,i,i,i,i,i,i,!0,i,i,i,i,i,i,i,i)),1)],q),B.j,i,B.f,B.h,0),B.i,i,i,new A.W(B.ew,i,n,o,i,i,B.p),i,i,i,i,B.bd,i,i,i))
+p.push(A.a3(i,A.ad(A.b([B.RD,B.aU,A.aI(A.av2("Still need help? Email us at rexfordayensu10@gmail.com",A.v(i,i,A.f(a).ax.a===B.d?B.w:B.v,i,i,i,i,i,i,i,i,i,i,i,i,i,i,!0,i,i,i,i,i,i,i,i)),1)],q),B.j,i,B.f,B.h,0),B.i,i,i,new A.W(B.ew,i,n,o,i,i,B.p),i,i,i,i,B.bd,i,i,i))
 return A.cW(r,s,A.ja(p,B.cI,i,B.av),i,i,!1,i)}}
 A.Yb.prototype={
 A(a){return new A.xW("Sign out",new A.awF(a),B.Gx)}}
@@ -64830,7 +64830,7 @@ r=A.jU(B.ZI,B.o,r==null?1:r)
 r.toString
 q=p.a6(q.gp())
 if(q==null)q=1
-return A.b0g(A.b6a(null,B.i,new A.yr(q,B.Vj,new A.bL(B.HK,this.e)),s,1,B.a4r),r)}}
+return A.b0g(A.b6a(null,B.i,new A.yr(q,B.Vk,new A.bL(B.HK,this.e)),s,1,B.a4r),r)}}
 A.PO.prototype={
 l(){var s=this,r=s.b8$
 if(r!=null)r.K(s.gf6())
@@ -68998,7 +68998,7 @@ A.AP.prototype={
 L(){return"_CornerId."+this.b}}
 A.oi.prototype={}
 A.yv.prototype={
-mZ(){var s,r,q,p=this,o=A.bom(B.VE,new A.ap2(p,p.b.gbe().a1(0,p.a.gbe()))),n=p.a
+mZ(){var s,r,q,p=this,o=A.bom(B.VF,new A.ap2(p,p.b.gbe().a1(0,p.a.gbe()))),n=p.a
 n.toString
 s=o.a
 r=p.tC(n,s)
@@ -70590,7 +70590,7 @@ A.aQK.prototype={
 $2(a,b){return this.a.D$.cF(a,this.b)},
 $S:17}
 A.a0_.prototype={
-gIE(){return B.UR},
+gIE(){return B.US},
 O2(a){var s
 switch(a.a){case 0:s=this.d.b
 break
@@ -74753,7 +74753,7 @@ A.aQZ.prototype={
 $0(){return A.b([],t.q1)},
 $S:381}
 A.a0P.prototype={
-gIE(){return B.V1},
+gIE(){return B.V3},
 O2(a){var s,r=this
 switch(a.a){case 0:s=r.d.ax
 break
@@ -75500,7 +75500,7 @@ return s.b}}
 A.l5.prototype={
 L(){return"_ListTileSlot."+this.b}}
 A.a2V.prototype={
-gIE(){return B.Vu},
+gIE(){return B.Vw},
 O2(a){var s,r=this
 switch(a.a){case 0:s=r.d
 break
@@ -75829,7 +75829,7 @@ r.f=s.d},
 $S:0}
 A.Vq.prototype={
 A(a){var s=this.c.U(0,new A.k(0,40.95))
-return A.b6a(A.DR(null,B.Lx,!0),B.x,new A.yr(1,B.Wi,new A.bL(B.HI,B.D)),s,1.25,B.a4s)}}
+return A.b6a(A.DR(null,B.Lx,!0),B.x,new A.yr(1,B.Wh,new A.bL(B.HI,B.D)),s,1.25,B.a4s)}}
 A.u0.prototype={
 L(){return"MaterialType."+this.b}}
 A.G6.prototype={
@@ -76316,7 +76316,7 @@ $3(a,b,c){return new A.r3(b,this.a,!1,c,null)},
 $S:173}
 A.GQ.prototype={
 Jf(a){var s=t.Tr
-s=A.a9(new A.al(B.VC,new A.aqW(a),s),s.i("aA.E"))
+s=A.a9(new A.al(B.VE,new A.aqW(a),s),s.i("aA.E"))
 return s},
 j(a,b){var s,r=this
 if(b==null)return!1
@@ -79801,7 +79801,7 @@ gcu(){return new A.b6(new A.aUa(this),t.e)},
 gEk(){return 14},
 gGe(){return 14},
 gHc(){return 14},
-gHA(){return B.WI},
+gHA(){return B.WJ},
 gvS(){return 31},
 gvU(){return 51},
 gHK(){return B.a4k},
@@ -98552,7 +98552,7 @@ q.bI()
 q.aq$.F(0,s.garx())
 s.e=q}return q},
 gYA(){var s=this.f
-return s===$?this.f=new A.aFC(1,B.UA,B.cP):s},
+return s===$?this.f=new A.aFC(1,B.Uz,B.cP):s},
 ghP(){var s=this.z
 s=s==null?null:$.cT().d===s
 return s===!0},
@@ -116633,7 +116633,7 @@ s=A.fj(a.c,r,"%0D%0A")
 p=p+'; filename="'+A.fj(s,'"',"%22")+'"'
 return p+"\r\n\r\n"},
 agA(){var s,r=J.b_e(51,t.S)
-for(s=0;s<51;++s)r[s]=B.Wj[$.bbE().Qt(66)]
+for(s=0;s<51;++s)r[s]=B.Wi[$.bbE().Qt(66)]
 return"dart-http-boundary-"+A.hu(r,0,null)}}
 A.aq3.prototype={
 $2(a,b){var s=this.a
@@ -122630,8 +122630,8 @@ B.Ii=new A.W(null,null,null,B.qA,null,null,B.p)
 B.F=new A.B(1,0.13333333333333333,0.7725490196078432,0.3686274509803922,B.k)
 B.mj=new A.W(B.F,null,null,null,null,null,B.ap)
 B.c8=new A.Jz(0,"clamp")
-B.Uz=s([B.n,B.bJ],t.g)
-B.uZ=new A.hk(B.cS,B.hi,B.c8,B.Uz,null,null)
+B.Uy=s([B.n,B.bJ],t.g)
+B.uZ=new A.hk(B.cS,B.hi,B.c8,B.Uy,null,null)
 B.Ik=new A.W(null,null,null,null,null,B.uZ,B.p)
 B.Il=new A.W(null,null,null,null,null,B.uZ,B.ap)
 B.j8=new A.W(B.n,null,null,null,null,null,B.ap)
@@ -122639,8 +122639,8 @@ B.KO=new A.B(1,0.996078431372549,0.8431372549019608,0,B.k)
 B.Ku=new A.B(0.2,0,0,0,B.k)
 B.fO=new A.k(0,3)
 B.Ir=new A.d5(0,B.bF,B.Ku,B.fO,8)
-B.Wa=s([B.Ir],t.E)
-B.In=new A.W(B.KO,null,null,null,B.Wa,null,B.ap)
+B.W9=s([B.Ir],t.E)
+B.In=new A.W(B.KO,null,null,null,B.W9,null,B.ap)
 B.Io=new A.Dp(1,"contain")
 B.cl=new A.Dp(2,"cover")
 B.mk=new A.Dp(6,"scaleDown")
@@ -123233,8 +123233,8 @@ B.co=new A.SW(0,"background")
 B.Mm=new A.xv(B.Im,B.co,null,null)
 B.Ln=new A.B(1,1,0.7019607843137254,0,B.k)
 B.KG=new A.B(1,1,0.43529411764705883,0,B.k)
-B.VA=s([B.Ln,B.KG],t.g)
-B.Tm=new A.hk(B.cS,B.hi,B.c8,B.VA,null,null)
+B.VC=s([B.Ln,B.KG],t.g)
+B.Tm=new A.hk(B.cS,B.hi,B.c8,B.VC,null,null)
 B.Ij=new A.W(null,null,null,null,null,B.Tm,B.p)
 B.Hl=new A.en(0.85,-0.4)
 B.um=new A.a6(63605,"MaterialIcons",null,!1)
@@ -123982,76 +123982,76 @@ B.SJ=new A.yg(0,"platformDefault")
 B.SK=new A.yg(1,"inAppWebView")
 B.SL=new A.yg(2,"inAppBrowserView")
 B.oi=new A.yg(3,"externalApplication")
-B.W9=s(["We collect what we need to take, deliver and support your orders, and nothing to sell. We never sell your data.","Restaurants and riders only see what they need for your order, such as your name and delivery location.","Card and Mobile Money details are handled by Paystack. We never see your full card number or PIN.","Location is only used for your delivery pin, and only when you choose to share it.","You can see, correct or delete your data. Email support@findfood.app."],t.s)
-B.Wu=s(['FindFood ("we", "us") runs the FindFood app and website in Ghana and decides how your personal data is used, which makes us the data controller under the Data Protection Act, 2012 (Act 843). You can reach us at support@findfood.app.'],t.s)
-B.SS=new A.cQ("who","Who we are",B.Wu)
-B.Wg=s(["- **Account details:** your name, email address, phone number if you give it, your role (customer, restaurant or rider) and your password, which is stored only as a secure hash. If you sign in with Google, we receive your name, email address and profile picture from Google.","- **Orders:** what you ordered, from where, prices, delivery address and map pin, delivery notes, order status and times, and the handover codes.","- **Payments:** the payment reference, amount, method type and status. Card and Mobile Money details are collected by Paystack, not by us.","- **Location:** the delivery location you choose. If you allow it, the app reads your device's location once to place your pin. We do not track anyone's location in the background.","- **Messages and reports:** chats about an order, ratings and reviews, problem reports and the photos you attach.","- **Restaurant and rider details:** business name, address, opening hours, menu and photos for restaurants; vehicle and payout details for riders.","- **Device and usage:** your IP address, browser or device type, the pages you use, notification settings, and error reports when the app crashes, so we can fix it."],t.s)
-B.SP=new A.cQ("collect","What we collect",B.Wg)
+B.Vo=s(["We collect what we need to take, deliver and support your orders, and nothing to sell. We never sell your data.","Restaurants and riders only see what they need for your order, such as your name and delivery location.","Card and Mobile Money details are handled by Paystack. We never see your full card number or PIN.","Location is only used for your delivery pin, and only when you choose to share it.","You can see, correct or delete your data. Email rexfordayensu10@gmail.com."],t.s)
+B.UH=s(['FindFood ("we", "us") runs the FindFood app and website in Ghana and decides how your personal data is used, which makes us the data controller under the Data Protection Act, 2012 (Act 843). You can reach us at rexfordayensu10@gmail.com.'],t.s)
+B.Tf=new A.cQ("who","Who we are",B.UH)
+B.Wf=s(["- **Account details:** your name, email address, phone number if you give it, your role (customer, restaurant or rider) and your password, which is stored only as a secure hash. If you sign in with Google, we receive your name, email address and profile picture from Google.","- **Orders:** what you ordered, from where, prices, delivery address and map pin, delivery notes, order status and times, and the handover codes.","- **Payments:** the payment reference, amount, method type and status. Card and Mobile Money details are collected by Paystack, not by us.","- **Location:** the delivery location you choose. If you allow it, the app reads your device's location once to place your pin. We do not track anyone's location in the background.","- **Messages and reports:** chats about an order, ratings and reviews, problem reports and the photos you attach.","- **Restaurant and rider details:** business name, address, opening hours, menu and photos for restaurants; vehicle and payout details for riders.","- **Device and usage:** your IP address, browser or device type, the pages you use, notification settings, and error reports when the app crashes, so we can fix it."],t.s)
+B.SP=new A.cQ("collect","What we collect",B.Wf)
 B.Tx=s(["- to create and secure your account and sign you in;","- to take, prepare, deliver and track orders, and to let you chat about them;","- to take payments and make refunds;","- to send order updates, receipts and account messages by email and notifications;","- to prevent fraud and abuse, for example checking reports against handover codes and past reports;","- to answer support requests and resolve complaints;","- to keep the service working, fix errors and improve it;","- to meet our legal duties, such as keeping tax and accounting records.","We only send marketing messages if you agree to receive them, and you can stop them at any time."],t.s)
-B.T4=new A.cQ("use","How we use it",B.Tx)
-B.Vz=s(["We use your data because it is needed to provide the service you asked for (our agreement with you), because we have a legitimate interest in keeping FindFood safe and working well, because the law requires it, or because you have consented, for example to push notifications or sharing your location. You can withdraw consent at any time in your device or browser settings."],t.s)
-B.T0=new A.cQ("basis","Why we are allowed to use it",B.Vz)
+B.T5=new A.cQ("use","How we use it",B.Tx)
+B.VB=s(["We use your data because it is needed to provide the service you asked for (our agreement with you), because we have a legitimate interest in keeping FindFood safe and working well, because the law requires it, or because you have consented, for example to push notifications or sharing your location. You can withdraw consent at any time in your device or browser settings."],t.s)
+B.T0=new A.cQ("basis","Why we are allowed to use it",B.VB)
 B.VJ=s(["We never sell your personal data. We share it only as follows:","- **The restaurant** sees your name, your order and your notes.","- **Your rider** sees your name, delivery location and notes, and can chat with you through the app.","- **Customers** see a restaurant's details and their rider's name and the order's progress.","- **Service providers** who work for us under contract and only use the data to provide their service: Paystack (payments), Google (sign-in), Brevo (email), Cloudinary (photo storage), and our hosting and database providers (Render, Vercel and Neon).","- **Authorities**, where the law requires it or to protect someone's safety, for example the Ghana Police Service when investigating a crime.","- **A buyer or investor**, if FindFood is ever reorganised or sold, under the same protections."],t.s)
-B.T6=new A.cQ("share","Who we share it with",B.VJ)
+B.T8=new A.cQ("share","Who we share it with",B.VJ)
 B.WD=s(["Some of our providers store data on servers outside Ghana, for example in Europe or the United States. When that happens we choose providers with strong security and contractual protections for your data, as Act 843 requires."],t.s)
 B.Tj=new A.cQ("transfers","Data stored outside Ghana",B.WD)
-B.TL=s(["- **Your account:** while it is open. When you close it, we delete or anonymise your personal data within 30 days, except what we must keep below.","- **Orders and payments:** for as long as Ghanaian tax and accounting laws require (generally 6 years).","- **Chats, problem reports and their photos:** up to 12 months after the order, or longer if needed for an open complaint or a legal claim.","- **Error reports:** up to 90 days."],t.s)
-B.SQ=new A.cQ("retention","How long we keep it",B.TL)
-B.UH=s(["Passwords are stored as secure hashes. All traffic is encrypted with HTTPS. Access to personal data is limited to people who need it to do their job, and each order uses one-time handover codes. No system is perfectly secure, so please use a strong password and keep it private. If a breach affects you, we will tell you and the Data Protection Commission as the law requires."],t.s)
-B.Ti=new A.cQ("security","Keeping it safe",B.UH)
-B.VH=s(["Under the Data Protection Act, 2012 (Act 843) you can:","- ask for a copy of the personal data we hold about you;","- ask us to correct data that is wrong or incomplete;","- ask us to delete your data, unless we must keep it by law;","- object to us using your data, or ask us to stop direct marketing;","- withdraw consent you have given, such as for notifications or location.","Email support@findfood.app and we will reply within 21 days. If you are not happy with our answer, you can complain to the Data Protection Commission of Ghana."],t.s)
-B.Tb=new A.cQ("rights","Your rights",B.VH)
+B.TK=s(["- **Your account:** while it is open. When you close it, we delete or anonymise your personal data within 30 days, except what we must keep below.","- **Orders and payments:** for as long as Ghanaian tax and accounting laws require (generally 6 years).","- **Chats, problem reports and their photos:** up to 12 months after the order, or longer if needed for an open complaint or a legal claim.","- **Error reports:** up to 90 days."],t.s)
+B.SQ=new A.cQ("retention","How long we keep it",B.TK)
+B.UG=s(["Passwords are stored as secure hashes. All traffic is encrypted with HTTPS. Access to personal data is limited to people who need it to do their job, and each order uses one-time handover codes. No system is perfectly secure, so please use a strong password and keep it private. If a breach affects you, we will tell you and the Data Protection Commission as the law requires."],t.s)
+B.Th=new A.cQ("security","Keeping it safe",B.UG)
+B.UR=s(["Under the Data Protection Act, 2012 (Act 843) you can:","- ask for a copy of the personal data we hold about you;","- ask us to correct data that is wrong or incomplete;","- ask us to delete your data, unless we must keep it by law;","- object to us using your data, or ask us to stop direct marketing;","- withdraw consent you have given, such as for notifications or location.","Just email rexfordayensu10@gmail.com and we will take care of it for you. We usually reply within a few days. If anything still isn't right, reply to us and we'll keep working with you until it is sorted."],t.s)
+B.T7=new A.cQ("rights","Your rights",B.UR)
 B.Ws=s(["FindFood is not meant for anyone under 18, and we do not knowingly collect children's data. If you think a child has given us their data, contact us and we will delete it."],t.s)
 B.SX=new A.cQ("children","Children",B.Ws)
-B.Us=s(["The website uses your browser's storage to keep you signed in, remember your basket and settings, and work faster. We do not use advertising cookies or sell browsing data.","If you allow notifications, we store a notification address for your device so we can send order updates. You can turn them off in the app or in your browser or phone settings at any time."],t.s)
-B.T9=new A.cQ("cookies","Cookies, storage and notifications",B.Us)
-B.Uf=s(["We will update this policy when the way we use data changes, and tell you in the app or by email if the change matters. The date at the top shows when it last changed."],t.s)
-B.SV=new A.cQ("changes","Changes to this policy",B.Uf)
-B.V3=s(["For privacy questions or requests, email support@findfood.app."],t.s)
-B.Tg=new A.cQ("contact","Contact us",B.V3)
-B.VD=s([B.SS,B.SP,B.T4,B.T0,B.T6,B.Tj,B.SQ,B.Ti,B.Tb,B.SX,B.T9,B.SV,B.Tg],t.J8)
-B.SM=new A.Vc("Privacy Policy","This policy explains what personal data FindFood collects, why, who we share it with and the rights you have. We follow the Data Protection Act, 2012 (Act 843) of Ghana.",B.W9,B.VD)
+B.Ur=s(["The website uses your browser's storage to keep you signed in, remember your basket and settings, and work faster. We do not use advertising cookies or sell browsing data.","If you allow notifications, we store a notification address for your device so we can send order updates. You can turn them off in the app or in your browser or phone settings at any time."],t.s)
+B.Tb=new A.cQ("cookies","Cookies, storage and notifications",B.Ur)
+B.Ue=s(["We will update this policy when the way we use data changes, and tell you in the app or by email if the change matters. The date at the top shows when it last changed."],t.s)
+B.SV=new A.cQ("changes","Changes to this policy",B.Ue)
+B.WH=s(["For privacy questions or requests, email rexfordayensu10@gmail.com."],t.s)
+B.Ti=new A.cQ("contact","Contact us",B.WH)
+B.UZ=s([B.Tf,B.SP,B.T5,B.T0,B.T8,B.Tj,B.SQ,B.Th,B.T7,B.SX,B.Tb,B.SV,B.Ti],t.J8)
+B.SM=new A.Vc("Privacy Policy","This policy explains what personal data FindFood collects, why, who we share it with and the rights you have. We follow the Data Protection Act, 2012 (Act 843) of Ghana.",B.Vo,B.UZ)
 B.UM=s(["FindFood connects you with restaurants and riders. Restaurants make the food; riders deliver it.","You pay the price shown at checkout, in Ghana cedis, through Paystack (card or Mobile Money).","Only give your 4-digit delivery code to the rider once you're holding your food. Giving it confirms you received the order.","Something wrong? Report it within 48 hours with a photo, and we'll put it right if the problem is real.","False claims, abuse and fraud lead to suspension. Everyone here is trying to make an honest living."],t.s)
-B.Ve=s(["FindFood is an online marketplace operated in Ghana. It lets **customers** order food from **restaurant partners**, and lets independent **riders** deliver it.","FindFood does not cook food and is not a restaurant. Each restaurant is responsible for the food it sells, and each rider is responsible for the way they deliver it. FindFood runs the platform, takes payments on the restaurant's behalf, and steps in when something goes wrong.","These terms apply alongside our Privacy Policy. Restaurant partners and riders also agree to the sections written for them below."],t.s)
-B.ST=new A.cQ("about","About FindFood and these terms",B.Ve)
-B.Vo=s(["- You must be at least 18 years old to hold an account.","- Give accurate details, including a name and contact details we can reach you on, and keep them up to date.","- One person, one account. Keep your password private; you are responsible for activity on your account.","- Tell us straight away at support@findfood.app if you think someone else is using your account.","You can close your account at any time from Settings or by contacting support. Orders already placed still need to be completed or cancelled first."],t.s)
-B.Te=new A.cQ("account","Your account",B.Vo)
+B.Vf=s(["FindFood is an online marketplace operated in Ghana. It lets **customers** order food from **restaurant partners**, and lets independent **riders** deliver it.","FindFood does not cook food and is not a restaurant. Each restaurant is responsible for the food it sells, and each rider is responsible for the way they deliver it. FindFood runs the platform, takes payments on the restaurant's behalf, and steps in when something goes wrong.","These terms apply alongside our Privacy Policy. Restaurant partners and riders also agree to the sections written for them below."],t.s)
+B.ST=new A.cQ("about","About FindFood and these terms",B.Vf)
+B.Wt=s(["- You must be at least 18 years old to hold an account.","- Give accurate details, including a name and contact details we can reach you on, and keep them up to date.","- One person, one account. Keep your password private; you are responsible for activity on your account.","- Tell us straight away at rexfordayensu10@gmail.com if you think someone else is using your account.","You can close your account at any time from Settings or by contacting support. Orders already placed still need to be completed or cancelled first."],t.s)
+B.T2=new A.cQ("account","Your account",B.Wt)
 B.TG=s(["When you place an order, you make an offer to buy food from that restaurant. The order is confirmed once your payment succeeds and the restaurant accepts it. A restaurant may decline an order, for example if an item has run out; if it does, you get a full refund.","Menus, photos, prices and descriptions are provided by restaurants. They try to keep them accurate, but portion sizes and presentation can vary a little from the photos.","> **Allergies and dietary needs:** FindFood cannot guarantee that any food is free from allergens. If you have an allergy, message the restaurant from your order before it is prepared and ask. If you are not sure, do not order."],t.s)
-B.T5=new A.cQ("ordering","How ordering works",B.TG)
-B.Vd=s(["- Prices are in Ghana cedis (GH\u20b5) and include any taxes the restaurant must charge.","- Checkout shows the full amount before you pay: food, delivery fee and any service fee. You pay that amount and nothing more.","- Payments are processed by Paystack, a licensed payment provider. You can pay by card or Mobile Money. FindFood never sees or stores your full card number or Mobile Money PIN.","- An order that is not paid within a short time is cancelled automatically.","- Promotions and discounts have their own conditions, shown with the offer. They cannot be exchanged for cash."],t.s)
-B.Th=new A.cQ("prices","Prices, fees and payment",B.Vd)
-B.U8=s(["Estimated times are estimates. Traffic, weather and busy kitchens can cause delays; you can follow your order live and chat with the restaurant or your rider.","Every delivery uses two codes so food goes to the right people:","- **Pickup code:** the rider shows it to the restaurant, which enters it before handing over the food.","- **Delivery code:** you give your 4-digit code to the rider when you receive your food. The rider enters it to complete the delivery.","> **Never share your delivery code before you are holding your order.** Giving the code confirms you received it, and we rely on it when we review any later complaint.","For pickup orders, collect your food at the restaurant at the time shown. If you do not collect it, the restaurant has still prepared it, so it may not be refunded.","Please make sure the address and pin you give are correct and that you can be reached. If the rider cannot find or reach you after reasonable attempts, the order may be treated as delivered."],t.s)
-B.SZ=new A.cQ("delivery","Delivery, pickup and handover codes",B.U8)
-B.We=s(["- **Before the restaurant starts preparing it:** you can cancel from your order and get a full refund.","- **After preparation has started:** the order can no longer be cancelled, because the food is being made for you.","- **If the restaurant declines or cancels:** you get a full refund automatically.","Refunds go back to the card or Mobile Money wallet you paid with. Card refunds can take 5 to 10 working days to appear; Mobile Money is usually faster. Timing depends on your bank or network."],t.s)
-B.T3=new A.cQ("cancellations","Cancelling an order",B.We)
+B.T6=new A.cQ("ordering","How ordering works",B.TG)
+B.Ve=s(["- Prices are in Ghana cedis (GH\u20b5) and include any taxes the restaurant must charge.","- Checkout shows the full amount before you pay: food, delivery fee and any service fee. You pay that amount and nothing more.","- Payments are processed by Paystack, a licensed payment provider. You can pay by card or Mobile Money. FindFood never sees or stores your full card number or Mobile Money PIN.","- An order that is not paid within a short time is cancelled automatically.","- Promotions and discounts have their own conditions, shown with the offer. They cannot be exchanged for cash."],t.s)
+B.Tg=new A.cQ("prices","Prices, fees and payment",B.Ve)
+B.U7=s(["Estimated times are estimates. Traffic, weather and busy kitchens can cause delays; you can follow your order live and chat with the restaurant or your rider.","Every delivery uses two codes so food goes to the right people:","- **Pickup code:** the rider shows it to the restaurant, which enters it before handing over the food.","- **Delivery code:** you give your 4-digit code to the rider when you receive your food. The rider enters it to complete the delivery.","> **Never share your delivery code before you are holding your order.** Giving the code confirms you received it, and we rely on it when we review any later complaint.","For pickup orders, collect your food at the restaurant at the time shown. If you do not collect it, the restaurant has still prepared it, so it may not be refunded.","Please make sure the address and pin you give are correct and that you can be reached. If the rider cannot find or reach you after reasonable attempts, the order may be treated as delivered."],t.s)
+B.SZ=new A.cQ("delivery","Delivery, pickup and handover codes",B.U7)
+B.Wd=s(["- **Before the restaurant starts preparing it:** you can cancel from your order and get a full refund.","- **After preparation has started:** the order can no longer be cancelled, because the food is being made for you.","- **If the restaurant declines or cancels:** you get a full refund automatically.","Refunds go back to the card or Mobile Money wallet you paid with. Card refunds can take 5 to 10 working days to appear; Mobile Money is usually faster. Timing depends on your bank or network."],t.s)
+B.T4=new A.cQ("cancellations","Cancelling an order",B.Wd)
 B.VM=s(["If something is wrong with your order, report it from the order screen:","- **Wrong item, missing item, or damaged or spilled food:** within 48 hours of delivery, with a photo of what you received (the food and the packaging).","- **Order never arrived:** once it has been on the way for more than an hour.","We review every report against the restaurant's and rider's accounts, the handover codes, the chat and the photo. We may then refund the whole order, refund part of it (for example one missing item), or decline the report and tell you why. We aim to reply within 48 hours.","You can report up to 3 orders in any 30 days in the app. After that, please contact support so we can look into what is going wrong with you directly.","Refunds are made to your original payment method. FindFood does not give cash refunds."],t.s)
 B.SW=new A.cQ("problems","Problems with an order and refunds",B.VM)
-B.UD=s(["FindFood works because customers, restaurants and riders can trust each other. You must not:","- make false or exaggerated reports, or claim an order did not arrive when it did;","- open card or Mobile Money disputes for orders you received, instead of reporting them to us;","- use several accounts, someone else's payment details, or tricks to get promotions more than once;","- share, guess or misuse pickup or delivery codes;","- threaten, harass, insult or discriminate against anyone, in person or in chat;","- interfere with the app, scrape it, or try to get into accounts or systems that are not yours.","If we reasonably believe an account is being misused, we may decline refunds, cancel orders, limit features, recover money paid out wrongly, suspend or close the account, and report suspected crimes to the Ghana Police Service. Where possible we will tell you why and give you a chance to respond."],t.s)
-B.T_=new A.cQ("fair-use","Fair use, fraud and safety",B.UD)
-B.UY=s(["Only customers who received an order can rate it, so every review comes from a real order. Reviews must be honest and about the order. We may remove reviews that are abusive, contain personal information, are about something unrelated, or are part of a campaign for or against a restaurant.","Restaurants may not offer anything in return for a review, or pressure customers to change one."],t.s)
-B.T1=new A.cQ("reviews","Ratings and reviews",B.UY)
-B.TN=s(["Chat lets you talk privately with the restaurant or rider about your order. Keep it about the order and keep it respectful. When a problem is reported, FindFood staff may read the chats for that order to resolve it and to keep people safe.","We send service messages, such as order updates, by email and notifications. You can turn off push notifications at any time; important account emails will still be sent."],t.s)
-B.Ta=new A.cQ("chat","Chat and communication",B.TN)
-B.US=s(["If you sell on FindFood, you also agree that you will:","- hold the licences and permits your business needs, including any Food and Drugs Authority (FDA) and local assembly requirements, and follow food hygiene and safety rules under Ghanaian law;","- keep your menu, prices, photos, allergen information and opening hours accurate, and pause the kitchen when you cannot take orders;","- prepare orders as described, pack them securely and seal them where you can;","- hand a delivery order only to the rider who gives the correct pickup code;","- accept or decline new orders promptly, and not cancel orders you have accepted except for genuine reasons;","- treat riders and customers with respect, and not contact customers outside FindFood for marketing without their consent.","FindFood collects payment for your orders and pays you the order value less the commission and fees agreed when you joined, which you can see in your Earnings. If a refund is given because of your mistake (for example a wrong or missing item), the refunded amount may be deducted from your payout. Repeated complaints, cancellations or safety concerns can lead to suspension."],t.s)
-B.SR=new A.cQ("restaurants","For restaurant partners",B.US)
-B.VB=s(["If you deliver with FindFood, you also agree that you will:","- hold a valid driving licence for your vehicle, keep it roadworthy and registered with the DVLA, carry any insurance the law requires, and follow the Road Traffic Act, including wearing a helmet on a motorbike;","- only collect an order with your pickup code, and only complete a delivery with the customer's delivery code. Never complete a delivery without handing over the food;","- never open, tamper with or eat from any order, and keep food in a clean, closed delivery bag;","- release a job you cannot do before you collect it (you can release up to 2 a day) rather than leaving it waiting. Once you have collected food, you must deliver it;","- be polite and safe, and contact FindFood support if anything goes wrong on a delivery.","Riders are independent and choose when to go online. Your earnings for each delivery are shown in the app. FindFood may stop offering jobs to riders whose deliveries are repeatedly late, overdue or reported, and will hold back earnings for orders that were not delivered."],t.s)
-B.T2=new A.cQ("riders","For riders",B.VB)
+B.UC=s(["FindFood works because customers, restaurants and riders can trust each other. You must not:","- make false or exaggerated reports, or claim an order did not arrive when it did;","- open card or Mobile Money disputes for orders you received, instead of reporting them to us;","- use several accounts, someone else's payment details, or tricks to get promotions more than once;","- share, guess or misuse pickup or delivery codes;","- threaten, harass, insult or discriminate against anyone, in person or in chat;","- interfere with the app, scrape it, or try to get into accounts or systems that are not yours.","If we reasonably believe an account is being misused, we may decline refunds, cancel orders, limit features, recover money paid out wrongly, suspend or close the account, and report suspected crimes to the Ghana Police Service. Where possible we will tell you why and give you a chance to respond."],t.s)
+B.T_=new A.cQ("fair-use","Fair use, fraud and safety",B.UC)
+B.V_=s(["Only customers who received an order can rate it, so every review comes from a real order. Reviews must be honest and about the order. We may remove reviews that are abusive, contain personal information, are about something unrelated, or are part of a campaign for or against a restaurant.","Restaurants may not offer anything in return for a review, or pressure customers to change one."],t.s)
+B.T1=new A.cQ("reviews","Ratings and reviews",B.V_)
+B.TM=s(["Chat lets you talk privately with the restaurant or rider about your order. Keep it about the order and keep it respectful. When a problem is reported, FindFood staff may read the chats for that order to resolve it and to keep people safe.","We send service messages, such as order updates, by email and notifications. You can turn off push notifications at any time; important account emails will still be sent."],t.s)
+B.Tc=new A.cQ("chat","Chat and communication",B.TM)
+B.UT=s(["If you sell on FindFood, you also agree that you will:","- hold the licences and permits your business needs, including any Food and Drugs Authority (FDA) and local assembly requirements, and follow food hygiene and safety rules under Ghanaian law;","- keep your menu, prices, photos, allergen information and opening hours accurate, and pause the kitchen when you cannot take orders;","- prepare orders as described, pack them securely and seal them where you can;","- hand a delivery order only to the rider who gives the correct pickup code;","- accept or decline new orders promptly, and not cancel orders you have accepted except for genuine reasons;","- treat riders and customers with respect, and not contact customers outside FindFood for marketing without their consent.","FindFood collects payment for your orders and pays you the order value less the commission and fees agreed when you joined, which you can see in your Earnings. If a refund is given because of your mistake (for example a wrong or missing item), the refunded amount may be deducted from your payout. Repeated complaints, cancellations or safety concerns can lead to suspension."],t.s)
+B.SR=new A.cQ("restaurants","For restaurant partners",B.UT)
+B.VD=s(["If you deliver with FindFood, you also agree that you will:","- hold a valid driving licence for your vehicle, keep it roadworthy and registered with the DVLA, carry any insurance the law requires, and follow the Road Traffic Act, including wearing a helmet on a motorbike;","- only collect an order with your pickup code, and only complete a delivery with the customer's delivery code. Never complete a delivery without handing over the food;","- never open, tamper with or eat from any order, and keep food in a clean, closed delivery bag;","- release a job you cannot do before you collect it (you can release up to 2 a day) rather than leaving it waiting. Once you have collected food, you must deliver it;","- be polite and safe, and contact FindFood support if anything goes wrong on a delivery.","Riders are independent and choose when to go online. Your earnings for each delivery are shown in the app. FindFood may stop offering jobs to riders whose deliveries are repeatedly late, overdue or reported, and will hold back earnings for orders that were not delivered."],t.s)
+B.T3=new A.cQ("riders","For riders",B.VD)
 B.VP=s(["The FindFood name, logo, app and website belong to FindFood. You may use them only to use the service.","When you post content (reviews, photos, menu items, chat messages), you keep ownership of it but give FindFood permission to store, display and use it to run and promote the service. Only post content you have the right to share."],t.s)
-B.Tf=new A.cQ("content","Our content and yours",B.VP)
+B.Te=new A.cQ("content","Our content and yours",B.VP)
 B.TC=s(["We work hard to keep FindFood running, but it may sometimes be unavailable, for example during maintenance or outages with our providers. Restaurants and delivery areas can change. We may add, change or remove features to improve the service."],t.s)
 B.SY=new A.cQ("availability","Availability and changes to the service",B.TC)
 B.WO=s(["Nothing in these terms takes away rights you have under Ghanaian law that cannot be excluded.","Subject to that, FindFood is responsible for running the platform with reasonable care and skill. Restaurants are responsible for their food and riders for their deliveries. FindFood is not liable for losses that were not foreseeable, for business losses, or for problems caused by things outside our reasonable control. For any one order, our total liability to a customer is limited to the amount paid for that order."],t.s)
-B.T7=new A.cQ("liability","Our responsibility to you",B.WO)
-B.TJ=s(["We may suspend or close an account that breaks these terms, puts others at risk, or is used for fraud. Serious cases may be suspended immediately. You can contact support@findfood.app if you believe a decision was wrong, and we will review it."],t.s)
-B.T8=new A.cQ("suspension","Suspending or closing accounts",B.TJ)
-B.V5=s(["We may update these terms as FindFood grows or the law changes. If a change matters, we will tell you in the app or by email before it takes effect. Continuing to use FindFood afterwards means you accept the updated terms."],t.s)
-B.SU=new A.cQ("changes","Changes to these terms",B.V5)
+B.T9=new A.cQ("liability","Our responsibility to you",B.WO)
+B.Vn=s(["We may suspend or close an account that breaks these terms, puts others at risk, or is used for fraud. Serious cases may be suspended immediately. You can contact rexfordayensu10@gmail.com if you believe a decision was wrong, and we will review it."],t.s)
+B.Ta=new A.cQ("suspension","Suspending or closing accounts",B.Vn)
+B.V6=s(["We may update these terms as FindFood grows or the law changes. If a change matters, we will tell you in the app or by email before it takes effect. Continuing to use FindFood afterwards means you accept the updated terms."],t.s)
+B.SU=new A.cQ("changes","Changes to these terms",B.V6)
 B.Tz=s(["These terms are governed by the laws of the Republic of Ghana. If you have a complaint, contact us first and we will try to resolve it quickly. If we cannot agree, either side may refer the dispute to mediation under the Alternative Dispute Resolution Act, 2010 (Act 798), or to the courts of Ghana."],t.s)
 B.Td=new A.cQ("law","Law and disputes",B.Tz)
-B.WM=s(["Questions about these terms? Email support@findfood.app or use Help & support in the app."],t.s)
-B.Tc=new A.cQ("contact","Contact us",B.WM)
-B.Vg=s([B.ST,B.Te,B.T5,B.Th,B.SZ,B.T3,B.SW,B.T_,B.T1,B.Ta,B.SR,B.T2,B.Tf,B.SY,B.T7,B.T8,B.SU,B.Td,B.Tc],t.J8)
-B.SN=new A.Vc("Terms of Service","These terms are the agreement between you and FindFood when you order, sell or deliver food through the FindFood app or website. Please read them: by creating an account or placing an order, you accept them.",B.UM,B.Vg)
+B.Vg=s(["Questions about these terms? Email rexfordayensu10@gmail.com or use Help & support in the app."],t.s)
+B.SS=new A.cQ("contact","Contact us",B.Vg)
+B.Wl=s([B.ST,B.T2,B.T6,B.Tg,B.SZ,B.T4,B.SW,B.T_,B.T1,B.Tc,B.SR,B.T3,B.Te,B.SY,B.T9,B.Ta,B.SU,B.Td,B.SS],t.J8)
+B.SN=new A.Vc("Terms of Service","These terms are the agreement between you and FindFood when you order, sell or deliver food through the FindFood app or website. Please read them: by creating an account or placing an order, you accept them.",B.UM,B.Wl)
 B.uW=new A.lM(!1,null)
 B.SO=new A.lM(!0,null)
 B.pE=new A.bP(1/0,1/0,null,null)
@@ -124080,42 +124080,42 @@ B.pj=new A.Yb(null)
 B.Ty=s([B.ac7,B.aq,B.Hb,B.dK,B.Hf,B.aq,B.pj],t.p)
 B.TA=s([0,1,3,4],t.t)
 B.v1=s([13,10],t.t)
-B.VF=s([1373.2198709594231,-1100.4251190754821,-7.278681089101213],t.n)
-B.Vi=s([-271.815969077903,559.6580465940733,-32.46047482791194],t.n)
+B.VG=s([1373.2198709594231,-1100.4251190754821,-7.278681089101213],t.n)
+B.Vj=s([-271.815969077903,559.6580465940733,-32.46047482791194],t.n)
 B.WQ=s([1.9622899599665666,-57.173814538844006,308.7233197812385],t.n)
-B.TE=s([B.VF,B.Vi,B.WQ],t.zg)
+B.TE=s([B.VG,B.Vj,B.WQ],t.zg)
 B.v2=s(["text","multiline","number","phone","datetime","emailAddress","url","visiblePassword","name","address","none","webSearch","twitter"],t.s)
 B.TH=s([239,191,189],t.t)
 B.om=s(["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],t.s)
-B.U9=s([4,9,14,19],t.t)
-B.Wt=s([137,80,78,71,13,10,26,10],t.Z)
+B.U8=s([4,9,14,19],t.t)
+B.Wu=s([137,80,78,71,13,10,26,10],t.Z)
 B.RR=new A.pa(0,"png")
 B.S_=new A.lG(B.RR,!1,0,"png")
-B.RP=new A.nk(B.Wt,B.S_,0,"png")
+B.RP=new A.nk(B.Wu,B.S_,0,"png")
 B.Ww=s([71,73,70,56,55,97],t.Z)
 B.RO=new A.nk(B.Ww,B.ko,1,"gif87a")
-B.Vy=s([71,73,70,56,57,97],t.Z)
-B.RN=new A.nk(B.Vy,B.ko,2,"gif89a")
+B.VA=s([71,73,70,56,57,97],t.Z)
+B.RN=new A.nk(B.VA,B.ko,2,"gif89a")
 B.TI=s([255,216,255],t.Z)
 B.RS=new A.pa(2,"jpeg")
 B.S3=new A.lG(B.RS,!1,3,"jpeg")
 B.RQ=new A.nk(B.TI,B.S3,3,"jpeg")
-B.Uy=s([82,73,70,70,null,null,null,null,87,69,66,80],t.Z)
-B.RM=new A.nk(B.Uy,B.uN,4,"webp")
-B.Uq=s([66,77],t.Z)
+B.Ux=s([82,73,70,70,null,null,null,null,87,69,66,80],t.Z)
+B.RM=new A.nk(B.Ux,B.uN,4,"webp")
+B.Up=s([66,77],t.Z)
 B.RT=new A.pa(4,"bmp")
 B.S1=new A.lG(B.RT,!1,6,"bmp")
-B.RL=new A.nk(B.Uq,B.S1,5,"bmp")
-B.Ub=s([B.RP,B.RO,B.RN,B.RQ,B.RM,B.RL],A.aM("K<nk>"))
+B.RL=new A.nk(B.Up,B.S1,5,"bmp")
+B.Ua=s([B.RP,B.RO,B.RN,B.RQ,B.RM,B.RL],A.aM("K<nk>"))
 B.qm=new A.O8(0,"named")
 B.H3=new A.O8(1,"anonymous")
-B.Ul=s([B.qm,B.H3],A.aM("K<O8>"))
-B.Vk=s([0.41233895,0.35762064,0.18051042],t.n)
+B.Uk=s([B.qm,B.H3],A.aM("K<O8>"))
+B.Vl=s([0.41233895,0.35762064,0.18051042],t.n)
 B.UL=s([0.2126,0.7152,0.0722],t.n)
-B.WJ=s([0.01932141,0.11916382,0.95034478],t.n)
-B.eN=s([B.Vk,B.UL,B.WJ],t.zg)
+B.WK=s([0.01932141,0.11916382,0.95034478],t.n)
+B.eN=s([B.Vl,B.UL,B.WK],t.zg)
 B.v3=s([0,4,12,1,5,13,3,7,15],t.t)
-B.Up=s([65533],t.t)
+B.Uo=s([65533],t.t)
 B.agJ=new A.iJ(0,1)
 B.agO=new A.iJ(0.5,1)
 B.agR=new A.iJ(0.5375,0.75)
@@ -124127,28 +124127,28 @@ B.agS=new A.iJ(0.8875,0.25)
 B.agQ=new A.iJ(0.925,0.5)
 B.agK=new A.iJ(0.9625,0.75)
 B.agL=new A.iJ(1,1)
-B.UA=s([B.agJ,B.agO,B.agR,B.agT,B.agP,B.agN,B.agM,B.agS,B.agQ,B.agK,B.agL],A.aM("K<iJ>"))
+B.Uz=s([B.agJ,B.agO,B.agR,B.agT,B.agP,B.agN,B.agM,B.agS,B.agQ,B.agK,B.agL],A.aM("K<iJ>"))
 B.ee=new A.o3(0,"left")
 B.ef=new A.o3(1,"right")
 B.iN=new A.o3(3,"justify")
 B.aV=new A.o3(4,"start")
 B.ll=new A.o3(5,"end")
-B.UB=s([B.ee,B.ef,B.ak,B.iN,B.aV,B.ll],A.aM("K<o3>"))
-B.UZ=s([2,1.13276676],t.n)
-B.TO=s([2.18349805,1.20311921],t.n)
-B.Wd=s([2.33888662,1.28698796],t.n)
-B.Wh=s([2.48660575,1.36351941],t.n)
-B.UF=s([2.62226596,1.44717976],t.n)
+B.UA=s([B.ee,B.ef,B.ak,B.iN,B.aV,B.ll],A.aM("K<o3>"))
+B.V0=s([2,1.13276676],t.n)
+B.TN=s([2.18349805,1.20311921],t.n)
+B.Wc=s([2.33888662,1.28698796],t.n)
+B.Wg=s([2.48660575,1.36351941],t.n)
+B.UE=s([2.62226596,1.44717976],t.n)
 B.UQ=s([2.7514899,1.53385819],t.n)
-B.Vw=s([3.36298265,1.98288283],t.n)
-B.V4=s([4.08649929,2.23811846],t.n)
-B.Vm=s([4.85481134,2.47563463],t.n)
+B.Vy=s([3.36298265,1.98288283],t.n)
+B.V5=s([4.08649929,2.23811846],t.n)
+B.Vp=s([4.85481134,2.47563463],t.n)
 B.UK=s([5.62945551,2.72948597],t.n)
-B.V_=s([6.43023796,2.98020421],t.n)
-B.v4=s([B.UZ,B.TO,B.Wd,B.Wh,B.UF,B.UQ,B.Vw,B.V4,B.Vm,B.UK,B.V_],t.zg)
-B.UE=s([B.md,B.mf],A.aM("K<Dg>"))
+B.V1=s([6.43023796,2.98020421],t.n)
+B.v4=s([B.V0,B.TN,B.Wc,B.Wg,B.UE,B.UQ,B.Vy,B.V5,B.Vp,B.UK,B.V1],t.zg)
+B.UD=s([B.md,B.mf],A.aM("K<Dg>"))
 B.a4O=new A.zL(B.mr,!1,null)
-B.UG=s([B.a4O],t.p)
+B.UF=s([B.a4O],t.p)
 B.UJ=s([18,15,10,12,15,18,15,12,12],t.n)
 B.a1J=new A.a7("How do I accept an order?",'New paid orders appear under Orders as "Pending". Tap "Start preparing", then "Mark ready" when the food is done.')
 B.a0X=new A.a7("How do I stop receiving orders?",'Turn off "Kitchen open" in Settings. Customers can still see your menu but cannot order until you reopen.')
@@ -124158,11 +124158,11 @@ B.UP=s([B.a1J,B.a0X,B.a0W,B.a0Q],t.Wy)
 B.cw=new A.mr(0,"label")
 B.c9=new A.mr(1,"avatar")
 B.dl=new A.mr(2,"deleteIcon")
-B.UR=s([B.cw,B.c9,B.dl],A.aM("K<mr>"))
+B.US=s([B.cw,B.c9,B.dl],A.aM("K<mr>"))
 B.OG=new A.hL(B.e3,"No orders yet","Your orders will appear here.",null,null,null)
 B.a4N=new A.zL(B.OG,!1,null)
-B.UW=s([B.a4N],t.p)
-B.UX=s(["clientexception","xmlhttprequest","load failed","failed to fetch","networkerror","network error","socketexception","failed host lookup","connection refused","connection closed","connection reset","can\u2019t reach findfood"],t.s)
+B.UX=s([B.a4N],t.p)
+B.UY=s(["clientexception","xmlhttprequest","load failed","failed to fetch","networkerror","network error","socketexception","failed host lookup","connection refused","connection closed","connection reset","can\u2019t reach findfood"],t.s)
 B.bP=new A.fN(0,"icon")
 B.ca=new A.fN(1,"input")
 B.bb=new A.fN(2,"label")
@@ -124174,7 +124174,7 @@ B.bY=new A.fN(7,"suffixIcon")
 B.d8=new A.fN(8,"helperError")
 B.d9=new A.fN(9,"counter")
 B.ek=new A.fN(10,"container")
-B.V1=s([B.bP,B.ca,B.bb,B.ch,B.ci,B.cj,B.b5,B.bY,B.d8,B.d9,B.ek],A.aM("K<fN>"))
+B.V3=s([B.bP,B.ca,B.bb,B.ch,B.ci,B.cj,B.b5,B.bY,B.d8,B.d9,B.ek],A.aM("K<fN>"))
 B.WR=new A.tS("en",null,"US")
 B.v5=s([B.WR],t.ss)
 B.v6=s([0,41,61,101,131,181,251,301,360],t.n)
@@ -124193,47 +124193,47 @@ B.acf=new A.aG("Open first",null,null,null,null,null,null,null,null,null)
 B.a0z=new A.lZ("available",B.acf,null,t.wI)
 B.ac8=new A.aG("Name A-Z",null,null,null,null,null,null,null,null,null)
 B.a0x=new A.lZ("name",B.ac8,null,t.wI)
-B.Vc=s([B.a0w,B.a0y,B.a0z,B.a0x],A.aM("K<kL<u>>"))
+B.Vd=s([B.a0w,B.a0y,B.a0z,B.a0x],A.aM("K<kL<u>>"))
 B.v8=s([0,21,51,121,151,191,271,321,360],t.n)
 B.a1n=new A.a7("How do I take a delivery?",'Go online on the Available tab and tap "Accept" on a job. It moves to My Deliveries.')
 B.a1X=new A.a7("How are my earnings calculated?","You earn 10% of the order total for every delivered order.")
 B.a1K=new A.a7("How do I contact the customer?","Open the chat on the delivery card to message the customer.")
-B.Vf=s([B.a1n,B.a1X,B.a1K],t.Wy)
-B.Vh=s([-1,0,0,1,0,0,-1,0,1,0,0,0,-1,1,0,1,1,1,1,0],t.n)
+B.Vh=s([B.a1n,B.a1X,B.a1K],t.Wy)
+B.Vi=s([-1,0,0,1,0,0,-1,0,1,0,0,0,-1,1,0,1,1,1,1,0],t.n)
 B.HF=new A.RT(2,"outer")
 B.rj=new A.B(0.09803921568627451,0,0,0,B.k)
 B.o=new A.k(0,0)
 B.Iq=new A.d5(0.2,B.HF,B.rj,B.o,11)
-B.Vj=s([B.Iq],t.E)
+B.Vk=s([B.Iq],t.E)
 B.FE=new A.IW(0,"zoomBackground")
 B.v9=s([B.FE],A.aM("K<IW>"))
 B.FI=new A.IZ(0,"left")
 B.FJ=new A.IZ(1,"right")
-B.Vl=s([B.FI,B.FJ],A.aM("K<IZ>"))
+B.Vm=s([B.FI,B.FJ],A.aM("K<IZ>"))
 B.b4=new A.Jc(0,"upstream")
-B.Vn=s([B.b4,B.y],A.aM("K<Jc>"))
+B.Vq=s([B.b4,B.y],A.aM("K<Jc>"))
 B.b0=new A.Ji(0,"rtl")
 B.on=s([B.b0,B.an],A.aM("K<Ji>"))
 B.el=new A.l5(0,"leading")
 B.cR=new A.l5(1,"title")
 B.em=new A.l5(2,"subtitle")
 B.hf=new A.l5(3,"trailing")
-B.Vu=s([B.el,B.cR,B.em,B.hf],A.aM("K<l5>"))
+B.Vw=s([B.el,B.cR,B.em,B.hf],A.aM("K<l5>"))
 B.a1M=new A.a7("How do I approve a restaurant?","Open Approvals, review the details, then Approve or Reject.")
 B.a1F=new A.a7("How do I suspend an account?","Open Users, find the account and use the menu to suspend or reactivate it. Suspended users are signed out immediately.")
 B.a1r=new A.a7('What does "Refund needs attention" mean?',"A cancelled order could not be refunded automatically. Refund it from your payment provider dashboard.")
-B.Vv=s([B.a1M,B.a1F,B.a1r],t.Wy)
+B.Vx=s([B.a1M,B.a1F,B.a1r],t.Wy)
 B.JP=new A.rG(0,"auto")
 B.JQ=new A.rG(1,"full")
 B.JR=new A.rG(2,"chromium")
-B.Vx=s([B.JP,B.JQ,B.JR,B.dX],A.aM("K<rG>"))
+B.Vz=s([B.JP,B.JQ,B.JR,B.dX],A.aM("K<rG>"))
 B.aw=new A.hv(0,"android")
 B.bs=new A.hv(1,"fuchsia")
 B.a6=new A.hv(2,"iOS")
 B.bm=new A.hv(3,"linux")
 B.aZ=new A.hv(4,"macOS")
 B.bn=new A.hv(5,"windows")
-B.VC=s([B.aw,B.bs,B.a6,B.bm,B.aZ,B.bn],A.aM("K<hv>"))
+B.VE=s([B.aw,B.bs,B.a6,B.bm,B.aZ,B.bn],A.aM("K<hv>"))
 B.GH=new A.AP(0,"topLeft")
 B.GK=new A.AP(3,"bottomRight")
 B.agp=new A.oi(B.GH,B.GK)
@@ -124242,8 +124242,8 @@ B.GI=new A.AP(1,"topRight")
 B.GJ=new A.AP(2,"bottomLeft")
 B.agq=new A.oi(B.GI,B.GJ)
 B.agr=new A.oi(B.GJ,B.GI)
-B.VE=s([B.agp,B.ags,B.agq,B.agr],A.aM("K<oi>"))
-B.VG=s([35,30,20,25,30,35,30,25,25],t.n)
+B.VF=s([B.agp,B.ags,B.agq,B.agr],A.aM("K<oi>"))
+B.VH=s([35,30,20,25,30,35,30,25,25],t.n)
 B.VL=s(["click","scroll"],t.s)
 B.IB=new A.wC()
 B.l4=new A.XS(1,"page")
@@ -124279,8 +124279,8 @@ B.fF=s([],t.ee)
 B.VU=s([],t.XS)
 B.ZG=new A.k(0,2)
 B.Ip=new A.d5(0.75,B.bF,B.rj,B.ZG,1.5)
-B.Wi=s([B.Ip],t.E)
-B.Wj=s([43,95,45,46,48,49,50,51,52,53,54,55,56,57,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122],t.t)
+B.Wh=s([B.Ip],t.E)
+B.Wi=s([43,95,45,46,48,49,50,51,52,53,54,55,56,57,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122],t.t)
 B.Wo=s([47,47,47,47,72,97,122,147],t.t)
 B.tS=new A.fZ(B.e3,"Orders",0)
 B.ain=new A.a6(63668,"MaterialIcons",null,!1)
@@ -124297,10 +124297,10 @@ B.Pm=new A.fZ(B.d1,"My Deliveries",0)
 B.Pg=new A.fZ(B.ka,"Earnings",0)
 B.tT=new A.fZ(B.e4,"Profile",0)
 B.Wv=s([B.Pl,B.Pm,B.Pg,B.tT],t.lS)
-B.Ut=s([0.001200833568784504,0.002389694492170889,0.0002795742885861124],t.n)
+B.Us=s([0.001200833568784504,0.002389694492170889,0.0002795742885861124],t.n)
 B.VO=s([0.0005891086651375999,0.0029785502573438758,0.0003270666104008398],t.n)
 B.UI=s([0.00010146692491640572,0.0005364214359186694,0.0032979401770712076],t.n)
-B.Wz=s([B.Ut,B.VO,B.UI],t.zg)
+B.Wz=s([B.Us,B.VO,B.UI],t.zg)
 B.WA=s([45,95,45,20,45,90,45,45,45],t.n)
 B.WB=s([120,120,20,45,20,15,20,120,120],t.n)
 B.Pk=new A.fZ(B.o1,"Home",0)
@@ -124326,8 +124326,8 @@ B.Ks=new A.B(0.14901960784313725,0,0,0,B.k)
 B.Is=new A.d5(0,B.bF,B.Ks,B.fO,8)
 B.LJ=new A.B(0.058823529411764705,0,0,0,B.k)
 B.It=new A.d5(0,B.bF,B.LJ,B.fO,1)
-B.WI=s([B.Is,B.It],t.E)
-B.WL=s(["pointerdown","pointermove","pointerleave","pointerup","pointercancel","touchstart","touchend","touchmove","touchcancel","mousedown","mousemove","mouseleave","mouseup","wheel"],t.s)
+B.WJ=s([B.Is,B.It],t.E)
+B.WM=s(["pointerdown","pointermove","pointerleave","pointerup","pointercancel","touchstart","touchend","touchmove","touchcancel","mousedown","mousemove","mouseleave","mouseup","wheel"],t.s)
 B.o0=new A.ij(100)
 B.P_=new A.ij(200)
 B.P0=new A.ij(300)
@@ -124911,8 +124911,8 @@ B.Ag=new A.e6([B.a47,B.X,B.a3E,B.X,B.F5,B.X,B.F2,B.X,B.a3Z,B.X,B.a3Q,B.X,B.a4c,B
 B.Zu={ghanaian:0,local:1,pizza:2,italian:3,chinese:4,"fast food":5,burger:6,seafood:7,default:8}
 B.L1=new A.B(1,0.4823529411764706,0.0784313725490196,0,B.k)
 B.Kn=new A.B(1,0.8313725490196079,0.2196078431372549,0.050980392156862744,B.k)
-B.V0=s([B.L1,B.Kn],t.g)
-B.Ab=new A.bv(B.fM,[B.V0],t.Wd)
+B.V2=s([B.L1,B.Kn],t.g)
+B.Ab=new A.bv(B.fM,[B.V2],t.Wd)
 B.Lt=new A.B(1,0.050980392156862744,0.1803921568627451,0.4196078431372549,B.k)
 B.rH=new A.B(1,0.08235294117647059,0.396078431372549,0.7529411764705882,B.k)
 B.Wn=s([B.Lt,B.rH],t.g)
@@ -124949,72 +124949,72 @@ B.YH=new A.bv(B.ce,[],A.aM("bv<hX,dE>"))
 B.An=new A.bv(B.ce,[],A.aM("bv<hX,to<dE>>"))
 B.YG=new A.bv(B.ce,[],A.aM("bv<@,@>"))
 B.Ak=new A.bv(B.ce,[],A.aM("bv<hM<fI>?,a1<h5>>"))
-B.U1=s([42,null,null,8589935146],t.Z)
-B.U2=s([43,null,null,8589935147],t.Z)
-B.U3=s([45,null,null,8589935149],t.Z)
-B.U4=s([46,null,null,8589935150],t.Z)
-B.U5=s([47,null,null,8589935151],t.Z)
-B.U6=s([48,null,null,8589935152],t.Z)
-B.U7=s([49,null,null,8589935153],t.Z)
-B.Ua=s([50,null,null,8589935154],t.Z)
-B.Uc=s([51,null,null,8589935155],t.Z)
-B.Ud=s([52,null,null,8589935156],t.Z)
-B.Ue=s([53,null,null,8589935157],t.Z)
-B.Ug=s([54,null,null,8589935158],t.Z)
-B.Uh=s([55,null,null,8589935159],t.Z)
-B.Ui=s([56,null,null,8589935160],t.Z)
-B.Uk=s([57,null,null,8589935161],t.Z)
-B.Vp=s([8589934852,8589934852,8589934853,null],t.Z)
-B.TR=s([4294967555,null,4294967555,null],t.Z)
-B.TS=s([4294968065,null,null,8589935154],t.Z)
-B.TT=s([4294968066,null,null,8589935156],t.Z)
-B.TU=s([4294968067,null,null,8589935158],t.Z)
-B.TV=s([4294968068,null,null,8589935160],t.Z)
-B.U_=s([4294968321,null,null,8589935157],t.Z)
-B.Vq=s([8589934848,8589934848,8589934849,null],t.Z)
-B.TQ=s([4294967423,null,null,8589935150],t.Z)
-B.TW=s([4294968069,null,null,8589935153],t.Z)
-B.TP=s([4294967309,null,null,8589935117],t.Z)
-B.TX=s([4294968070,null,null,8589935159],t.Z)
-B.U0=s([4294968327,null,null,8589935152],t.Z)
-B.Vr=s([8589934854,8589934854,8589934855,null],t.Z)
-B.TY=s([4294968071,null,null,8589935155],t.Z)
-B.TZ=s([4294968072,null,null,8589935161],t.Z)
-B.Vs=s([8589934850,8589934850,8589934851,null],t.Z)
-B.Ao=new A.e6(["*",B.U1,"+",B.U2,"-",B.U3,".",B.U4,"/",B.U5,"0",B.U6,"1",B.U7,"2",B.Ua,"3",B.Uc,"4",B.Ud,"5",B.Ue,"6",B.Ug,"7",B.Uh,"8",B.Ui,"9",B.Uk,"Alt",B.Vp,"AltGraph",B.TR,"ArrowDown",B.TS,"ArrowLeft",B.TT,"ArrowRight",B.TU,"ArrowUp",B.TV,"Clear",B.U_,"Control",B.Vq,"Delete",B.TQ,"End",B.TW,"Enter",B.TP,"Home",B.TX,"Insert",B.U0,"Meta",B.Vr,"PageDown",B.TY,"PageUp",B.TZ,"Shift",B.Vs],A.aM("e6<u,a1<w?>>"))
-B.Uj=s([B.vm,null,null,B.A2],t.L)
-B.Wb=s([B.zP,null,null,B.A3],t.L)
-B.UV=s([B.zQ,null,null,B.A4],t.L)
-B.Vt=s([B.zR,null,null,B.eR],t.L)
+B.U0=s([42,null,null,8589935146],t.Z)
+B.U1=s([43,null,null,8589935147],t.Z)
+B.U2=s([45,null,null,8589935149],t.Z)
+B.U3=s([46,null,null,8589935150],t.Z)
+B.U4=s([47,null,null,8589935151],t.Z)
+B.U5=s([48,null,null,8589935152],t.Z)
+B.U6=s([49,null,null,8589935153],t.Z)
+B.U9=s([50,null,null,8589935154],t.Z)
+B.Ub=s([51,null,null,8589935155],t.Z)
+B.Uc=s([52,null,null,8589935156],t.Z)
+B.Ud=s([53,null,null,8589935157],t.Z)
+B.Uf=s([54,null,null,8589935158],t.Z)
+B.Ug=s([55,null,null,8589935159],t.Z)
+B.Uh=s([56,null,null,8589935160],t.Z)
+B.Uj=s([57,null,null,8589935161],t.Z)
+B.Vr=s([8589934852,8589934852,8589934853,null],t.Z)
+B.TQ=s([4294967555,null,4294967555,null],t.Z)
+B.TR=s([4294968065,null,null,8589935154],t.Z)
+B.TS=s([4294968066,null,null,8589935156],t.Z)
+B.TT=s([4294968067,null,null,8589935158],t.Z)
+B.TU=s([4294968068,null,null,8589935160],t.Z)
+B.TZ=s([4294968321,null,null,8589935157],t.Z)
+B.Vs=s([8589934848,8589934848,8589934849,null],t.Z)
+B.TP=s([4294967423,null,null,8589935150],t.Z)
+B.TV=s([4294968069,null,null,8589935153],t.Z)
+B.TO=s([4294967309,null,null,8589935117],t.Z)
+B.TW=s([4294968070,null,null,8589935159],t.Z)
+B.U_=s([4294968327,null,null,8589935152],t.Z)
+B.Vt=s([8589934854,8589934854,8589934855,null],t.Z)
+B.TX=s([4294968071,null,null,8589935155],t.Z)
+B.TY=s([4294968072,null,null,8589935161],t.Z)
+B.Vu=s([8589934850,8589934850,8589934851,null],t.Z)
+B.Ao=new A.e6(["*",B.U0,"+",B.U1,"-",B.U2,".",B.U3,"/",B.U4,"0",B.U5,"1",B.U6,"2",B.U9,"3",B.Ub,"4",B.Uc,"5",B.Ud,"6",B.Uf,"7",B.Ug,"8",B.Uh,"9",B.Uj,"Alt",B.Vr,"AltGraph",B.TQ,"ArrowDown",B.TR,"ArrowLeft",B.TS,"ArrowRight",B.TT,"ArrowUp",B.TU,"Clear",B.TZ,"Control",B.Vs,"Delete",B.TP,"End",B.TV,"Enter",B.TO,"Home",B.TW,"Insert",B.U_,"Meta",B.Vt,"PageDown",B.TX,"PageUp",B.TY,"Shift",B.Vu],A.aM("e6<u,a1<w?>>"))
+B.Ui=s([B.vm,null,null,B.A2],t.L)
+B.Wa=s([B.zP,null,null,B.A3],t.L)
+B.UW=s([B.zQ,null,null,B.A4],t.L)
+B.Vv=s([B.zR,null,null,B.eR],t.L)
 B.Tv=s([B.zS,null,null,B.A5],t.L)
 B.Wx=s([B.zT,null,null,B.oC],t.L)
 B.Wp=s([B.zU,null,null,B.ic],t.L)
-B.Ur=s([B.zV,null,null,B.eS],t.L)
-B.WH=s([B.zW,null,null,B.id],t.L)
+B.Uq=s([B.zV,null,null,B.eS],t.L)
+B.WI=s([B.zW,null,null,B.id],t.L)
 B.Wm=s([B.zX,null,null,B.eT],t.L)
-B.Uo=s([B.zY,null,null,B.oD],t.L)
-B.TK=s([B.zZ,null,null,B.eU],t.L)
-B.UC=s([B.A_,null,null,B.ie],t.L)
-B.Wc=s([B.A0,null,null,B.eV],t.L)
-B.Wf=s([B.A1,null,null,B.ig],t.L)
-B.Uu=s([B.ia,B.ia,B.kE,null],t.L)
+B.Un=s([B.zY,null,null,B.oD],t.L)
+B.TJ=s([B.zZ,null,null,B.eU],t.L)
+B.UB=s([B.A_,null,null,B.ie],t.L)
+B.Wb=s([B.A0,null,null,B.eV],t.L)
+B.We=s([B.A1,null,null,B.ig],t.L)
+B.Ut=s([B.ia,B.ia,B.kE,null],t.L)
 B.Wy=s([B.kA,null,B.kA,null],t.L)
-B.V6=s([B.de,null,null,B.eS],t.L)
-B.V7=s([B.d2,null,null,B.eT],t.L)
-B.V8=s([B.d3,null,null,B.eU],t.L)
+B.V7=s([B.de,null,null,B.eS],t.L)
+B.V8=s([B.d2,null,null,B.eT],t.L)
+B.V9=s([B.d3,null,null,B.eU],t.L)
 B.WE=s([B.df,null,null,B.eV],t.L)
-B.Wk=s([B.ow,null,null,B.oD],t.L)
-B.Uv=s([B.i9,B.i9,B.kD,null],t.L)
+B.Wj=s([B.ow,null,null,B.oD],t.L)
+B.Uu=s([B.i9,B.i9,B.kD,null],t.L)
 B.VI=s([B.c2,null,null,B.eR],t.L)
-B.V9=s([B.eO,null,null,B.ic],t.L)
-B.Um=s([B.i3,null,null,B.oB],t.L)
-B.Va=s([B.eP,null,null,B.ie],t.L)
-B.Wl=s([B.i8,null,null,B.oC],t.L)
-B.Uw=s([B.ib,B.ib,B.kF,null],t.L)
-B.Vb=s([B.i6,null,null,B.id],t.L)
+B.Va=s([B.eO,null,null,B.ic],t.L)
+B.Ul=s([B.i3,null,null,B.oB],t.L)
+B.Vb=s([B.eP,null,null,B.ie],t.L)
+B.Wk=s([B.i8,null,null,B.oC],t.L)
+B.Uv=s([B.ib,B.ib,B.kF,null],t.L)
+B.Vc=s([B.i6,null,null,B.id],t.L)
 B.VR=s([B.i7,null,null,B.ig],t.L)
-B.Ux=s([B.e5,B.e5,B.eQ,null],t.L)
-B.YI=new A.e6(["*",B.Uj,"+",B.Wb,"-",B.UV,".",B.Vt,"/",B.Tv,"0",B.Wx,"1",B.Wp,"2",B.Ur,"3",B.WH,"4",B.Wm,"5",B.Uo,"6",B.TK,"7",B.UC,"8",B.Wc,"9",B.Wf,"Alt",B.Uu,"AltGraph",B.Wy,"ArrowDown",B.V6,"ArrowLeft",B.V7,"ArrowRight",B.V8,"ArrowUp",B.WE,"Clear",B.Wk,"Control",B.Uv,"Delete",B.VI,"End",B.V9,"Enter",B.Um,"Home",B.Va,"Insert",B.Wl,"Meta",B.Uw,"PageDown",B.Vb,"PageUp",B.VR,"Shift",B.Ux],A.aM("e6<u,a1<m?>>"))
+B.Uw=s([B.e5,B.e5,B.eQ,null],t.L)
+B.YI=new A.e6(["*",B.Ui,"+",B.Wa,"-",B.UW,".",B.Vv,"/",B.Tv,"0",B.Wx,"1",B.Wp,"2",B.Uq,"3",B.WI,"4",B.Wm,"5",B.Un,"6",B.TJ,"7",B.UB,"8",B.Wb,"9",B.We,"Alt",B.Ut,"AltGraph",B.Wy,"ArrowDown",B.V7,"ArrowLeft",B.V8,"ArrowRight",B.V9,"ArrowUp",B.WE,"Clear",B.Wj,"Control",B.Uu,"Delete",B.VI,"End",B.Va,"Enter",B.Ul,"Home",B.Vb,"Insert",B.Wk,"Meta",B.Uv,"PageDown",B.Vc,"PageUp",B.VR,"Shift",B.Uw],A.aM("e6<u,a1<m?>>"))
 B.Zq={KeyA:0,KeyB:1,KeyC:2,KeyD:3,KeyE:4,KeyF:5,KeyG:6,KeyH:7,KeyI:8,KeyJ:9,KeyK:10,KeyL:11,KeyM:12,KeyN:13,KeyO:14,KeyP:15,KeyQ:16,KeyR:17,KeyS:18,KeyT:19,KeyU:20,KeyV:21,KeyW:22,KeyX:23,KeyY:24,KeyZ:25,Digit1:26,Digit2:27,Digit3:28,Digit4:29,Digit5:30,Digit6:31,Digit7:32,Digit8:33,Digit9:34,Digit0:35,Minus:36,Equal:37,BracketLeft:38,BracketRight:39,Backslash:40,Semicolon:41,Quote:42,Backquote:43,Comma:44,Period:45,Slash:46}
 B.As=new A.bv(B.Zq,["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","1","2","3","4","5","6","7","8","9","0","-","=","[","]","\\",";","'","`",",",".","/"],t.li)
 B.Zl={Abort:0,Again:1,AltLeft:2,AltRight:3,ArrowDown:4,ArrowLeft:5,ArrowRight:6,ArrowUp:7,AudioVolumeDown:8,AudioVolumeMute:9,AudioVolumeUp:10,Backquote:11,Backslash:12,Backspace:13,BracketLeft:14,BracketRight:15,BrightnessDown:16,BrightnessUp:17,BrowserBack:18,BrowserFavorites:19,BrowserForward:20,BrowserHome:21,BrowserRefresh:22,BrowserSearch:23,BrowserStop:24,CapsLock:25,Comma:26,ContextMenu:27,ControlLeft:28,ControlRight:29,Convert:30,Copy:31,Cut:32,Delete:33,Digit0:34,Digit1:35,Digit2:36,Digit3:37,Digit4:38,Digit5:39,Digit6:40,Digit7:41,Digit8:42,Digit9:43,DisplayToggleIntExt:44,Eject:45,End:46,Enter:47,Equal:48,Escape:49,Esc:50,F1:51,F10:52,F11:53,F12:54,F13:55,F14:56,F15:57,F16:58,F17:59,F18:60,F19:61,F2:62,F20:63,F21:64,F22:65,F23:66,F24:67,F3:68,F4:69,F5:70,F6:71,F7:72,F8:73,F9:74,Find:75,Fn:76,FnLock:77,GameButton1:78,GameButton10:79,GameButton11:80,GameButton12:81,GameButton13:82,GameButton14:83,GameButton15:84,GameButton16:85,GameButton2:86,GameButton3:87,GameButton4:88,GameButton5:89,GameButton6:90,GameButton7:91,GameButton8:92,GameButton9:93,GameButtonA:94,GameButtonB:95,GameButtonC:96,GameButtonLeft1:97,GameButtonLeft2:98,GameButtonMode:99,GameButtonRight1:100,GameButtonRight2:101,GameButtonSelect:102,GameButtonStart:103,GameButtonThumbLeft:104,GameButtonThumbRight:105,GameButtonX:106,GameButtonY:107,GameButtonZ:108,Help:109,Home:110,Hyper:111,Insert:112,IntlBackslash:113,IntlRo:114,IntlYen:115,KanaMode:116,KeyA:117,KeyB:118,KeyC:119,KeyD:120,KeyE:121,KeyF:122,KeyG:123,KeyH:124,KeyI:125,KeyJ:126,KeyK:127,KeyL:128,KeyM:129,KeyN:130,KeyO:131,KeyP:132,KeyQ:133,KeyR:134,KeyS:135,KeyT:136,KeyU:137,KeyV:138,KeyW:139,KeyX:140,KeyY:141,KeyZ:142,KeyboardLayoutSelect:143,Lang1:144,Lang2:145,Lang3:146,Lang4:147,Lang5:148,LaunchApp1:149,LaunchApp2:150,LaunchAssistant:151,LaunchControlPanel:152,LaunchMail:153,LaunchScreenSaver:154,MailForward:155,MailReply:156,MailSend:157,MediaFastForward:158,MediaPause:159,MediaPlay:160,MediaPlayPause:161,MediaRecord:162,MediaRewind:163,MediaSelect:164,MediaStop:165,MediaTrackNext:166,MediaTrackPrevious:167,MetaLeft:168,MetaRight:169,MicrophoneMuteToggle:170,Minus:171,NonConvert:172,NumLock:173,Numpad0:174,Numpad1:175,Numpad2:176,Numpad3:177,Numpad4:178,Numpad5:179,Numpad6:180,Numpad7:181,Numpad8:182,Numpad9:183,NumpadAdd:184,NumpadBackspace:185,NumpadClear:186,NumpadClearEntry:187,NumpadComma:188,NumpadDecimal:189,NumpadDivide:190,NumpadEnter:191,NumpadEqual:192,NumpadMemoryAdd:193,NumpadMemoryClear:194,NumpadMemoryRecall:195,NumpadMemoryStore:196,NumpadMemorySubtract:197,NumpadMultiply:198,NumpadParenLeft:199,NumpadParenRight:200,NumpadSubtract:201,Open:202,PageDown:203,PageUp:204,Paste:205,Pause:206,Period:207,Power:208,PrintScreen:209,PrivacyScreenToggle:210,Props:211,Quote:212,Resume:213,ScrollLock:214,Select:215,SelectTask:216,Semicolon:217,ShiftLeft:218,ShiftRight:219,ShowAllWindows:220,Slash:221,Sleep:222,Space:223,Super:224,Suspend:225,Tab:226,Turbo:227,Undo:228,WakeUp:229,ZoomToggle:230}
@@ -125429,8 +125429,8 @@ B.Ni=new A.U(0,16,0,16)
 B.af=new A.bP(8,null,null,null)
 B.a8U=new A.x(!0,B.E,null,null,null,null,15,B.B,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.abS=new A.aG("Sign out",null,B.a8U,null,null,null,null,null,null,null)
-B.TM=s([B.uF,B.af,B.abS],t.p)
-B.a2f=new A.iz(B.az,B.aN,B.h,B.j,null,B.bW,null,0,B.TM,null)
+B.TL=s([B.uF,B.af,B.abS],t.p)
+B.a2f=new A.iz(B.az,B.aN,B.h,B.j,null,B.bW,null,0,B.TL,null)
 B.a_B=new A.ab(B.Ni,B.a2f,null)
 B.Nu=new A.U(0,60,0,0)
 B.a_C=new A.ab(B.Nu,B.cY,null)
@@ -125606,14 +125606,14 @@ B.QI=new A.b7(B.oa,16,B.F,null,null)
 B.aah=new A.x(!0,B.F,null,null,null,null,12,B.ai,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.ab2=new A.aG("Typically approved within 24-48 hours",null,B.aah,null,null,null,null,null,null,null)
 B.OP=new A.hi(1,B.d_,B.ab2,null)
-B.UT=s([B.QI,B.af,B.OP],t.p)
-B.a2a=new A.iz(B.az,B.f,B.h,B.j,null,B.bW,null,0,B.UT,null)
+B.UU=s([B.QI,B.af,B.OP],t.p)
+B.a2a=new A.iz(B.az,B.f,B.h,B.j,null,B.bW,null,0,B.UU,null)
 B.Rz=new A.b7(B.kb,18,B.r,null,null)
 B.eb=new A.bP(4,null,null,null)
 B.G4=new A.x(!0,B.r,null,null,null,null,13,B.B,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.abg=new A.aG("Add item",null,B.G4,null,null,null,null,null,null,null)
-B.V2=s([B.Rz,B.eb,B.abg],t.p)
-B.a2b=new A.iz(B.az,B.f,B.h,B.j,null,B.bW,null,0,B.V2,null)
+B.V4=s([B.Rz,B.eb,B.abg],t.p)
+B.a2b=new A.iz(B.az,B.f,B.h,B.j,null,B.bW,null,0,B.V4,null)
 B.Hp=new A.mL(B.aO,t.ZU)
 B.K3=new A.fa(2,null,null,null,null,null,B.Hp,null,null,null)
 B.a4F=new A.bP(20,20,B.K3,null)
@@ -125628,17 +125628,17 @@ B.a2d=new A.iz(B.az,B.aN,B.h,B.j,null,B.bW,null,0,B.WG,null)
 B.QX=new A.b7(B.oc,16,B.r,null,null)
 B.a69=new A.x(!0,B.r,null,null,null,null,14,B.M,null,0.2,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.ac2=new A.aG("Order now",null,B.a69,null,null,null,null,null,null,null)
-B.WK=s([B.QX,B.af,B.ac2],t.p)
-B.a2e=new A.iz(B.az,B.aN,B.h,B.j,null,B.bW,null,0,B.WK,null)
+B.WL=s([B.QX,B.af,B.ac2],t.p)
+B.a2e=new A.iz(B.az,B.aN,B.h,B.j,null,B.bW,null,0,B.WL,null)
 B.QH=new A.b7(B.eK,20,null,null,null)
 B.ac5=new A.aG("Verified",null,null,null,null,null,null,null,null,null)
-B.UU=s([B.QH,B.af,B.ac5],t.p)
-B.a2g=new A.iz(B.az,B.aN,B.h,B.j,null,B.bW,null,0,B.UU,null)
+B.UV=s([B.QH,B.af,B.ac5],t.p)
+B.a2g=new A.iz(B.az,B.aN,B.h,B.j,null,B.bW,null,0,B.UV,null)
 B.Rp=new A.b7(B.o6,18,B.r,null,null)
 B.G0=new A.x(!0,B.r,null,null,null,null,null,B.B,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.abf=new A.aG("New delivery available!",null,B.G0,null,null,null,null,null,null,null)
-B.Un=s([B.Rp,B.af,B.abf],t.p)
-B.a2h=new A.iz(B.az,B.f,B.h,B.j,null,B.bW,null,0,B.Un,null)
+B.Um=s([B.Rp,B.af,B.abf],t.p)
+B.a2h=new A.iz(B.az,B.f,B.h,B.j,null,B.bW,null,0,B.Um,null)
 B.a2i=new A.I0(1333)
 B.p4=new A.I0(2222)
 B.a2j=new A.XF(null,null)
@@ -127152,7 +127152,7 @@ return A.b([A.T(A.T(A.aO(),q),"Alphabetic"),A.T(A.T(A.aO(),q),"Ideographic")],t.
 s($,"bvF","bdj",()=>{var q="PlaceholderAlignment"
 return A.b([A.T(A.T(A.aO(),q),"Baseline"),A.T(A.T(A.aO(),q),"AboveBaseline"),A.T(A.T(A.aO(),q),"BelowBaseline"),A.T(A.T(A.aO(),q),"Top"),A.T(A.T(A.aO(),q),"Bottom"),A.T(A.T(A.aO(),q),"Middle")],t.W)})
 r($,"bvu","bdb",()=>A.ec().ga51()+"roboto/v32/KFOmCnqEu92Fr1Me4GZLCzYlKw.woff2")
-s($,"buT","bcN",()=>A.bi2(B.Vh))
+s($,"buT","bcN",()=>A.bi2(B.Vi))
 s($,"buS","aYZ",()=>A.amP(A.beI($.bcN())))
 s($,"brO","dU",()=>{var q,p=A.T(A.T(A.rg(),"window"),"screen")
 p=p==null?null:A.T(p,"width")
