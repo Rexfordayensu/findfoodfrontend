@@ -1,5 +1,5 @@
-import '../customer/food_feed_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../theme.dart';
@@ -198,6 +198,19 @@ class _AdminDashboardState extends State<AdminDashboard>
     final textPri    = AppColors.textPrimary(context);
     final textHint   = AppColors.textHint(context);
     final auth       = Provider.of<AuthProvider>(context);
+    // Icons-only sidebar: every part must fit 76px wide.
+    final compact    = isWide && _sidebarCollapsed;
+    final adminName  = auth.name?.trim().isNotEmpty == true
+        ? auth.name!.trim()
+        : 'Administrator';
+
+    Future<void> signOut() async {
+      if (!await confirmLogout(context) || !context.mounted) return;
+      await auth.logout();
+      if (!context.mounted) return;
+      showLogoutSuccess(context);
+      context.go('/');
+    }
 
     Widget sidebar = Container(
       width: isWide ? (_sidebarCollapsed ? 76 : 220) : double.infinity,
@@ -209,8 +222,34 @@ class _AdminDashboardState extends State<AdminDashboard>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Brand header ─────────────────────────────────
+          if (compact)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 40, 0, 12),
+              child: Center(
+                child: Column(children: [
+                  Container(
+                    width: 38, height: 38,
+                    decoration: BoxDecoration(
+                      color: AppTheme.accent,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.fastfood_rounded,
+                        color: Colors.black, size: 20),
+                  ),
+                  const SizedBox(height: 6),
+                  IconButton(
+                    tooltip: 'Expand sidebar',
+                    icon: Icon(Icons.keyboard_double_arrow_right_rounded,
+                        color: textHint, size: 18),
+                    onPressed: () =>
+                        setState(() => _sidebarCollapsed = false),
+                  ),
+                ]),
+              ),
+            )
+          else
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 48, 20, 20),
+            padding: const EdgeInsets.fromLTRB(20, 48, 12, 20),
             child: Row(
               children: [
                 Container(
@@ -222,35 +261,30 @@ class _AdminDashboardState extends State<AdminDashboard>
                   child: const Icon(Icons.fastfood_rounded,
                       color: Colors.black, size: 20),
                 ),
-                if (!_sidebarCollapsed || !isWide) ...[
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('FindFood',
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: textPri,
-                                fontWeight: FontWeight.w800, fontSize: 14,
-                                letterSpacing: 0.3)),
-                        Text('Admin HQ',
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: AppColors.accentText(context), fontSize: 11,
-                                fontWeight: FontWeight.w600)),
-                      ],
-                    ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('FindFood',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: textPri,
+                              fontWeight: FontWeight.w800, fontSize: 14,
+                              letterSpacing: 0.3)),
+                      Text('Admin HQ',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: AppColors.accentText(context), fontSize: 11,
+                              fontWeight: FontWeight.w600)),
+                    ],
                   ),
-                ],
-                if (_sidebarCollapsed && isWide) const Spacer(),
+                ),
                 if (isWide)
                   IconButton(
-                    tooltip: _sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar',
-                    icon: Icon(_sidebarCollapsed
-                        ? Icons.keyboard_double_arrow_right_rounded
-                        : Icons.keyboard_double_arrow_left_rounded,
+                    tooltip: 'Collapse sidebar',
+                    icon: Icon(Icons.keyboard_double_arrow_left_rounded,
                         color: textHint, size: 18),
-                    onPressed: () => setState(
-                        () => _sidebarCollapsed = !_sidebarCollapsed),
+                    onPressed: () =>
+                        setState(() => _sidebarCollapsed = true),
                   ),
               ],
             ),
@@ -327,8 +361,8 @@ class _AdminDashboardState extends State<AdminDashboard>
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
                       margin: const EdgeInsets.only(bottom: 4),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 11),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: compact ? 0 : 14, vertical: 11),
                       decoration: BoxDecoration(
                         color: active
                             ? AppTheme.accent.withValues(alpha: 0.12)
@@ -339,14 +373,31 @@ class _AdminDashboardState extends State<AdminDashboard>
                                 color: AppTheme.accent.withValues(alpha: 0.25))
                             : null,
                       ),
-                      child: Row(
+                      child: compact
+                          ? Center(
+                              child: Tooltip(
+                                message: item['label'] as String,
+                                child: Badge(
+                                  isLabelVisible:
+                                      i == 1 && _pendingApprovalsCount > 0,
+                                  label: Text('$_pendingApprovalsCount'),
+                                  backgroundColor: AppTheme.danger,
+                                  child: Icon(item['icon'] as IconData,
+                                      size: 20,
+                                      color: active
+                                          ? AppTheme.accent
+                                          : textHint),
+                                ),
+                              ),
+                            )
+                          : Row(
                         children: [
                           Icon(item['icon'] as IconData,
                               size: 18,
                               color: active
                                   ? AppTheme.accent
                                   : textHint),
-                          if (!_sidebarCollapsed || !isWide) ...[
+                          if (!compact) ...[
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(item['label'] as String,
@@ -361,7 +412,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                                 fontSize: 14,
                               ))),
                           ],
-                          if (i == 1) ...[
+                          if (i == 1 && _pendingApprovalsCount > 0) ...[
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 7, vertical: 2),
@@ -389,6 +440,42 @@ class _AdminDashboardState extends State<AdminDashboard>
           Divider(color: border, height: 1),
 
           // ── Bottom section ───────────────────────────────
+          if (compact)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Center(
+                child: Column(children: [
+                  Tooltip(
+                    message: '$adminName · Admin account',
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: AppTheme.accent.withValues(alpha: 0.16),
+                      child: Text(adminName[0].toUpperCase(),
+                          style: TextStyle(color: AppColors.accentText(context),
+                              fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  IconButton(
+                    key: const Key('admin-theme-toggle'),
+                    tooltip: theme.isDark ? 'Light mode' : 'Dark mode',
+                    onPressed: theme.toggle,
+                    icon: Icon(
+                      theme.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                      size: 20, color: AppTheme.accent,
+                    ),
+                  ),
+                  IconButton(
+                    key: const Key('admin-sign-out'),
+                    tooltip: 'Sign out',
+                    onPressed: signOut,
+                    icon: const Icon(Icons.logout_rounded,
+                        size: 20, color: AppTheme.danger),
+                  ),
+                ]),
+              ),
+            )
+          else
           Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -406,11 +493,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                       CircleAvatar(
                         radius: 17,
                         backgroundColor: AppTheme.accent.withValues(alpha: 0.16),
-                        child: Text(
-                          (auth.name?.trim().isNotEmpty == true
-                                  ? auth.name!.trim()
-                                  : 'A')[0]
-                              .toUpperCase(),
+                        child: Text(adminName[0].toUpperCase(),
                           style: TextStyle(color: AppColors.accentText(context),
                               fontWeight: FontWeight.w800),
                         ),
@@ -420,10 +503,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              auth.name?.trim().isNotEmpty == true
-                                  ? auth.name!.trim()
-                                  : 'Administrator',
+                            Text(adminName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -432,6 +512,8 @@ class _AdminDashboardState extends State<AdminDashboard>
                                   fontWeight: FontWeight.w700),
                             ),
                             Text('Admin account',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                     color: textHint, fontSize: 11)),
                           ],
@@ -442,74 +524,26 @@ class _AdminDashboardState extends State<AdminDashboard>
                 ),
                 const SizedBox(height: 10),
                 // Theme toggle
-                GestureDetector(
+                _SidebarButton(
+                  key: const Key('admin-theme-toggle'),
+                  icon: theme.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                  label: theme.isDark ? 'Light mode' : 'Dark mode',
+                  color: AppTheme.accent,
+                  textColor: textPri,
+                  background: AppColors.card(context),
+                  borderColor: border,
                   onTap: theme.toggle,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 11),
-                    decoration: BoxDecoration(
-                      color: AppColors.card(context),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: border),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          theme.isDark
-                              ? Icons.light_mode_rounded
-                              : Icons.dark_mode_rounded,
-                          size: 17, color: AppTheme.accent,
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          theme.isDark ? 'Light mode' : 'Dark mode',
-                          style: TextStyle(
-                              color: textPri,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
                 const SizedBox(height: 8),
-                // Sign out
-                GestureDetector(
-                  onTap: () async {
-                    if (!await confirmLogout(context) || !context.mounted) return;
-                    await auth.logout();
-                    if (!context.mounted) return;
-                    showLogoutSuccess(context);
-                    // Go to feed — splash only plays on cold start
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const FoodFeedScreen()),
-                      (_) => false,
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 11),
-                    decoration: BoxDecoration(
-                      color: AppTheme.danger.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: AppTheme.danger.withValues(alpha: 0.2)),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.logout_rounded,
-                            size: 17, color: AppTheme.danger),
-                        SizedBox(width: 10),
-                        Text('Sign out',
-                            style: TextStyle(
-                                color: AppTheme.danger,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500)),
-                      ],
-                    ),
-                  ),
+                _SidebarButton(
+                  key: const Key('admin-sign-out'),
+                  icon: Icons.logout_rounded,
+                  label: 'Sign out',
+                  color: AppTheme.danger,
+                  textColor: AppTheme.danger,
+                  background: AppTheme.danger.withValues(alpha: 0.08),
+                  borderColor: AppTheme.danger.withValues(alpha: 0.2),
+                  onTap: signOut,
                 ),
               ],
             ),
@@ -2540,6 +2574,61 @@ class _LiveIndicator extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.w700)),
       ],
+    );
+  }
+}
+
+/// A full-width sidebar action (theme, sign out) that never overflows.
+class _SidebarButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color textColor;
+  final Color background;
+  final Color borderColor;
+  final VoidCallback onTap;
+
+  const _SidebarButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.textColor,
+    required this.background,
+    required this.borderColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: background,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: borderColor),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          child: Row(
+            children: [
+              Icon(icon, size: 17, color: color),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: textColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500)),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

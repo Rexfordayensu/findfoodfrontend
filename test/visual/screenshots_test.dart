@@ -339,6 +339,12 @@ void main() {
         'customer_profile_${dark ? 'dark' : 'light'}',
         role: 'customer', name: 'Rexford Ayensu', dark: dark, tab: 'Profile'));
   }
+  for (final dark in [false, true]) {
+    testWidgets('admin collapsed ${dark ? 'dark' : 'light'}', (t) => shoot(t,
+        'admin_collapsed_${dark ? 'dark' : 'light'}',
+        role: 'admin', name: 'Rexford', dark: dark, tab: 'Collapse sidebar',
+        size: const Size(1280, 860)));
+  }
   testWidgets('admin desktop light', (t) => shoot(t, 'admin_desktop_light',
       role: 'admin', name: 'Ade', dark: false, size: const Size(1280, 860)));
 }
