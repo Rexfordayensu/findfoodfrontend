@@ -1251,10 +1251,10 @@ class _RestaurantCardState extends State<_RestaurantCard>
                               child: const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.shopping_basket_rounded,
-                                      color: Colors.black, size: 16),
+                                  Icon(Icons.storefront_rounded,
+                                      color: Colors.black, size: 17),
                                   SizedBox(width: 8),
-                                  Text('Order now',
+                                  Text('View restaurant',
                                       style: TextStyle(
                                         color: Colors.black,
                                         fontSize: 14,

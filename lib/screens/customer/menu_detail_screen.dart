@@ -157,9 +157,13 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
           const Icon(Icons.shopping_basket_rounded,
               color: Colors.white, size: 18),
           const SizedBox(width: 8),
-          Text('$name added to basket',
-              style: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.w600)),
+          Expanded(
+            child: Text('$name added to basket',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w600)),
+          ),
         ],
       ),
     ));
@@ -373,17 +377,22 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
                       _statChip(
                           Icons.access_time_rounded, '25–35 min', textHint),
                       const SizedBox(width: 10),
-                      _statChip(Icons.location_on_outlined, r.address, textHint,
-                          shrink: true),
+                      // A long address shortens with "…" instead of overflowing.
+                      Flexible(
+                        child: _statChip(Icons.location_on_outlined, r.address,
+                            textHint,
+                            shrink: true),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 14),
 
                   // Tags
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       _tag('Free delivery', AppTheme.success),
-                      const SizedBox(width: 8),
                       _tag('Avg 25 min', AppTheme.accent),
                     ],
                   ),
@@ -403,11 +412,29 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
                   // Menu title
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text('Menu',
-                        style: TextStyle(
-                            color: textPri,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Menu',
+                            style: TextStyle(
+                                color: textPri,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 4),
+                        Row(children: [
+                          const Icon(Icons.touch_app_rounded,
+                              size: 16, color: AppTheme.accentDeep),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text('Tap a dish or "Add" to put it in your basket',
+                                key: const Key('menu-add-hint'),
+                                style: TextStyle(
+                                    color: AppColors.textSecondary(context),
+                                    fontSize: 13)),
+                          ),
+                        ]),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -589,15 +616,28 @@ class _MenuItemCard extends StatelessWidget {
     final textPri = AppColors.textPrimary(context);
     final textSec = AppColors.textSecondary(context);
     final soldOut = !item.isAvailable;
+    final inBasket = qty > 0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
         color: AppColors.card(context),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border(context)),
-      ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: BorderSide(
+            color: inBasket
+                ? AppTheme.accent.withValues(alpha: 0.7)
+                : AppColors.border(context),
+            width: inBasket ? 1.5 : 1,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: Key('menu-item-${item.id}'),
+          // Tapping anywhere on the dish adds it.
+          onTap: soldOut ? null : onAdd,
+          child: Padding(
+      padding: const EdgeInsets.all(14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -641,6 +681,19 @@ class _MenuItemCard extends StatelessWidget {
                       ],
                     ],
                   ),
+                  if (inBasket) ...[
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      const Icon(Icons.check_circle_rounded,
+                          size: 15, color: AppTheme.success),
+                      const SizedBox(width: 5),
+                      Text('$qty in your basket',
+                          style: const TextStyle(
+                              color: AppTheme.success,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700)),
+                    ]),
+                  ],
                 ],
               ),
             ),
@@ -664,19 +717,25 @@ class _MenuItemCard extends StatelessWidget {
                 ),
                 if (!soldOut)
                   Positioned(
-                    right: 6,
+                    left: 0,
+                    right: 0,
                     bottom: 0,
-                    child: _AddControl(
+                    child: Center(
+                      child: _AddControl(
                       quantity: qty,
                       onAdd: onAdd,
                       onRemove: () => context.read<CartProvider>().decreaseItem(item.id),
                       itemName: item.name,
+                    ),
                     ),
                   ),
               ],
             ),
           ),
         ],
+      ),
+          ),
+        ),
       ),
     );
   }
@@ -715,7 +774,8 @@ class _MenuPhoto extends StatelessWidget {
   }
 }
 
-/// A round "+" that grows into a "− 1 +" pill once the dish is in the cart.
+/// A yellow "+ Add" button that becomes a "− 1 +" pill once the dish is in
+/// the basket.
 class _AddControl extends StatelessWidget {
   final int quantity;
   final VoidCallback onAdd;
@@ -746,19 +806,45 @@ class _AddControl extends StatelessWidget {
           ),
         );
 
+    if (quantity == 0) {
+      return Material(
+        color: AppTheme.accent,
+        shape: const StadiumBorder(),
+        elevation: 3,
+        shadowColor: AppTheme.accent.withValues(alpha: 0.5),
+        child: InkWell(
+          key: Key('menu-add-$itemName'),
+          customBorder: const StadiumBorder(),
+          onTap: onAdd,
+          child: Semantics(
+            button: true,
+            label: 'Add $itemName',
+            excludeSemantics: true,
+            child: const Padding(
+              padding: EdgeInsets.fromLTRB(12, 8, 16, 8),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.add_rounded, size: 18, color: Colors.black),
+                SizedBox(width: 4),
+                Text('Add',
+                    style: TextStyle(
+                        color: Colors.black, fontSize: 14, fontWeight: FontWeight.w800)),
+              ]),
+            ),
+          ),
+        ),
+      );
+    }
     return Material(
       color: dark ? const Color(0xFF2B2F3A) : Colors.white,
-      elevation: 0,
-      shape: StadiumBorder(side: BorderSide(color: AppColors.border(context))),
-      shadowColor: Colors.transparent,
+      elevation: 3,
+      shape: const StadiumBorder(side: BorderSide(color: AppTheme.accent, width: 1.5)),
+      shadowColor: Colors.black26,
       child: AnimatedSize(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,
         child: Padding(
           padding: const EdgeInsets.all(2),
-          child: quantity == 0
-              ? iconButton(Icons.add_rounded, 'Add $itemName', onAdd)
-              : Row(
+          child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     iconButton(

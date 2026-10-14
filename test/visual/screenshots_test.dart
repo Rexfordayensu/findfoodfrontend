@@ -402,6 +402,11 @@ void main() {
       role: 'admin', name: 'Ade', dark: false, tab: 'Reports', size: const Size(1280, 860)));
   testWidgets('restaurant reports light', (t) => shoot(t, 'restaurant_reports_light',
       role: 'restaurant', name: 'Esi', dark: false, tab: 'Reports', size: const Size(400, 1300)));
+  testWidgets('menu tall dark', (t) => shoot(t, 'menu_tall_dark',
+      role: 'customer', name: 'Rexford', dark: true, then: 'Ghanaian',
+      cart: menuCart(), size: const Size(400, 1900)));
+  testWidgets('feed tall dark', (t) => shoot(t, 'feed_tall_dark',
+      role: 'customer', name: 'Rexford', dark: true, size: const Size(400, 1700)));
   testWidgets('rider code dark', (t) => shoot(t, 'rider_code_dark',
       role: 'rider', name: 'Kofi', dark: true, tab: 'My Deliveries'));
   for (final dark in [false, true]) {
