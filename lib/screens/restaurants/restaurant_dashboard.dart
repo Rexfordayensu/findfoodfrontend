@@ -19,6 +19,7 @@ import '../../utils/friendly_error.dart';
 import '../../widgets/notification_bell.dart';
 import '../../widgets/doorstep.dart';
 import '../../widgets/assign_rider.dart';
+import '../../widgets/payouts.dart';
 
 class RestaurantDashboard extends StatefulWidget {
   const RestaurantDashboard(
@@ -648,6 +649,7 @@ class _OrdersPageState extends State<_OrdersPage> {
             ),
 
             RestaurantIssuesBanner(refreshTick: _issuesTick),
+            const PayoutReminderBanner(),
 
             // ── Orders list ─────────────────────────────────
             Expanded(
@@ -2043,50 +2045,12 @@ class _EarningsPageState extends State<_EarningsPage> {
                     ),
                   )
                 else ...[
-                  // ── Revenue hero card ──────────────────────────
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppTheme.accent.withValues(alpha: 0.15),
-                          AppTheme.accent.withValues(alpha: 0.05),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                          color: AppTheme.accent.withValues(alpha: 0.3)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Total revenue',
-                            style: TextStyle(color: textSec, fontSize: 13)),
-                        const SizedBox(height: 6),
-                        Text(
-                          'GH₵ ${((_data?['total_revenue'] ?? 0) / 100).toStringAsFixed(2)}',
-                          style: TextStyle(color: AppColors.accentText(context),
-                              fontSize: 34,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -1),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Icon(Icons.receipt_long_rounded,
-                                size: 14, color: textSec),
-                            const SizedBox(width: 5),
-                            Text(
-                              '${_data?['delivered_orders'] ?? 0} delivered orders',
-                              style: TextStyle(color: textSec, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                  // ── Earnings: the restaurant's share, paid and owed ──
+                  EarningsSplitCard(
+                    data: _data!,
+                    onSetUpPayouts: () async {
+                      if (await showPayoutSheet(context) != null) await _load();
+                    },
                   ),
                   const SizedBox(height: 16),
 
@@ -2906,6 +2870,13 @@ class _SettingsPageState extends State<_SettingsPage> {
                           onTap: _savingOpen
                               ? null
                               : () => _setKitchenOpen(!_isOpen),
+                        ),
+                        SettingsTile(
+                          key: const Key('settings-payouts'),
+                          icon: Icons.account_balance_wallet_outlined,
+                          title: 'Payouts',
+                          subtitle: 'Where your share of each order is paid',
+                          onTap: () => showPayoutSheet(context),
                         ),
                         SettingsTile(
                           key: const Key('settings-restaurant-profile'),

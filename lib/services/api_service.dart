@@ -1698,4 +1698,46 @@ class ApiService {
       throw Exception(_errorDetail(response, 'Could not decline'));
     }
   }
+
+  // ── RESTAURANT PAYOUTS ──────────────────────────────────────────────────────
+
+  /// Mobile money networks ('momo') or banks ('bank') for payouts.
+  static Future<List<Map<String, dynamic>>> getPayoutProviders(String token, String type) async {
+    final response = await _http.get(
+      Uri.parse('$baseUrl/payouts/providers?type=$type'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(_decodeList(response));
+    }
+    throw Exception(_errorDetail(response, 'Could not load payout options'));
+  }
+
+  static Future<Map<String, dynamic>> getMyPayout(String token) async {
+    final response = await _http.get(
+      Uri.parse('$baseUrl/restaurants/mine/payout'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load your payout account'));
+  }
+
+  static Future<Map<String, dynamic>> setMyPayout({
+    required String token,
+    required String type,
+    required String providerCode,
+    required String accountNumber,
+  }) async {
+    final response = await _http.put(
+      Uri.parse('$baseUrl/restaurants/mine/payout'),
+      headers: _jsonAuth(token),
+      body: jsonEncode({
+        'type': type,
+        'provider_code': providerCode,
+        'account_number': accountNumber,
+      }),
+    );
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not save your payout account'));
+  }
 }

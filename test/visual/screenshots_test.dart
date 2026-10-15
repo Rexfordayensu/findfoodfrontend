@@ -81,6 +81,11 @@ Map<String, dynamic> order(int id, String status,
     };
 
 final routes = <String, Object>{
+  '/restaurants/mine/payout': {'active': false, 'commission_percent': 15, 'share_percent': 85},
+  '/payouts/providers': [
+    {'code': 'MTN', 'name': 'MTN Mobile Money'}, {'code': 'VOD', 'name': 'Telecel Cash'},
+    {'code': 'ATL', 'name': 'AirtelTigo Money'},
+  ],
   '/orders/44/riders': {
     'offer': null,
     'riders': [
@@ -186,6 +191,10 @@ final routes = <String, Object>{
       rating: 4.7, count: 128),
   '/restaurants/mine/analytics': {
     'total_orders': 214, 'delivered_orders': 198, 'total_revenue': 942300,
+    'your_earnings': 800955, 'paid_automatically': 779700, 'owed_by_findfood': 21255,
+    'payout': {'active': true, 'type': 'momo', 'provider_name': 'MTN Mobile Money',
+               'account_last4': '4567', 'account_name': 'ESI MENSAH',
+               'commission_percent': 15, 'share_percent': 85},
     'avg_order_value': 4759,
     'top_items': [{'name': 'Jollof Rice', 'count': 92}, {'name': 'Waakye', 'count': 61}],
     'daily_revenue': [
@@ -434,6 +443,10 @@ void main() {
       role: 'restaurant', name: 'Esi', dark: false, then: 'key:assign-rider-44'));
   testWidgets('rider offers dark', (t) => shoot(t, 'rider_offers_dark',
       role: 'rider', name: 'Kofi', dark: true));
+  testWidgets('restaurant earnings light', (t) => shoot(t, 'restaurant_earnings_light',
+      role: 'restaurant', name: 'Esi', dark: false, tab: 'Earnings'));
+  testWidgets('payout sheet light', (t) => shoot(t, 'payout_sheet_light',
+      role: 'restaurant', name: 'Esi', dark: false, then: 'key:payout-reminder'));
   testWidgets('rider code dark', (t) => shoot(t, 'rider_code_dark',
       role: 'rider', name: 'Kofi', dark: true, tab: 'My Deliveries'));
   for (final dark in [false, true]) {
