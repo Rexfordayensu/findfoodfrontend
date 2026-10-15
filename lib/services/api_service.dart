@@ -1774,4 +1774,97 @@ class ApiService {
     if (response.statusCode == 200) return _decode(response);
     throw Exception(_errorDetail(response, "Could not change the restaurant's rate"));
   }
+
+  // ── DELIVERY FEES AND RIDER PAY ─────────────────────────────────────────────
+
+  /// What delivery from [restaurantId] to the point costs, in pesewas:
+  /// {fee, distance_km, mode}.
+  static Future<Map<String, dynamic>> getDeliveryQuote(int restaurantId,
+      {double? latitude, double? longitude}) async {
+    final query = latitude != null && longitude != null ? '?lat=$latitude&lng=$longitude' : '';
+    final response = await _http.get(
+        Uri.parse('$baseUrl/restaurants/$restaurantId/delivery-quote$query'));
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not work out the delivery fee'));
+  }
+
+  static Future<Map<String, dynamic>> setRestaurantLocation(
+      String token, double latitude, double longitude) async {
+    final response = await _http.put(
+      Uri.parse('$baseUrl/restaurants/mine/location'),
+      headers: _jsonAuth(token),
+      body: jsonEncode({'latitude': latitude, 'longitude': longitude}),
+    );
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not save your location'));
+  }
+
+  static Future<Map<String, dynamic>> getMyRiderPayout(String token) async {
+    final response = await _http.get(
+      Uri.parse('$baseUrl/riders/me/payout'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load your pay'));
+  }
+
+  static Future<Map<String, dynamic>> setMyRiderPayout({
+    required String token,
+    required String type,
+    required String providerCode,
+    required String accountNumber,
+  }) async {
+    final response = await _http.put(
+      Uri.parse('$baseUrl/riders/me/payout'),
+      headers: _jsonAuth(token),
+      body: jsonEncode({
+        'type': type,
+        'provider_code': providerCode,
+        'account_number': accountNumber,
+      }),
+    );
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not save your payout account'));
+  }
+
+  static Future<Map<String, dynamic>> getDeliverySettings(String token) async {
+    final response = await _http.get(
+      Uri.parse('$baseUrl/admin/delivery-settings'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load the delivery settings'));
+  }
+
+  static Future<Map<String, dynamic>> setDeliverySettings(
+      String token, Map<String, dynamic> settings) async {
+    final response = await _http.put(
+      Uri.parse('$baseUrl/admin/delivery-settings'),
+      headers: _jsonAuth(token),
+      body: jsonEncode(settings),
+    );
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not save the delivery settings'));
+  }
+
+  static Future<Map<String, dynamic>> getRiderPayouts(String token) async {
+    final response = await _http.get(
+      Uri.parse('$baseUrl/admin/rider-payouts'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load rider payouts'));
+  }
+
+  /// Pays the rider everything owed: [method] 'paystack' or 'manual'.
+  static Future<Map<String, dynamic>> payRider(String token, int riderId, String method,
+      {String? note}) async {
+    final response = await _http.post(
+      Uri.parse('$baseUrl/admin/rider-payouts/$riderId/pay'),
+      headers: _jsonAuth(token),
+      body: jsonEncode({'method': method, if (note != null && note.isNotEmpty) 'note': note}),
+    );
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not pay the rider'));
+  }
 }

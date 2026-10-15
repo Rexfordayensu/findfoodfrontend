@@ -12,6 +12,8 @@ class Restaurant {
   final bool isOpen;
   final double? averageRating;
   final int ratingCount;
+  final double? latitude;
+  final double? longitude;
 
   Restaurant({
     required this.id,
@@ -27,6 +29,8 @@ class Restaurant {
     this.isOpen = true,
     this.averageRating,
     this.ratingCount = 0,
+    this.latitude,
+    this.longitude,
   });
 
   /// Fewer reviews than this and one bad night would define a restaurant.
@@ -52,6 +56,8 @@ class Restaurant {
         isOpen: json['is_open'] ?? true,
         averageRating: (json['average_rating'] as num?)?.toDouble(),
         ratingCount: json['rating_count'] ?? 0,
+        latitude: (json['latitude'] as num?)?.toDouble(),
+        longitude: (json['longitude'] as num?)?.toDouble(),
       );
 }
 
@@ -166,6 +172,13 @@ class Order {
   /// restaurant when collecting the food.
   final String? pickupCode;
 
+  /// Included in [totalAmount]; 0 for pickup and older orders.
+  final int deliveryFee;
+  final double? deliveryDistanceKm;
+
+  /// What the rider earns for this delivery (null on older orders).
+  final int? riderPay;
+
   Order({
     required this.id,
     required this.totalAmount,
@@ -200,7 +213,13 @@ class Order {
     this.offerExpiresAt,
     this.deliveryCode,
     this.pickupCode,
+    this.deliveryFee = 0,
+    this.deliveryDistanceKm,
+    this.riderPay,
   });
+
+  /// The food alone, without the delivery fee.
+  int get foodTotal => totalAmount - deliveryFee;
 
   /// "Use my current location" at checkout stores raw coordinates as the
   /// address; show those as a pinned location instead of numbers.
@@ -284,6 +303,9 @@ class Order {
         offerExpiresAt: _parseDate(json['offer_expires_at']),
         deliveryCode: json['delivery_code'],
         pickupCode: json['pickup_code'],
+        deliveryFee: (json['delivery_fee'] as num?)?.toInt() ?? 0,
+        deliveryDistanceKm: (json['delivery_distance_km'] as num?)?.toDouble(),
+        riderPay: (json['rider_pay'] as num?)?.toInt(),
         items: [
           for (final item in (json['items'] as List? ?? const []))
             OrderLine.fromJson(Map<String, dynamic>.from(item as Map)),

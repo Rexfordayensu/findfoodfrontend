@@ -15,12 +15,14 @@ String? payoutAccountLabel(Map<String, dynamic>? payout) {
   return '${payout['provider_name'] ?? 'Account'} ••${payout['account_last4'] ?? ''}';
 }
 
-/// Where the restaurant is paid. Resolves to the new status once saved.
-Future<Map<String, dynamic>?> showPayoutSheet(BuildContext context) =>
-    showSettingsSheet<Map<String, dynamic>>(context, const _PayoutForm());
+/// Where the restaurant (or, with [rider], the rider) is paid. Resolves to
+/// the new status once saved.
+Future<Map<String, dynamic>?> showPayoutSheet(BuildContext context, {bool rider = false}) =>
+    showSettingsSheet<Map<String, dynamic>>(context, _PayoutForm(rider: rider));
 
 class _PayoutForm extends StatefulWidget {
-  const _PayoutForm();
+  final bool rider;
+  const _PayoutForm({this.rider = false});
 
   @override
   State<_PayoutForm> createState() => _PayoutFormState();
@@ -39,7 +41,8 @@ class _PayoutFormState extends State<_PayoutForm> {
   void initState() {
     super.initState();
     final token = context.read<AuthProvider>().token!;
-    ApiService.getMyPayout(token).then((status) {
+    (widget.rider ? ApiService.getMyRiderPayout(token) : ApiService.getMyPayout(token))
+        .then((status) {
       if (mounted) setState(() => _current = status);
     }).catchError((_) {});
     _loadProviders();
@@ -81,7 +84,7 @@ class _PayoutFormState extends State<_PayoutForm> {
     }
     setState(() => _saving = true);
     try {
-      final status = await ApiService.setMyPayout(
+      final status = await (widget.rider ? ApiService.setMyRiderPayout : ApiService.setMyPayout)(
         token: context.read<AuthProvider>().token!,
         type: _type,
         providerCode: _provider!,
@@ -90,11 +93,11 @@ class _PayoutFormState extends State<_PayoutForm> {
       if (!mounted) return;
       Navigator.of(context).pop(status);
       final name = status['account_name'];
+      final where = widget.rider
+          ? 'Your delivery pay goes there.'
+          : 'Your share of each order goes there automatically.';
       showSettingsMessage(
-          context,
-          name == null
-              ? 'Payouts set up. Your share of each order goes there automatically.'
-              : 'Payouts set up for $name. Your share of each order goes there automatically.');
+          context, name == null ? 'Payouts set up. $where' : 'Payouts set up for $name. $where');
     } catch (e) {
       if (mounted) showSettingsMessage(context, friendlyMessage(e), isError: true);
     } finally {
@@ -145,7 +148,9 @@ class _PayoutFormState extends State<_PayoutForm> {
       children: [
         SheetHeader(
           title: 'Payouts',
-          subtitle: 'You receive $share% of every order, paid automatically by Paystack.',
+          subtitle: widget.rider
+              ? 'Where FindFood sends your delivery pay.'
+              : 'You receive $share% of every order, paid automatically by Paystack.',
         ),
         if (payoutAccountLabel(current) != null) ...[
           Container(
@@ -222,7 +227,7 @@ class _PayoutFormState extends State<_PayoutForm> {
         ),
         const SizedBox(height: 8),
         Text(
-            'Use an account in your or your business\'s name. Paystack checks it '
+            '${widget.rider ? 'Use an account in your name.' : 'Use an account in your or your business\'s name.'} Paystack checks it '
             'before payouts start. FindFood keeps only the last 4 digits.',
             style: TextStyle(color: textSec, fontSize: 12, height: 1.4)),
         const SizedBox(height: 16),

@@ -16,6 +16,7 @@ import '../../widgets/order_issues.dart';
 import '../../widgets/notification_bell.dart';
 import '../../widgets/app_health.dart';
 import '../../widgets/commission.dart';
+import '../../widgets/rider_pay.dart' show RiderPayPage;
 
 int getPendingApprovalsCount(List<Map<String, dynamic>> restaurants) =>
     restaurants.length;
@@ -40,6 +41,7 @@ class _AdminDashboardState extends State<AdminDashboard>
     {'icon': Icons.people_outline_rounded,       'label': 'Users'},
     {'icon': Icons.report_gmailerrorred_outlined, 'label': 'Reports'},
     {'icon': Icons.percent_rounded,              'label': 'Commission'},
+    {'icon': Icons.delivery_dining_outlined,     'label': 'Rider pay'},
     {'icon': Icons.settings_outlined,            'label': 'Settings'},
   ];
 
@@ -102,7 +104,8 @@ class _AdminDashboardState extends State<AdminDashboard>
       case 3: return const _UsersPage();
       case 4: return const _ReportsPage();
       case 5: return const CommissionPage();
-      case 6: return const _AdminSettingsPage();
+      case 6: return const RiderPayPage();
+      case 7: return const _AdminSettingsPage();
       default: return _OverviewPage(onNavigate: (i) => setState(() => _selectedIndex = i));
     }
   }
@@ -554,10 +557,10 @@ class _AdminDashboardState extends State<AdminDashboard>
         ),
       ),
       bottomNavigationBar: GlassNavBar(
-        // The bottom bar has no Commission tab (it's in the ☰ menu), so its
-        // slots map to pages 0-4 and 6.
-        currentIndex: const {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 6: 5}[_selectedIndex] ?? -1,
-        onTap: (i) => setState(() => _selectedIndex = const [0, 1, 2, 3, 4, 6][i]),
+        // The bottom bar has no Commission or Rider pay tabs (they're in the
+        // ☰ menu), so its slots map to pages 0-4 and 7.
+        currentIndex: const {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 7: 5}[_selectedIndex] ?? -1,
+        onTap: (i) => setState(() => _selectedIndex = const [0, 1, 2, 3, 4, 7][i]),
         items: [
           const GlassNavItem(
               icon: Icons.grid_view_outlined,
@@ -886,7 +889,7 @@ class _OverviewPageState extends State<_OverviewPage>
                     _quickAction(ctx, 'View users', Icons.people_outline_rounded,
                         const Color(0xFF60A5FA), width, () => widget.onNavigate(3)),
                     _quickAction(ctx, 'Open settings', Icons.tune_rounded,
-                        AppTheme.accent, width, () => widget.onNavigate(6)),
+                        AppTheme.accent, width, () => widget.onNavigate(7)),
                   ],
                 );
               },

@@ -15,6 +15,7 @@ import '../../services/providers.dart';
 import '../../utils/friendly_error.dart';
 import '../../widgets/notification_bell.dart';
 import '../../widgets/assign_rider.dart';
+import '../../widgets/rider_pay.dart';
 
 class RiderDashboard extends StatefulWidget {
   const RiderDashboard({super.key});
@@ -944,6 +945,7 @@ class _RiderEarningsPageState extends State<_RiderEarningsPage> {
             children: [
               const Text('Earnings', style: AppText.display),
               const SizedBox(height: 20),
+              const RiderPayoutCard(),
               if (_loading && data == null)
                 const Padding(
                   padding: EdgeInsets.only(top: 60),
@@ -1096,14 +1098,22 @@ class _RiderSettingsPage extends StatelessWidget {
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
-          children: const [
-            Text('Profile', style: AppText.display),
-            SizedBox(height: 24),
-            AccountHeader(subtitle: 'Rider'),
-            SizedBox(height: 28),
-            AccountSettingsSection(role: 'rider'),
-            SizedBox(height: 24),
-            SignOutButton(),
+          children: [
+            const Text('Profile', style: AppText.display),
+            const SizedBox(height: 24),
+            const AccountHeader(subtitle: 'Rider'),
+            const SizedBox(height: 28),
+            AccountSettingsSection(role: 'rider', businessRows: [
+              SettingsTile(
+                key: const Key('settings-rider-payout'),
+                icon: Icons.account_balance_wallet_outlined,
+                title: 'Payout account',
+                subtitle: 'Where your delivery pay is sent',
+                onTap: () => showRiderPayoutSheet(context),
+              ),
+            ]),
+            const SizedBox(height: 24),
+            const SignOutButton(),
           ],
         ),
       ),

@@ -20,6 +20,7 @@ import '../../widgets/notification_bell.dart';
 import '../../widgets/doorstep.dart';
 import '../../widgets/assign_rider.dart';
 import '../../widgets/payouts.dart';
+import '../../widgets/rider_pay.dart' show ShopLocationTile;
 
 class RestaurantDashboard extends StatefulWidget {
   const RestaurantDashboard(
@@ -2878,6 +2879,8 @@ class _SettingsPageState extends State<_SettingsPage> {
                           subtitle: 'Where your share of each order is paid',
                           onTap: () => showPayoutSheet(context),
                         ),
+                        ShopLocationTile(
+                            isSet: widget.restaurant?.latitude != null),
                         SettingsTile(
                           key: const Key('settings-restaurant-profile'),
                           icon: Icons.storefront_outlined,

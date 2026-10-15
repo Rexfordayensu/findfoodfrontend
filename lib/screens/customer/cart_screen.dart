@@ -35,8 +35,34 @@ class _CartScreenState extends State<CartScreen> {
     if (mounted && credit != _credit) setState(() => _credit = credit);
   }
 
+  /// The delivery fee quoted for this restaurant and address (null while
+  /// loading or if it couldn't be fetched).
+  int? _deliveryFee;
+  double? _deliveryKm;
+  int _quoteRequest = 0;
+
+  Future<void> _loadDeliveryQuote() async {
+    final restaurantId = context.read<CartProvider>().restaurantId;
+    if (restaurantId == null) return;
+    final request = ++_quoteRequest;
+    try {
+      final quote = await ApiService.getDeliveryQuote(restaurantId,
+          latitude: _deliveryLatitude, longitude: _deliveryLongitude);
+      if (!mounted || request != _quoteRequest) return;
+      setState(() {
+        _deliveryFee = (quote['fee'] as num?)?.toInt() ?? 0;
+        _deliveryKm = (quote['distance_km'] as num?)?.toDouble();
+      });
+    } catch (_) {
+      // The order is priced on the server either way; the total shown then
+      // just leaves the fee out.
+    }
+  }
+
+  int get _fee => _isDelivery ? (_deliveryFee ?? 0) : 0;
+  int _total(CartProvider cart) => cart.totalAmount + _fee;
   int _toPay(CartProvider cart) =>
-      (cart.totalAmount - _credit).clamp(0, cart.totalAmount);
+      (_total(cart) - _credit).clamp(0, _total(cart));
   bool _isDelivery = true;
   bool _isDetectingLocation = false;
   double? _deliveryLatitude;
@@ -54,7 +80,10 @@ class _CartScreenState extends State<CartScreen> {
     super.initState();
     _pickupNameController.text =
         context.read<AuthProvider>().name?.trim() ?? '';
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadCredit());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadCredit();
+      _loadDeliveryQuote();
+    });
     if (widget.paymentReference != null &&
         widget.paymentReference!.trim().isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -98,6 +127,7 @@ class _CartScreenState extends State<CartScreen> {
             '${position.longitude.toStringAsFixed(6)})';
       });
       _showCheckoutMessage('Current location added as your delivery address.');
+      _loadDeliveryQuote();
     } catch (error) {
       if (!mounted) return;
       _showCheckoutMessage(
@@ -382,7 +412,21 @@ class _CartScreenState extends State<CartScreen> {
                 children: [
                   _summaryRow('Subtotal', cart.displayTotal),
                   const SizedBox(height: 10),
-                  _summaryRow(_isDelivery ? 'Delivery fee' : 'Pickup fee', 'Free'),
+                  KeyedSubtree(
+                    key: const Key('checkout-delivery-fee'),
+                    child: _summaryRow(
+                      _isDelivery && _deliveryKm != null
+                          ? 'Delivery fee · ${_deliveryKm!.toStringAsFixed(1)} km'
+                          : _isDelivery
+                              ? 'Delivery fee'
+                              : 'Pickup fee',
+                      !_isDelivery || _deliveryFee == 0
+                          ? 'Free'
+                          : _deliveryFee == null
+                              ? '…'
+                              : formatCedis(_deliveryFee!),
+                    ),
+                  ),
                   if (_credit > 0) ...[
                     const SizedBox(height: 10),
                     Row(
@@ -390,7 +434,7 @@ class _CartScreenState extends State<CartScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('FindFood credit', style: _muted(14)),
-                        Text('−${formatCedis(_credit.clamp(0, cart.totalAmount))}',
+                        Text('−${formatCedis(_credit.clamp(0, _total(cart)))}',
                             style: const TextStyle(
                                 color: AppTheme.success, fontWeight: FontWeight.w700)),
                       ],
@@ -596,6 +640,7 @@ class _CartScreenState extends State<CartScreen> {
                 _deliveryLatitude = null;
                 _deliveryLongitude = null;
               });
+              _loadDeliveryQuote();
             }
           },
         ),
