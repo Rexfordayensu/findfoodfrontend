@@ -33,6 +33,7 @@ Future<AuthProvider> signIn(WidgetTester tester, String role) async {
 const settings = {
   'fee_mode': 'flat', 'flat_fee': 1000, 'base_fee': 600, 'per_km': 200,
   'min_fee': 800, 'max_fee': 3000, 'rider_share_percent': 100, 'payout_mode': 'weekly',
+  'no_location_fee': 'max',
 };
 
 void main() {
@@ -68,6 +69,9 @@ void main() {
       await tester.tap(find.byKey(const Key('payout_mode-automatic')));
       await settle(tester);
       expect(find.textContaining('Confirm transfers with OTP'), findsOneWidget);
+      // Customers without a shared location: maximum fee by default.
+      await tester.tap(find.byKey(const Key('no_location_fee-flat')));
+      await settle(tester);
 
       await tester.tap(find.byKey(const Key('delivery-settings-save')));
       await settle(tester);
@@ -79,6 +83,7 @@ void main() {
     expect(sent!['fee_mode'], 'distance');
     expect(sent!['per_km'], 250);
     expect(sent!['payout_mode'], 'automatic');
+    expect(sent!['no_location_fee'], 'flat');
     expect(find.text('No changes'), findsOneWidget);
   });
 
@@ -190,5 +195,42 @@ void main() {
       expect(find.descendant(of: fee, matching: find.text('Free')), findsOneWidget);
       expect(find.text('GH₵ 62.00'), findsNothing);
     }, () => client);
+  });
+
+  testWidgets('without a location, checkout explains the higher distance fee', (tester) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    tester.view.physicalSize = const Size(430, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final cart = CartProvider()
+      ..addItem(MenuItem(id: 1, name: 'Jollof', price: 5000, isAvailable: true, restaurantId: 7),
+          7, 'Test Restaurant');
+    final client = MockClient((request) async => request.url.path == '/restaurants/7/delivery-quote'
+        ? json({'fee': 3000, 'distance_km': null, 'mode': 'no_location'})
+        : http.Response('{}', 404));
+    await http.runWithClient(() async {
+      await tester.pumpWidget(MultiProvider(
+        providers: [
+          ChangeNotifierProvider<CartProvider>.value(value: cart),
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ],
+        child: const MaterialApp(home: CartScreen()),
+      ));
+      await settle(tester);
+      final hint = find.byKey(const Key('checkout-location-hint'));
+      await tester.scrollUntilVisible(hint, 200, scrollable: find.byType(Scrollable).first);
+      expect(hint, findsOneWidget);
+    }, () => client);
+  });
+
+  test('restaurant cards show the delivery price', () {
+    Restaurant card(int? fee, {bool varies = false}) => Restaurant(
+        id: 1, name: 'A', cuisineType: 'Local', address: 'Osu', email: 'a@b.c',
+        isActive: true, isApproved: true, ownerId: 1,
+        deliveryFeeFrom: fee, deliveryFeeVaries: varies);
+    expect(card(0).deliveryLabel, 'Free delivery');
+    expect(card(1000).deliveryLabel, 'GH₵ 10.00 delivery');
+    expect(card(800, varies: true).deliveryLabel, 'Delivery from GH₵ 8.00');
+    expect(card(null).deliveryLabel, isNull);
   });
 }

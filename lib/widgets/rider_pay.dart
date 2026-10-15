@@ -495,6 +495,17 @@ class _DeliverySettingsState extends State<_DeliverySettings> {
             _MoneyField(label: 'Flat fee (fallback)', value: d['flat_fee'] as int,
                 keyName: 'flat_fee', onChanged: (v) => _set('flat_fee', v)),
           ],
+          const SizedBox(height: 14),
+          Text("If a customer doesn't share their location",
+              style: TextStyle(color: textPri, fontWeight: FontWeight.w700, fontSize: 13.5)),
+          const SizedBox(height: 8),
+          Row(children: [
+            choice('no_location_fee', 'max', 'Charge the maximum',
+                'So typing a far address can\'t pay less', Icons.vertical_align_top_rounded),
+            const SizedBox(width: 10),
+            choice('no_location_fee', 'flat', 'Charge the flat fee',
+                'Simpler, but far orders can pay less', Icons.horizontal_rule_rounded),
+          ]),
         ],
         section("Riders' share", 'The part of each delivery fee the rider earns.'),
         Row(children: [

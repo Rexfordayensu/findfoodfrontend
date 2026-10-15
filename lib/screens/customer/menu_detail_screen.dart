@@ -392,7 +392,12 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _tag('Free delivery', AppTheme.success),
+                      if (widget.restaurant.deliveryLabel != null)
+                        _tag(
+                            widget.restaurant.deliveryLabel!,
+                            widget.restaurant.deliveryFeeFrom == 0
+                                ? AppTheme.success
+                                : AppTheme.accentDeep),
                       _tag('Avg 25 min', AppTheme.accent),
                     ],
                   ),

@@ -15,6 +15,11 @@ class Restaurant {
   final double? latitude;
   final double? longitude;
 
+  /// The delivery fee in pesewas, or the lowest one when it depends on
+  /// distance ([deliveryFeeVaries]). Null from servers that don't send it.
+  final int? deliveryFeeFrom;
+  final bool deliveryFeeVaries;
+
   Restaurant({
     required this.id,
     required this.name,
@@ -31,7 +36,20 @@ class Restaurant {
     this.ratingCount = 0,
     this.latitude,
     this.longitude,
+    this.deliveryFeeFrom,
+    this.deliveryFeeVaries = false,
   });
+
+  /// "Free delivery", "GH₵ 10.00 delivery" or "Delivery from GH₵ 8.00";
+  /// null when unknown.
+  String? get deliveryLabel {
+    final fee = deliveryFeeFrom;
+    if (fee == null) return null;
+    if (fee == 0 && !deliveryFeeVaries) return 'Free delivery';
+    return deliveryFeeVaries
+        ? 'Delivery from ${formatCedis(fee)}'
+        : '${formatCedis(fee)} delivery';
+  }
 
   /// Fewer reviews than this and one bad night would define a restaurant.
   static const minReviewsForScore = 5;
@@ -58,6 +76,8 @@ class Restaurant {
         ratingCount: json['rating_count'] ?? 0,
         latitude: (json['latitude'] as num?)?.toDouble(),
         longitude: (json['longitude'] as num?)?.toDouble(),
+        deliveryFeeFrom: (json['delivery_fee_from'] as num?)?.toInt(),
+        deliveryFeeVaries: json['delivery_fee_varies'] == true,
       );
 }
 

@@ -39,6 +39,7 @@ class _CartScreenState extends State<CartScreen> {
   /// loading or if it couldn't be fetched).
   int? _deliveryFee;
   double? _deliveryKm;
+  String? _quoteMode;
   int _quoteRequest = 0;
 
   Future<void> _loadDeliveryQuote() async {
@@ -52,6 +53,7 @@ class _CartScreenState extends State<CartScreen> {
       setState(() {
         _deliveryFee = (quote['fee'] as num?)?.toInt() ?? 0;
         _deliveryKm = (quote['distance_km'] as num?)?.toDouble();
+        _quoteMode = quote['mode']?.toString();
       });
     } catch (_) {
       // The order is priced on the server either way; the total shown then
@@ -427,6 +429,20 @@ class _CartScreenState extends State<CartScreen> {
                               : formatCedis(_deliveryFee!),
                     ),
                   ),
+                  // Distance pricing without the customer's location charges
+                  // the highest fee; sharing it gives the real one.
+                  if (_isDelivery && _quoteMode == 'no_location') ...[
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Tap "Use my current location" above for the exact fee. '
+                        "It's usually less.",
+                        key: const Key('checkout-location-hint'),
+                        style: _muted(12),
+                      ),
+                    ),
+                  ],
                   if (_credit > 0) ...[
                     const SizedBox(height: 10),
                     Row(

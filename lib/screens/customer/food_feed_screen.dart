@@ -1427,7 +1427,12 @@ class _RestaurantCardState extends State<_RestaurantCard>
                           ],
                         ),
                         const SizedBox(height: 12),
-                        const _Pill('Free delivery', AppTheme.success),
+                        if (r.deliveryLabel != null)
+                          _Pill(
+                              r.deliveryLabel!,
+                              r.deliveryFeeFrom == 0
+                                  ? AppTheme.success
+                                  : AppTheme.accentDeep),
                         // CTA button — full width, always visible
                         if (widget.onTap != null) ...[
                           const SizedBox(height: 14),
