@@ -109,9 +109,10 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
     final wsBase = ApiService.baseUrl.replaceFirst('http', 'ws');
+    // The token goes in the first message, not the address: addresses are
+    // written to server and proxy logs.
     final uri = Uri.parse(
-        '$wsBase/ws/orders/${widget.orderId}/chat'
-        '?token=${Uri.encodeComponent(auth.token!)}&with=${widget.withRole}');
+        '$wsBase/ws/orders/${widget.orderId}/chat?with=${widget.withRole}');
 
     try {
       final channel = ChatScreen.connect(uri);
@@ -123,6 +124,7 @@ class _ChatScreenState extends State<ChatScreen> {
       );
       await channel.ready;
       if (_disposed || _channel != channel) return;
+      channel.sink.add(jsonEncode({'type': 'auth', 'token': auth.token}));
       _reconnectAttempts = 0;
       setState(() => _connected = true);
       _keepAlive?.cancel();

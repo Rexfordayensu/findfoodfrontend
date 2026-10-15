@@ -28,6 +28,10 @@
         {
           "key": "Permissions-Policy",
           "value": "camera=(), microphone=(), geolocation=(self)"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-H2jGG7PaaJV/E7t5A4HFrxKwWZFb9G2qOMXt++VZBnQ=' 'sha256-LQOS+6jAXsURwb/i+pK/MPmBCf8ZPeivhS1ZT1otXY4=' 'sha256-DztRBG/SnObRaua0nCfReLmsDxmoVRezUVVpxNFuEbg=' 'sha256-ym/Jc6Uydh1Hha0O6/9k+mdlCBE6x5V4H/VYJ4CYYTQ='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://findfooddelivery-backend.onrender.com https://res.cloudinary.com https://*.googleusercontent.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://findfooddelivery-backend.onrender.com wss://findfooddelivery-backend.onrender.com https://fonts.gstatic.com https://res.cloudinary.com https://*.googleusercontent.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
         }
       ]
     },

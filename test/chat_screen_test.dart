@@ -107,6 +107,8 @@ void main() {
       expect(find.text('Your order is being prepared'), findsOneWidget);
       expect(find.textContaining('Live'), findsOneWidget);
       expect(requests.first, 'WS /ws/orders/3/chat?with=restaurant');
+      // The token is sent inside the socket, never in the address.
+      expect(sockets.first.sent.first, jsonEncode({'type': 'auth', 'token': 'tok'}));
       expect(requests, contains('GET /orders/3/messages?with=restaurant'));
 
       // The rider writes: it appears straight away, no refresh.

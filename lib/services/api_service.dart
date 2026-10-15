@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import '../models/models.dart';
 import 'package:http_parser/http_parser.dart';
@@ -181,45 +180,6 @@ class ApiService {
           data['detail']?.toString() ?? 'Your session has expired.');
     }
     throw Exception(data['detail'] ?? 'Unable to restore your session');
-  }
-
-  static Future<Map<String, dynamic>> loginWithGoogle() async {
-    try {
-      final GoogleSignIn googleSignIn = GoogleSignIn(
-        clientId:
-            '779814360612-t3r0i8l4pa2r8jqfb1bcd4nh8e429tot.apps.googleusercontent.com',
-        scopes: ['email', 'profile'],
-      );
-
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      if (googleUser == null) {
-        throw Exception('Google sign-in cancelled by user.');
-      }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-      final String? idToken = googleAuth.idToken;
-
-      if (idToken == null) {
-        throw Exception('Failed to retrieve security token from Google.');
-      }
-
-      // Send it to your FastAPI backend
-      final response = await _http.post(
-        Uri.parse('$baseUrl/auth/google'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'id_token': idToken}),
-      );
-
-      final data = _decode(response);
-      if (response.statusCode == 200) {
-        return data;
-      }
-      throw Exception(data['detail'] ?? 'Google backend registration failed.');
-    } catch (e) {
-      debugPrint('Google Auth Client Error Trace: $e');
-      rethrow;
-    }
   }
 
   static Future<Map<String, dynamic>> register({

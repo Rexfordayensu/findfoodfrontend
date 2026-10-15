@@ -16,7 +16,10 @@ done
 trap 'cp -rn "$stash"/. web/ 2>/dev/null || true' EXIT
 
 rm -rf build/web
-flutter build web --release
+# The renderer (canvaskit/) is served from our own site, not Google's CDN:
+# one less connection that can time out on slow networks, and the
+# Content-Security-Policy needn't allow www.gstatic.com.
+flutter build web --release --no-web-resources-cdn
 
 # The icon font is trimmed to the icons the app uses, so it changes whenever
 # a new icon is added, but keeps the same name. Browsers that cached an older
@@ -38,6 +41,8 @@ if ! grep -q "_flutter.loader.load();" build/web/flutter_bootstrap.js; then
 fi
 
 cp -r build/web/. web/
+# Allow index.html's inline scripts (by hash) in the Content-Security-Policy.
+python tool/update_csp.py
 # Success: drop the previous build instead of restoring it on exit.
 trap - EXIT
 rm -rf "$stash"
