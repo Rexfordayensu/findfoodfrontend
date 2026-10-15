@@ -71,6 +71,53 @@ void main() {
     expect(find.text('15% → 10% by Ade'), findsOneWidget);
   });
 
+  testWidgets('an admin gives one restaurant a special rate', (tester) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    tester.view.physicalSize = const Size(430, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final auth = AuthProvider();
+    await auth.login(token: 't', userId: 1, role: 'admin', name: 'Ade');
+    Map<String, dynamic>? sent;
+    var restaurants = [
+      {'id': 4, 'name': "Mama's Kitchen", 'special_percent': null, 'percent': 15,
+       'payouts_active': true},
+    ];
+    final client = MockClient((request) async {
+      if (request.url.path == '/admin/restaurants/4/commission') {
+        sent = jsonDecode(request.body) as Map<String, dynamic>;
+        restaurants = [{...restaurants.first, 'special_percent': 10, 'percent': 10}];
+      }
+      return json({'percent': 15, 'share_percent': 85, 'default_percent': 15,
+          'max_percent': 40, 'history': [], 'restaurants': restaurants,
+          'special_history': []});
+    });
+    await http.runWithClient(() async {
+      await tester.pumpWidget(ChangeNotifierProvider.value(
+        value: auth,
+        child: const MaterialApp(home: Scaffold(body: CommissionPage())),
+      ));
+      await settle(tester);
+      expect(find.text('Standard · 15%'), findsOneWidget);
+      await tester.scrollUntilVisible(find.byKey(const Key('restaurant-rate-4')), 200,
+          scrollable: find.byType(Scrollable).first);
+      await tester.tap(find.byKey(const Key('restaurant-rate-4')));
+      await settle(tester);
+      await tester.tap(find.byKey(const Key('rate-special-switch')));
+      await settle(tester);
+      // Drag the slider down to 10%.
+      final slider = find.byKey(const Key('rate-slider'));
+      final box = tester.getRect(slider);
+      await tester.tapAt(Offset(box.left + 24 + (box.width - 48) * 10 / 40, box.center.dy));
+      await settle(tester);
+      expect(find.text('FindFood keeps 10% · the restaurant receives 90%'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('rate-save')));
+      await settle(tester);
+    }, () => client);
+    expect(sent, {'percent': 10.0});
+    expect(find.text('Special · 10%'), findsOneWidget);
+  });
+
   test('percentages read naturally', () {
     expect(percentLabel(15), '15%');
     expect(percentLabel(12.5), '12.5%');

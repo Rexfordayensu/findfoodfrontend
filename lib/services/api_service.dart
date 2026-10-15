@@ -1761,4 +1761,17 @@ class ApiService {
     if (response.statusCode == 200) return _decode(response);
     throw Exception(_errorDetail(response, 'Could not change the commission'));
   }
+
+  /// A restaurant's special commission rate; null puts it back on the
+  /// standard rate. Returns the updated commission overview.
+  static Future<Map<String, dynamic>> setRestaurantCommission(
+      String token, int restaurantId, double? percent) async {
+    final response = await _http.put(
+      Uri.parse('$baseUrl/admin/restaurants/$restaurantId/commission'),
+      headers: _jsonAuth(token),
+      body: jsonEncode({'percent': percent}),
+    );
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, "Could not change the restaurant's rate"));
+  }
 }
