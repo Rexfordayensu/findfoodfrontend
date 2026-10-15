@@ -1740,4 +1740,25 @@ class ApiService {
     if (response.statusCode == 200) return _decode(response);
     throw Exception(_errorDetail(response, 'Could not save your payout account'));
   }
+
+  // ── COMMISSION (admin) ──────────────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> getCommission(String token) async {
+    final response = await _http.get(
+      Uri.parse('$baseUrl/admin/commission'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load the commission'));
+  }
+
+  static Future<Map<String, dynamic>> setCommission(String token, double percent) async {
+    final response = await _http.put(
+      Uri.parse('$baseUrl/admin/commission'),
+      headers: _jsonAuth(token),
+      body: jsonEncode({'percent': percent}),
+    );
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not change the commission'));
+  }
 }

@@ -81,6 +81,10 @@ Map<String, dynamic> order(int id, String status,
     };
 
 final routes = <String, Object>{
+  '/admin/commission': {
+    'percent': 15, 'share_percent': 85, 'default_percent': 15, 'max_percent': 40,
+    'history': [],
+  },
   '/restaurants/mine/payout': {'active': false, 'commission_percent': 15, 'share_percent': 85},
   '/payouts/providers': [
     {'code': 'MTN', 'name': 'MTN Mobile Money'}, {'code': 'VOD', 'name': 'Telecel Cash'},
@@ -447,6 +451,8 @@ void main() {
       role: 'restaurant', name: 'Esi', dark: false, tab: 'Earnings'));
   testWidgets('payout sheet light', (t) => shoot(t, 'payout_sheet_light',
       role: 'restaurant', name: 'Esi', dark: false, then: 'key:payout-reminder'));
+  testWidgets('admin commission light', (t) => shoot(t, 'admin_commission_light',
+      role: 'admin', name: 'Ade', dark: false, size: const Size(1280, 900), then: 'Commission'));
   testWidgets('rider code dark', (t) => shoot(t, 'rider_code_dark',
       role: 'rider', name: 'Kofi', dark: true, tab: 'My Deliveries'));
   for (final dark in [false, true]) {
