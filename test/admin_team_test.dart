@@ -45,7 +45,7 @@ void main() {
     final visible = adminDestinations
         .where((d) => d.permission == null || auth.can(d.permission!))
         .map((d) => d.key);
-    expect(visible, ['overview', 'riders', 'users', 'reports', 'settings']);
+    expect(visible, ['overview', 'orders', 'riders', 'users', 'reports', 'settings']);
     auth.applyAdminFields({'admin_role': 'owner', 'permissions': ['view']});
     expect(auth.can('team'), isTrue, reason: 'owners can do everything');
   });

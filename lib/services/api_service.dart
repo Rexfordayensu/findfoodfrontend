@@ -1897,4 +1897,58 @@ class ApiService {
     if (response.statusCode == 200) return List<Map<String, dynamic>>.from(_decodeList(response));
     throw Exception(_errorDetail(response, 'Could not load the activity log'));
   }
+
+  // ── ADMIN ORDERS CONTROL ROOM ───────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> getOrdersBoard(String token,
+      {String view = 'attention', String? query}) async {
+    final params = {'view': view, if (query != null && query.isNotEmpty) 'q': query};
+    final response = await _http.get(
+        Uri.parse('$baseUrl/admin/orders/board').replace(queryParameters: params),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load orders'));
+  }
+
+  static Future<Map<String, dynamic>> getAdminOrderDetail(String token, int orderId) async {
+    final response = await _http.get(Uri.parse('$baseUrl/admin/orders/$orderId/detail'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load the order'));
+  }
+
+  static Future<void> adminCancelOrder(String token, int orderId, String reason, String refund) async {
+    final response = await _http.post(Uri.parse('$baseUrl/admin/orders/$orderId/cancel'),
+        headers: _jsonAuth(token), body: jsonEncode({'reason': reason, 'refund': refund}));
+    if (response.statusCode != 200) throw Exception(_errorDetail(response, 'Could not cancel the order'));
+  }
+
+  static Future<void> adminReleaseRider(String token, int orderId, String reason) async {
+    final response = await _http.post(Uri.parse('$baseUrl/admin/orders/$orderId/release-rider'),
+        headers: _jsonAuth(token), body: jsonEncode({'reason': reason}));
+    if (response.statusCode != 200) throw Exception(_errorDetail(response, 'Could not take the job back'));
+  }
+
+  static Future<List<Map<String, dynamic>>> adminOrderRiders(String token, int orderId) async {
+    final response = await _http.get(Uri.parse('$baseUrl/admin/orders/$orderId/riders'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(_decode(response)['riders'] as List);
+    }
+    throw Exception(_errorDetail(response, 'Could not load riders'));
+  }
+
+  static Future<void> adminOfferRider(String token, int orderId, int riderId) async {
+    final response = await _http.post(Uri.parse('$baseUrl/admin/orders/$orderId/offer-rider'),
+        headers: _jsonAuth(token), body: jsonEncode({'rider_id': riderId}));
+    if (response.statusCode != 201) throw Exception(_errorDetail(response, 'Could not ask the rider'));
+  }
+
+  static Future<void> adminRefundOrder(
+      String token, int orderId, int amount, String method, String reason) async {
+    final response = await _http.post(Uri.parse('$baseUrl/admin/orders/$orderId/refund'),
+        headers: _jsonAuth(token),
+        body: jsonEncode({'amount': amount, 'method': method, 'reason': reason}));
+    if (response.statusCode != 200) throw Exception(_errorDetail(response, 'Could not refund'));
+  }
 }

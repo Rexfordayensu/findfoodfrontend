@@ -17,6 +17,7 @@ import '../../widgets/notification_bell.dart';
 import '../../widgets/app_health.dart';
 import '../../widgets/commission.dart';
 import '../../widgets/rider_pay.dart' show RiderPayPage;
+import 'orders_page.dart';
 import 'team_page.dart';
 
 int getPendingApprovalsCount(List<Map<String, dynamic>> restaurants) =>
@@ -39,6 +40,7 @@ class AdminDestination {
 
 const adminDestinations = [
   AdminDestination('overview', 'Overview', Icons.grid_view_outlined, Icons.grid_view_rounded, 'view'),
+  AdminDestination('orders', 'Orders', Icons.receipt_long_outlined, Icons.receipt_long_rounded, 'orders'),
   AdminDestination('approvals', 'Approvals', Icons.storefront_outlined, Icons.storefront_rounded, 'approvals'),
   AdminDestination('riders', 'Riders', Icons.electric_bike_outlined, Icons.electric_bike_rounded, 'view'),
   AdminDestination('users', 'Users', Icons.people_outline_rounded, Icons.people_rounded, 'view'),
@@ -51,7 +53,7 @@ const adminDestinations = [
 ];
 
 /// The bottom bar on phones (the rest are in the ☰ menu), in this order.
-const _bottomBarKeys = ['overview', 'approvals', 'riders', 'users', 'reports', 'settings'];
+const _bottomBarKeys = ['overview', 'orders', 'approvals', 'reports', 'settings'];
 
 class _AdminDashboardState extends State<AdminDashboard>
     with LiveRefresh<AdminDashboard> {
@@ -78,7 +80,21 @@ class _AdminDashboardState extends State<AdminDashboard>
     await Future.wait([
       if (auth.can('approvals')) _loadPendingApprovalsCount(),
       if (auth.can('reports')) _loadReportsCount(),
+      if (auth.can('orders')) _loadStuckOrdersCount(),
     ]);
+  }
+
+  /// Orders stuck too long: the Orders badge.
+  int _stuckOrdersCount = 0;
+
+  Future<void> _loadStuckOrdersCount() async {
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
+    try {
+      final board = await ApiService.getOrdersBoard(token);
+      final count = ((board['counts'] as Map?)?['attention'] as num?)?.toInt() ?? 0;
+      if (mounted && count != _stuckOrdersCount) setState(() => _stuckOrdersCount = count);
+    } catch (_) {}
   }
 
   /// Open customer reports plus open app errors: the Reports badge.
@@ -102,7 +118,9 @@ class _AdminDashboardState extends State<AdminDashboard>
   /// "2 restaurants waiting for approval · 1 open report", or null.
   String? _attentionLine() {
     final approvals = _badgeFor('approvals'), reports = _badgeFor('reports');
+    final stuck = _badgeFor('orders');
     final parts = [
+      if (stuck > 0) '$stuck order${stuck == 1 ? ' needs' : 's need'} attention',
       if (approvals > 0) '$approvals restaurant${approvals == 1 ? '' : 's'} waiting for approval',
       if (reports > 0) '$reports open report${reports == 1 ? '' : 's'}',
     ];
@@ -112,6 +130,7 @@ class _AdminDashboardState extends State<AdminDashboard>
   int _badgeFor(String key) => switch (key) {
         'approvals' => _pendingApprovalsCount,
         'reports' => _reportsCount,
+        'orders' => _stuckOrdersCount,
         _ => 0,
       };
 
@@ -137,6 +156,7 @@ class _AdminDashboardState extends State<AdminDashboard>
         ? _selected
         : visible.first.key;
     switch (key) {
+      case 'orders': return const AdminOrdersPage();
       case 'approvals': return _ApprovalsPage(onPendingCountChanged: _loadPendingApprovalsCount);
       case 'riders': return const _RiderDeskPage();
       case 'users': return const _UsersPage();
