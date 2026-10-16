@@ -17,6 +17,7 @@ import '../../widgets/notification_bell.dart';
 import '../../widgets/assign_rider.dart';
 import '../../widgets/rider_pay.dart';
 import '../../widgets/greeting_header.dart';
+import '../../widgets/rider_verification.dart';
 
 class RiderDashboard extends StatefulWidget {
   const RiderDashboard({super.key});
@@ -81,6 +82,21 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
   bool _isOnline = true;
   RiderAnalytics? _today;
 
+  /// Riders who aren't approved yet see their verification steps instead.
+  Map<String, dynamic>? _verification;
+
+  Future<void> _loadVerification() async {
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
+    try {
+      final data = await ApiService.getRiderVerification(token);
+      if (!mounted) return;
+      final wasBlocked = _verification?['can_work'] == false;
+      setState(() => _verification = data);
+      if (wasBlocked && data['can_work'] == true) _load();
+    } catch (_) {}
+  }
+
   /// Going offline also stops new-job notifications (saved on the server).
   Future<void> _toggleOnline() async {
     final online = !_isOnline;
@@ -137,6 +153,7 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
   void initState() {
     super.initState();
     _load();
+    _loadVerification();
     // Poll every 6 seconds for new available jobs
     _pollTimer = Timer.periodic(const Duration(seconds: 6), (_) => _poll());
     // The page opens online; make sure job alerts match.
@@ -238,6 +255,18 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final verification = _verification;
+    if (verification != null && verification['can_work'] == false) {
+      return Scaffold(
+        backgroundColor: AppColors.bg(context),
+        body: SafeArea(
+          child: RiderVerificationPanel(
+            data: verification,
+            onChanged: (data) => setState(() => _verification = data),
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.bg(context),
       body: SafeArea(

@@ -1951,4 +1951,41 @@ class ApiService {
         body: jsonEncode({'amount': amount, 'method': method, 'reason': reason}));
     if (response.statusCode != 200) throw Exception(_errorDetail(response, 'Could not refund'));
   }
+
+  // ── RIDER VERIFICATION ──────────────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> getRiderVerification(String token) async {
+    final response = await _http.get(Uri.parse('$baseUrl/riders/me/verification'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load your verification'));
+  }
+
+  static Future<Map<String, dynamic>> submitRiderVerification(
+      String token, Map<String, dynamic> details) async {
+    final response = await _http.put(Uri.parse('$baseUrl/riders/me/verification'),
+        headers: _jsonAuth(token), body: jsonEncode(details));
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not send your details'));
+  }
+
+  static Future<List<Map<String, dynamic>>> getRiderVerifications(String token, String status) async {
+    final response = await _http.get(
+        Uri.parse('$baseUrl/admin/riders/verification?status=$status'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return List<Map<String, dynamic>>.from(_decodeList(response));
+    throw Exception(_errorDetail(response, 'Could not load riders'));
+  }
+
+  static Future<void> approveRider(String token, int riderId) async {
+    final response = await _http.post(Uri.parse('$baseUrl/admin/riders/$riderId/approve'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode != 200) throw Exception(_errorDetail(response, 'Could not approve the rider'));
+  }
+
+  static Future<void> rejectRider(String token, int riderId, String reason) async {
+    final response = await _http.post(Uri.parse('$baseUrl/admin/riders/$riderId/reject'),
+        headers: _jsonAuth(token), body: jsonEncode({'reason': reason}));
+    if (response.statusCode != 200) throw Exception(_errorDetail(response, 'Could not send that'));
+  }
 }

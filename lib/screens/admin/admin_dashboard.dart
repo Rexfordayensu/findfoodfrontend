@@ -18,6 +18,7 @@ import '../../widgets/app_health.dart';
 import '../../widgets/commission.dart';
 import '../../widgets/rider_pay.dart' show RiderPayPage;
 import 'orders_page.dart';
+import '../../widgets/rider_verification.dart' show RiderApprovalsPage;
 import 'team_page.dart';
 
 int getPendingApprovalsCount(List<Map<String, dynamic>> restaurants) =>
@@ -121,7 +122,7 @@ class _AdminDashboardState extends State<AdminDashboard>
     final stuck = _badgeFor('orders');
     final parts = [
       if (stuck > 0) '$stuck order${stuck == 1 ? ' needs' : 's need'} attention',
-      if (approvals > 0) '$approvals restaurant${approvals == 1 ? '' : 's'} waiting for approval',
+      if (approvals > 0) '$approvals waiting for approval',
       if (reports > 0) '$reports open report${reports == 1 ? '' : 's'}',
     ];
     return parts.isEmpty ? null : '${parts.join(' · ')}.';
@@ -134,16 +135,24 @@ class _AdminDashboardState extends State<AdminDashboard>
         _ => 0,
       };
 
+  int _pendingRidersCount = 0;
+
   Future<void> _loadPendingApprovalsCount() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     if (auth.token == null) return;
 
     try {
       final list = await ApiService.getPendingRestaurants(auth.token!);
+      final riders = await ApiService.getRiderVerifications(auth.token!, 'pending')
+          .catchError((_) => <Map<String, dynamic>>[]);
       if (!mounted) return;
-      final count = getPendingApprovalsCount(list);
-      if (count != _pendingApprovalsCount) {
-        setState(() => _pendingApprovalsCount = count);
+      // Restaurants and riders waiting for approval.
+      final count = getPendingApprovalsCount(list) + riders.length;
+      if (count != _pendingApprovalsCount || riders.length != _pendingRidersCount) {
+        setState(() {
+          _pendingApprovalsCount = count;
+          _pendingRidersCount = riders.length;
+        });
       }
     } catch (_) {
       // Keep the last known count if a background refresh fails.
@@ -157,7 +166,12 @@ class _AdminDashboardState extends State<AdminDashboard>
         : visible.first.key;
     switch (key) {
       case 'orders': return const AdminOrdersPage();
-      case 'approvals': return _ApprovalsPage(onPendingCountChanged: _loadPendingApprovalsCount);
+      case 'approvals':
+        return _ApprovalsTabs(
+          restaurants: _ApprovalsPage(onPendingCountChanged: _loadPendingApprovalsCount),
+          riders: RiderApprovalsPage(onCountChanged: _loadPendingApprovalsCount),
+          pendingRiders: _pendingRidersCount,
+        );
       case 'riders': return const _RiderDeskPage();
       case 'users': return const _UsersPage();
       case 'reports': return const _ReportsPage();
@@ -634,6 +648,65 @@ class _AdminDashboardState extends State<AdminDashboard>
         );
       }),
     );
+  }
+}
+
+// ─── APPROVALS: RESTAURANTS AND RIDERS ────────────────────────────────────────
+class _ApprovalsTabs extends StatefulWidget {
+  final Widget restaurants, riders;
+  final int pendingRiders;
+  const _ApprovalsTabs({required this.restaurants, required this.riders, required this.pendingRiders});
+
+  @override
+  State<_ApprovalsTabs> createState() => _ApprovalsTabsState();
+}
+
+class _ApprovalsTabsState extends State<_ApprovalsTabs> {
+  bool _riders = false;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget tab(String label, bool value) {
+      final active = _riders == value;
+      return Expanded(
+        child: GestureDetector(
+          key: Key('approvals-tab-${value ? 'riders' : 'restaurants'}'),
+          onTap: () => setState(() => _riders = value),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: active ? AppTheme.accent : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(label,
+                style: TextStyle(
+                    color: active ? Colors.black : AppColors.textSecondary(context),
+                    fontWeight: FontWeight.w700)),
+          ),
+        ),
+      );
+    }
+
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: AppColors.surface(context),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border(context)),
+          ),
+          child: Row(children: [
+            tab('Restaurants', false),
+            tab(widget.pendingRiders > 0 ? 'Riders (${widget.pendingRiders})' : 'Riders', true),
+          ]),
+        ),
+      ),
+      Expanded(child: _riders ? widget.riders : widget.restaurants),
+    ]);
   }
 }
 
