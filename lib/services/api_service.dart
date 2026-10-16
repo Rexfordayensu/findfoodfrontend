@@ -76,6 +76,38 @@ class _SessionAwareClient extends http.BaseClient {
 class ApiService {
   static final http.Client _http = _SessionAwareClient();
 
+  // ── Short-lived memory of public data ──────────────────────────────────────
+  // Restaurants, menus, deals and reviews are the same for everyone and
+  // change rarely; reusing them for a few seconds makes going back and forth
+  // instant. Two screens asking at once share one request. (Web only: the
+  // tests swap the HTTP client per test.)
+  static Duration publicCacheTtl = const Duration(seconds: 45);
+  static final _publicCache = <String, ({DateTime at, Future<http.Response> response})>{};
+
+  static Future<http.Response> _publicGet(String url) {
+    if (!kIsWeb) return _http.get(Uri.parse(url));
+    final now = DateTime.now();
+    final hit = _publicCache[url];
+    if (hit != null && now.difference(hit.at) < publicCacheTtl) return hit.response;
+    final response = _http.get(Uri.parse(url)).then((r) {
+      if (r.statusCode != 200) _publicCache.remove(url); // don't keep errors
+      return r;
+    }, onError: (Object e) {
+      _publicCache.remove(url);
+      throw e;
+    });
+    _publicCache[url] = (at: now, response: response);
+    return response;
+  }
+
+  /// Forget remembered public data (e.g. after pulling to refresh).
+  static void clearPublicCache() => _publicCache.clear();
+
+  /// Fetch a restaurant's menu in the background, so opening it is instant.
+  static void prefetchMenu(int restaurantId) {
+    getMenu(restaurantId).catchError((_) => <MenuItem>[]);
+  }
+
   /// Called when the backend rejects the stored session; AuthProvider signs
   /// the user out in response.
   static void Function(String message)? onSessionInvalid;
@@ -249,7 +281,7 @@ class ApiService {
   // ── RESTAURANTS ───────────────────────────────────────────────────────────
 
   static Future<List<Restaurant>> getRestaurants() async {
-    final response = await _http.get(Uri.parse('$baseUrl/restaurants'));
+    final response = await _publicGet('$baseUrl/restaurants');
     if (response.statusCode == 200) {
       return _decodeList(response).map((r) => Restaurant.fromJson(r)).toList();
     }
@@ -299,7 +331,7 @@ class ApiService {
 
   /// Current deals across all restaurants, for the customer feed.
   static Future<List<Promotion>> getActivePromotions() async {
-    final response = await _http.get(Uri.parse('$baseUrl/promotions'));
+    final response = await _publicGet('$baseUrl/promotions');
     if (response.statusCode == 200) {
       return _decodeList(response).map((p) => Promotion.fromJson(p)).toList();
     }
@@ -308,16 +340,27 @@ class ApiService {
 
   /// Turns a stored image path into a loadable URL (relative paths are
   /// served by the backend).
-  static String? imageUrl(String? path) {
+  static String? imageUrl(String? path, {int? width}) {
     if (path == null || path.isEmpty) return null;
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    if (path.startsWith('http://') || path.startsWith('https://')) return sizedImage(path, width: width);
     return '$baseUrl${path.startsWith('/') ? '' : '/'}$path';
   }
 
+  /// A Cloudinary photo resized for where it's shown (and compressed as far
+  /// as it can go without visible loss): much less to download than the
+  /// original upload. Other URLs are left as they are.
+  static String sizedImage(String url, {int? width}) {
+    const marker = '/image/upload/';
+    final at = url.indexOf(marker);
+    if (width == null || at < 0 || !url.startsWith('https://res.cloudinary.com/')) return url;
+    final rest = url.substring(at + marker.length);
+    // Already transformed (a transformation segment comes before the version).
+    if (!rest.startsWith('v') && rest.contains(',')) return url;
+    return '${url.substring(0, at + marker.length)}q_auto,c_limit,w_$width/$rest';
+  }
+
   static Future<List<Promotion>> getPromotions(int restaurantId) async {
-    final response = await _http.get(
-      Uri.parse('$baseUrl/restaurants/$restaurantId/promotions'),
-    );
+    final response = await _publicGet('$baseUrl/restaurants/$restaurantId/promotions');
     if (response.statusCode == 200) {
       return _decodeList(response).map((p) => Promotion.fromJson(p)).toList();
     }
@@ -375,8 +418,7 @@ class ApiService {
   // ── MENU ──────────────────────────────────────────────────────────────────
 
   static Future<List<MenuItem>> getMenu(int restaurantId) async {
-    final response =
-        await _http.get(Uri.parse('$baseUrl/restaurants/$restaurantId/menu'));
+    final response = await _publicGet('$baseUrl/restaurants/$restaurantId/menu');
     if (response.statusCode == 200) {
       return _decodeList(response).map((m) => MenuItem.fromJson(m)).toList();
     }
@@ -1021,8 +1063,7 @@ class ApiService {
 
   /// Public reviews of a restaurant, newest first.
   static Future<List<Review>> getRestaurantReviews(int restaurantId) async {
-    final response =
-        await _http.get(Uri.parse('$baseUrl/restaurants/$restaurantId/reviews'));
+    final response = await _publicGet('$baseUrl/restaurants/$restaurantId/reviews');
     if (response.statusCode == 200) {
       return _decodeList(response).map((r) => Review.fromJson(r)).toList();
     }
@@ -1770,8 +1811,7 @@ class ApiService {
   static Future<Map<String, dynamic>> getDeliveryQuote(int restaurantId,
       {double? latitude, double? longitude}) async {
     final query = latitude != null && longitude != null ? '?lat=$latitude&lng=$longitude' : '';
-    final response = await _http.get(
-        Uri.parse('$baseUrl/restaurants/$restaurantId/delivery-quote$query'));
+    final response = await _publicGet('$baseUrl/restaurants/$restaurantId/delivery-quote$query');
     if (response.statusCode == 200) return _decode(response);
     throw Exception(_errorDetail(response, 'Could not work out the delivery fee'));
   }
@@ -2086,7 +2126,7 @@ class ApiService {
 
   /// Whether ordering and delivery are open right now (public).
   static Future<Map<String, dynamic>> getPlatformStatus() async {
-    final response = await _http.get(Uri.parse('$baseUrl/platform/status'));
+    final response = await _publicGet('$baseUrl/platform/status');
     if (response.statusCode == 200) return _decode(response);
     throw Exception(_errorDetail(response, 'Could not check if FindFood is open'));
   }

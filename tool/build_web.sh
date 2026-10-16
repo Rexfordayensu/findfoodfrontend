@@ -40,6 +40,9 @@ if ! grep -q "_flutter.loader.load();" build/web/flutter_bootstrap.js; then
   exit 1
 fi
 
+# Pages loaded on demand (admin, restaurant and rider dashboards) are separate
+# main.dart.js_N.part.js files; drop the previous build's before copying.
+rm -f web/main.dart.js_*.part.js
 cp -r build/web/. web/
 # Allow index.html's inline scripts (by hash) in the Content-Security-Policy.
 python tool/update_csp.py

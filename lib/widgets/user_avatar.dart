@@ -42,7 +42,7 @@ class UserAvatar extends StatelessWidget {
         child: photo == null
             ? fallback
             : Image.network(
-                photo,
+                ApiService.sizedImage(photo, width: (size * 3).round()),
                 key: const Key('user-avatar-photo'),
                 fit: BoxFit.cover,
                 width: size,

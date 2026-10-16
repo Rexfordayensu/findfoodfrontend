@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'models/models.dart';
-import 'screens/admin/admin_dashboard.dart';
+// Dashboards load on first use, so customers don't download them.
+import 'screens/admin/admin_dashboard.dart' deferred as admin_page;
 import 'screens/auth/email_verification_screen.dart';
 import 'screens/auth/forgot_password_screen.dart';
 import 'screens/auth/login_screen.dart';
@@ -20,9 +21,9 @@ import 'screens/customer/menu_detail_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/legal_screen.dart';
 import 'screens/notifications_screen.dart';
-import 'screens/rider/rider_dashboard.dart';
-import 'screens/restaurant/restaurant_pending_approval_screen.dart';
-import 'screens/restaurants/restaurant_dashboard.dart';
+import 'screens/rider/rider_dashboard.dart' deferred as rider_page;
+import 'screens/restaurant/restaurant_pending_approval_screen.dart' deferred as pending_page;
+import 'screens/restaurants/restaurant_dashboard.dart' deferred as restaurant_page;
 import 'services/api_service.dart';
 import 'services/providers.dart';
 
@@ -190,50 +191,71 @@ GoRouter createAppRouter(
       ),
       GoRoute(
         path: '/restaurant/orders',
-        builder: (context, __) => RestaurantDashboard(
-          token: context.read<AuthProvider>().token ?? '',
-          initialIndex: 0,
+        builder: (context, __) => _Deferred(
+          'restaurant',
+          restaurant_page.loadLibrary,
+          () => restaurant_page.RestaurantDashboard(
+            token: context.read<AuthProvider>().token ?? '',
+            initialIndex: 0,
+          ),
         ),
       ),
       GoRoute(
         path: '/restaurant/menu',
-        builder: (context, __) => RestaurantDashboard(
-          token: context.read<AuthProvider>().token ?? '',
-          initialIndex: 1,
+        builder: (context, __) => _Deferred(
+          'restaurant',
+          restaurant_page.loadLibrary,
+          () => restaurant_page.RestaurantDashboard(
+            token: context.read<AuthProvider>().token ?? '',
+            initialIndex: 1,
+          ),
         ),
       ),
       GoRoute(
         path: '/restaurant/earnings',
-        builder: (context, __) => RestaurantDashboard(
-          token: context.read<AuthProvider>().token ?? '',
-          initialIndex: 2,
+        builder: (context, __) => _Deferred(
+          'restaurant',
+          restaurant_page.loadLibrary,
+          () => restaurant_page.RestaurantDashboard(
+            token: context.read<AuthProvider>().token ?? '',
+            initialIndex: 2,
+          ),
         ),
       ),
       GoRoute(
         path: '/restaurant/reports',
-        builder: (context, __) => RestaurantDashboard(
-          token: context.read<AuthProvider>().token ?? '',
-          initialIndex: 3,
+        builder: (context, __) => _Deferred(
+          'restaurant',
+          restaurant_page.loadLibrary,
+          () => restaurant_page.RestaurantDashboard(
+            token: context.read<AuthProvider>().token ?? '',
+            initialIndex: 3,
+          ),
         ),
       ),
       GoRoute(
         path: '/restaurant/settings',
-        builder: (context, __) => RestaurantDashboard(
-          token: context.read<AuthProvider>().token ?? '',
-          initialIndex: 4,
+        builder: (context, __) => _Deferred(
+          'restaurant',
+          restaurant_page.loadLibrary,
+          () => restaurant_page.RestaurantDashboard(
+            token: context.read<AuthProvider>().token ?? '',
+            initialIndex: 4,
+          ),
         ),
       ),
       GoRoute(
         path: '/rider',
-        builder: (_, __) => const RiderDashboard(),
+        builder: (_, __) => _Deferred('rider', rider_page.loadLibrary, () => rider_page.RiderDashboard()),
       ),
       GoRoute(
         path: '/admin',
-        builder: (_, __) => const AdminDashboard(),
+        builder: (_, __) => _Deferred('admin', admin_page.loadLibrary, () => admin_page.AdminDashboard()),
       ),
       GoRoute(
         path: '/restaurant/pending',
-        builder: (_, __) => const RestaurantPendingApprovalScreen(),
+        builder: (_, __) => _Deferred(
+            'pending', pending_page.loadLibrary, () => pending_page.RestaurantPendingApprovalScreen()),
       ),
     ],
     redirect: (context, state) {
@@ -352,6 +374,60 @@ bool _isCustomerRoute(String route) {
       route == '/checkout' ||
       route.startsWith('/payment/callback') ||
       route.startsWith('/restaurants/');
+}
+
+/// Starts downloading a role's dashboard as soon as we know who signed in,
+/// so it's usually ready before they get there.
+void preloadDashboardFor(String? role) {
+  switch (role) {
+    case 'admin':
+      _load('admin', admin_page.loadLibrary);
+    case 'rider':
+      _load('rider', rider_page.loadLibrary);
+    case 'restaurant':
+      _load('restaurant', restaurant_page.loadLibrary);
+      _load('pending', pending_page.loadLibrary);
+  }
+}
+
+final _loads = <String, Future<void>>{};
+
+Future<void> _load(String name, Future<void> Function() loader) =>
+    _loads.putIfAbsent(name, loader);
+
+/// A page from a deferred library: a spinner until its code has arrived.
+class _Deferred extends StatelessWidget {
+  final String name;
+  final Future<void> Function() loader;
+  final Widget Function() page;
+  const _Deferred(this.name, this.loader, this.page);
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: _load(name, loader),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done && !snapshot.hasError) return page();
+        if (snapshot.hasError) {
+          return Scaffold(
+            body: Center(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Text("Couldn't load this page. Check your connection."),
+                TextButton(
+                  onPressed: () {
+                    _loads.remove(name);
+                    (context as Element).markNeedsBuild();
+                  },
+                  child: const Text('Try again'),
+                ),
+              ]),
+            ),
+          );
+        }
+        return const _LoadingScreen();
+      },
+    );
+  }
 }
 
 class _LoadingScreen extends StatelessWidget {

@@ -509,7 +509,7 @@ class _OrderThumbnail extends StatelessWidget {
               child: url == null
                   ? fallback
                   : Image.network(
-                      url,
+                      ApiService.sizedImage(url, width: 240),
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => fallback,
                       frameBuilder: (_, child, frame, sync) => sync || frame != null

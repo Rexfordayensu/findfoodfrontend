@@ -250,7 +250,7 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
                 children: [
                   if (restaurantImageUrl != null)
                     Image.network(
-                      restaurantImageUrl,
+                      ApiService.sizedImage(restaurantImageUrl, width: 1200),
                       fit: BoxFit.cover,
                       key: ValueKey(r.id),
                       errorBuilder: (_, __, ___) => Container(
@@ -770,7 +770,7 @@ class _MenuPhoto extends StatelessWidget {
     // Fill the square and crop, whatever shape the restaurant's photo is.
     return SizedBox.expand(
       child: Image.network(
-        url!,
+        ApiService.sizedImage(url!, width: 400),
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,

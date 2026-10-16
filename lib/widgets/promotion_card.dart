@@ -46,7 +46,7 @@ class PromotionCard extends StatelessWidget {
                 const _PromotionFallback()
               else
                 Image.network(
-                  url,
+                  ApiService.sizedImage(url, width: 900),
                   fit: BoxFit.cover,
                   loadingBuilder: (context, child, progress) => progress == null
                       ? child

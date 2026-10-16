@@ -909,7 +909,7 @@ class _CartScreenState extends State<CartScreen> {
                           color: AppTheme.accent.withValues(alpha: 0.18),
                           child: Icon(Icons.storefront_rounded, color: AppColors.accentText(context)),
                         )
-                      : Image.network(banner, fit: BoxFit.cover,
+                      : Image.network(ApiService.sizedImage(banner, width: 240), fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Container(
                                 color: AppTheme.accent.withValues(alpha: 0.18),
                                 child: Icon(Icons.storefront_rounded, color: AppColors.accentText(context)),

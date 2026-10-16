@@ -76,6 +76,8 @@ class _FindFoodAppState extends State<FindFoodApp> {
     );
     if (!kDebugMode) ErrorWidget.builder = (_) => const BrokenSection();
     // The bell follows sign-in and sign-out.
+    void preload() => preloadDashboardFor(auth.isLoggedIn ? auth.role : null);
+    auth.addListener(preload);
     final notifications = context.read<NotificationsProvider?>();
     if (notifications != null) {
       void follow() => notifications.updateAuth(auth);

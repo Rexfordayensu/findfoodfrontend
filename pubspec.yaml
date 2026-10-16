@@ -10,7 +10,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.8    #  Aligned with "flutter:"
   provider: ^6.1.2           #  Aligned with "flutter:"
 
   http: ^1.2.0

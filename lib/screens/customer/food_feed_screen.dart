@@ -169,11 +169,14 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
 
   @override
   void dispose() {
+    _prefetch?.cancel();
     _staggerCtrl.dispose();
     _searchCtrl.dispose();
     _searchFocus.dispose();
     super.dispose();
   }
+
+  Timer? _prefetch;
 
   Future<void> _load() async {
     setState(() {
@@ -189,6 +192,16 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
         _applyFilter();
       });
       _staggerCtrl.forward(from: 0);
+      // People usually open one of the first few: have their menus ready.
+      final first = list.where((r) => r.isOpen).take(4).toList();
+      _prefetch?.cancel();
+      if (first.isNotEmpty) {
+        _prefetch = Timer(const Duration(milliseconds: 1200), () {
+          for (final r in first) {
+            ApiService.prefetchMenu(r.id);
+          }
+        });
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = friendlyMessage(e));
@@ -401,7 +414,10 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
                             )
                           : RefreshIndicator(
                               color: AppTheme.accent,
-                              onRefresh: _load,
+                              onRefresh: () {
+                                ApiService.clearPublicCache();
+                                return _load();
+                              },
                               child: ListView.builder(
                                 padding:
                                     const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -1208,7 +1224,7 @@ class _RestaurantCardState extends State<_RestaurantCard>
                               // Real food image
                               if (_imageFor(r) != null)
                                 Image.network(
-                                  _imageFor(r)!,
+                                  ApiService.sizedImage(_imageFor(r)!, width: 900),
                                   key: ValueKey(r.id),
                                   fit: BoxFit.cover,
                                   loadingBuilder: (_, child, progress) {
