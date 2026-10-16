@@ -1988,4 +1988,26 @@ class ApiService {
         headers: _jsonAuth(token), body: jsonEncode({'reason': reason}));
     if (response.statusCode != 200) throw Exception(_errorDetail(response, 'Could not send that'));
   }
+
+  // ── FINANCE ─────────────────────────────────────────────────────────────────
+
+  static String _day(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  static Future<Map<String, dynamic>> getFinance(String token, DateTime start, DateTime end) async {
+    final response = await _http.get(
+        Uri.parse('$baseUrl/admin/finance?start=${_day(start)}&end=${_day(end)}'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load the figures'));
+  }
+
+  /// The payments in the range as CSV text.
+  static Future<String> getFinanceCsv(String token, DateTime start, DateTime end) async {
+    final response = await _http.get(
+        Uri.parse('$baseUrl/admin/finance/export?start=${_day(start)}&end=${_day(end)}'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return utf8.decode(response.bodyBytes);
+    throw Exception(_errorDetail(response, 'Could not download the payments'));
+  }
 }

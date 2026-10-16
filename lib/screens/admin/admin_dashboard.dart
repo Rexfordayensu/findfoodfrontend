@@ -17,6 +17,7 @@ import '../../widgets/notification_bell.dart';
 import '../../widgets/app_health.dart';
 import '../../widgets/commission.dart';
 import '../../widgets/rider_pay.dart' show RiderPayPage;
+import 'finance_page.dart';
 import 'orders_page.dart';
 import '../../widgets/rider_verification.dart' show RiderApprovalsPage;
 import 'team_page.dart';
@@ -46,6 +47,7 @@ const adminDestinations = [
   AdminDestination('riders', 'Riders', Icons.electric_bike_outlined, Icons.electric_bike_rounded, 'view'),
   AdminDestination('users', 'Users', Icons.people_outline_rounded, Icons.people_rounded, 'view'),
   AdminDestination('reports', 'Reports', Icons.report_gmailerrorred_outlined, Icons.report_gmailerrorred_rounded, 'reports'),
+  AdminDestination('finance', 'Finance', Icons.account_balance_wallet_outlined, Icons.account_balance_wallet_rounded, 'finance'),
   AdminDestination('commission', 'Commission', Icons.percent_rounded, Icons.percent_rounded, 'commission'),
   AdminDestination('riderpay', 'Rider pay', Icons.delivery_dining_outlined, Icons.delivery_dining_rounded, 'payouts'),
   AdminDestination('team', 'Team', Icons.group_add_outlined, Icons.group_add_rounded, 'team'),
@@ -175,6 +177,7 @@ class _AdminDashboardState extends State<AdminDashboard>
       case 'riders': return const _RiderDeskPage();
       case 'users': return const _UsersPage();
       case 'reports': return const _ReportsPage();
+      case 'finance': return const FinancePage();
       case 'commission': return const CommissionPage();
       case 'riderpay': return const RiderPayPage();
       case 'team': return const TeamPage();
