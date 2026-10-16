@@ -1,3 +1,4 @@
+import 'screens/support_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -97,6 +98,12 @@ GoRouter createAppRouter(
       GoRoute(
           path: '/notifications',
           builder: (_, __) => const NotificationsScreen()),
+      GoRoute(path: '/support', builder: (_, __) => const SupportInboxScreen()),
+      GoRoute(
+        path: '/support/:threadId',
+        builder: (_, state) =>
+            SupportThreadScreen(threadId: int.tryParse(state.pathParameters['threadId'] ?? '') ?? 0),
+      ),
       GoRoute(path: '/terms', builder: (_, __) => const LegalScreen()),
       GoRoute(
           path: '/privacy', builder: (_, __) => const LegalScreen(privacy: true)),
@@ -297,7 +304,9 @@ GoRouter createAppRouter(
       // Pages every signed-in role uses.
       final conversationRoute = location.startsWith('/chat/') ||
           location.startsWith('/order-chat/') ||
-          location == '/notifications';
+          location == '/notifications' ||
+          location == '/support' ||
+          location.startsWith('/support/');
       if (restaurantRoute && !auth.isRestaurant) return _homeForRole(auth);
       if (location == '/rider' && !auth.isRider) return _homeForRole(auth);
       if (location == '/admin' && !auth.isAdmin) return _homeForRole(auth);

@@ -19,6 +19,7 @@ import '../../widgets/commission.dart';
 import '../../widgets/rider_pay.dart' show RiderPayPage;
 import 'finance_page.dart';
 import 'broadcast_page.dart';
+import 'inbox_page.dart';
 import 'orders_page.dart';
 import 'promos_page.dart';
 import '../../widgets/rider_verification.dart' show RiderApprovalsPage;
@@ -49,6 +50,8 @@ const adminDestinations = [
   AdminDestination('riders', 'Riders', Icons.electric_bike_outlined, Icons.electric_bike_rounded, 'view'),
   AdminDestination('users', 'Users', Icons.people_outline_rounded, Icons.people_rounded, 'view'),
   AdminDestination('reports', 'Reports', Icons.report_gmailerrorred_outlined, Icons.report_gmailerrorred_rounded, 'reports'),
+  AdminDestination('support', 'Support inbox', Icons.support_agent_outlined, Icons.support_agent_rounded, 'support'),
+  AdminDestination('reviews', 'Reviews', Icons.star_outline_rounded, Icons.star_rounded, 'reviews'),
   AdminDestination('announce', 'Announcements', Icons.campaign_outlined, Icons.campaign_rounded, 'announcements'),
   AdminDestination('platform', 'Platform', Icons.toggle_off_outlined, Icons.toggle_on_rounded, 'platform'),
   AdminDestination('promos', 'Promo codes', Icons.local_offer_outlined, Icons.local_offer_rounded, 'promos'),
@@ -89,7 +92,21 @@ class _AdminDashboardState extends State<AdminDashboard>
       if (auth.can('approvals')) _loadPendingApprovalsCount(),
       if (auth.can('reports')) _loadReportsCount(),
       if (auth.can('orders')) _loadStuckOrdersCount(),
+      if (auth.can('support')) _loadSupportCount(),
     ]);
+  }
+
+  /// Open conversations with something new: the Support badge.
+  int _supportUnread = 0;
+
+  Future<void> _loadSupportCount() async {
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
+    try {
+      final inbox = await ApiService.getSupportInbox(token, 'open');
+      final count = ((inbox['counts'] as Map?)?['unread'] as num?)?.toInt() ?? 0;
+      if (mounted && count != _supportUnread) setState(() => _supportUnread = count);
+    } catch (_) {}
   }
 
   /// Orders stuck too long: the Orders badge.
@@ -129,6 +146,7 @@ class _AdminDashboardState extends State<AdminDashboard>
     final stuck = _badgeFor('orders');
     final parts = [
       if (stuck > 0) '$stuck order${stuck == 1 ? ' needs' : 's need'} attention',
+      if (_supportUnread > 0) '$_supportUnread new support message${_supportUnread == 1 ? '' : 's'}',
       if (approvals > 0) '$approvals waiting for approval',
       if (reports > 0) '$reports open report${reports == 1 ? '' : 's'}',
     ];
@@ -139,6 +157,7 @@ class _AdminDashboardState extends State<AdminDashboard>
         'approvals' => _pendingApprovalsCount,
         'reports' => _reportsCount,
         'orders' => _stuckOrdersCount,
+        'support' => _supportUnread,
         _ => 0,
       };
 
@@ -182,6 +201,8 @@ class _AdminDashboardState extends State<AdminDashboard>
       case 'riders': return const _RiderDeskPage();
       case 'users': return const _UsersPage();
       case 'reports': return const _ReportsPage();
+      case 'support': return SupportInboxPage(onChanged: _loadSupportCount);
+      case 'reviews': return const ReviewsPage();
       case 'announce': return const AnnouncementsPage();
       case 'platform': return const PlatformPage();
       case 'promos': return const PromosPage();

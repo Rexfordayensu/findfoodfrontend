@@ -939,6 +939,32 @@ class HelpSupportScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
+          Material(
+            color: AppTheme.accent,
+            borderRadius: BorderRadius.circular(16),
+            child: InkWell(
+              key: const Key('help-message-support'),
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => context.push('/support'),
+              child: const Padding(
+                padding: EdgeInsets.all(16),
+                child: Row(children: [
+                  Icon(Icons.chat_rounded, color: Colors.black),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Message FindFood support',
+                          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w800, fontSize: 15)),
+                      Text("We'll reply in the app and send you a notification.",
+                          style: TextStyle(color: Colors.black87, fontSize: 12.5)),
+                    ]),
+                  ),
+                  Icon(Icons.chevron_right_rounded, color: Colors.black),
+                ]),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
           Text('Frequently asked questions',
               style: TextStyle(
                   color: AppColors.textPrimary(context),

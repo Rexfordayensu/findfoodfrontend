@@ -2090,4 +2090,80 @@ class ApiService {
     if (response.statusCode == 200) return _decode(response);
     throw Exception(_errorDetail(response, 'Could not check if FindFood is open'));
   }
+
+  // ── SUPPORT INBOX AND REVIEWS ───────────────────────────────────────────────
+
+  static Future<List<Map<String, dynamic>>> getMySupportThreads(String token) async {
+    final response = await _http.get(Uri.parse('$baseUrl/support/threads'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return List<Map<String, dynamic>>.from(_decodeList(response));
+    throw Exception(_errorDetail(response, 'Could not load your messages'));
+  }
+
+  static Future<Map<String, dynamic>> startSupportThread(String token,
+      {required String subject, required String body, int? orderId}) async {
+    final response = await _http.post(Uri.parse('$baseUrl/support/threads'),
+        headers: _jsonAuth(token),
+        body: jsonEncode({'subject': subject, 'body': body, if (orderId != null) 'order_id': orderId}));
+    if (response.statusCode == 201) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not send your message'));
+  }
+
+  static Future<Map<String, dynamic>> getMySupportThread(String token, int id) async {
+    final response = await _http.get(Uri.parse('$baseUrl/support/threads/$id'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load the conversation'));
+  }
+
+  static Future<void> replyToSupport(String token, int id, String body) async {
+    final response = await _http.post(Uri.parse('$baseUrl/support/threads/$id/messages'),
+        headers: _jsonAuth(token), body: jsonEncode({'body': body}));
+    if (response.statusCode != 201) throw Exception(_errorDetail(response, 'Could not send'));
+  }
+
+  static Future<Map<String, dynamic>> getSupportInbox(String token, String status) async {
+    final response = await _http.get(Uri.parse('$baseUrl/admin/support?status=$status'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load the inbox'));
+  }
+
+  static Future<Map<String, dynamic>> getAdminSupportThread(String token, int id) async {
+    final response = await _http.get(Uri.parse('$baseUrl/admin/support/$id'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load the conversation'));
+  }
+
+  static Future<void> replyAsSupport(String token, int id, String body) async {
+    final response = await _http.post(Uri.parse('$baseUrl/admin/support/$id/messages'),
+        headers: _jsonAuth(token), body: jsonEncode({'body': body}));
+    if (response.statusCode != 201) throw Exception(_errorDetail(response, 'Could not send'));
+  }
+
+  static Future<void> setSupportThreadStatus(String token, int id, {required bool close}) async {
+    final response = await _http.post(Uri.parse('$baseUrl/admin/support/$id/status?close=$close'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode != 200) throw Exception(_errorDetail(response, 'Could not update it'));
+  }
+
+  static Future<List<Map<String, dynamic>>> getAdminReviews(String token, String show) async {
+    final response = await _http.get(Uri.parse('$baseUrl/admin/reviews?show=$show'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return List<Map<String, dynamic>>.from(_decodeList(response));
+    throw Exception(_errorDetail(response, 'Could not load reviews'));
+  }
+
+  static Future<void> hideReview(String token, int id, String reason) async {
+    final response = await _http.post(Uri.parse('$baseUrl/admin/reviews/$id/hide'),
+        headers: _jsonAuth(token), body: jsonEncode({'reason': reason}));
+    if (response.statusCode != 200) throw Exception(_errorDetail(response, 'Could not hide it'));
+  }
+
+  static Future<void> showReview(String token, int id) async {
+    final response = await _http.post(Uri.parse('$baseUrl/admin/reviews/$id/show'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode != 200) throw Exception(_errorDetail(response, 'Could not show it'));
+  }
 }
