@@ -63,6 +63,8 @@ class AuthProvider extends ChangeNotifier {
   static const String _emailKey = 'auth_email';
   static const String _approvedKey = 'auth_restaurant_approved';
   static const String _avatarKey = 'auth_avatar_url';
+  static const String _adminRoleKey = 'auth_admin_role';
+  static const String _permissionsKey = 'auth_permissions';
 
   /// How often a signed-in session is renewed (tokens expire after 30 min on
   /// the server). Tests set this to null to avoid background timers.
@@ -81,6 +83,8 @@ class AuthProvider extends ChangeNotifier {
   String? _name;
   String? _email;
   String? _avatarUrl;
+  String? _adminRole;
+  Set<String> _permissions = {};
   bool _isLoggedIn = false;
   bool _isInitialized = false;
   bool _isEmailVerified = false;
@@ -94,6 +98,32 @@ class AuthProvider extends ChangeNotifier {
 
   /// Profile photo (optional): uploaded, or from Google.
   String? get avatarUrl => _avatarUrl;
+
+  /// Admins: owner | support | operations | finance.
+  String? get adminRole => _adminRole;
+
+  String get adminRoleLabel => switch (_adminRole) {
+        'support' => 'Support',
+        'operations' => 'Operations',
+        'finance' => 'Finance',
+        _ => 'Owner',
+      };
+
+  /// Whether this admin's role allows [permission] (see the server's
+  /// app/permissions.py, which enforces it). Before the role is known,
+  /// pages show and the server answers for itself.
+  bool can(String permission) {
+    if (_role != 'admin') return false;
+    if (_adminRole == null || _adminRole == 'owner' || _permissions.isEmpty) return true;
+    return _permissions.contains(permission);
+  }
+
+  /// Takes the admin role and permissions from a profile (/auth/me).
+  void applyAdminFields(Map<String, dynamic> user) {
+    _adminRole = user['admin_role']?.toString();
+    final perms = user['permissions'];
+    _permissions = perms is List ? perms.map((p) => '$p').toSet() : {};
+  }
   bool get isLoggedIn => _isLoggedIn;
   bool get isInitialized => _isInitialized;
   bool get isEmailVerified => _isEmailVerified;
@@ -121,18 +151,21 @@ class AuthProvider extends ChangeNotifier {
     _isEmailVerified = isEmailVerified ?? false;
     _isRestaurantApproved = isRestaurantApproved ?? false;
     _avatarUrl = null;
+    _adminRole = null;
+    _permissions = {};
     _startTokenRefresh();
     notifyListeners();
     await _persistSession();
-    // Sign-in responses don't include the photo; fetch it in the background
-    // (background work is off in tests, like the token refresh).
-    if (refreshInterval != null) unawaited(_loadAvatar(token));
+    // Sign-in responses don't include the photo or admin role; fetch them in
+    // the background (background work is off in tests, like the token refresh).
+    if (refreshInterval != null) unawaited(_loadProfile(token));
   }
 
-  Future<void> _loadAvatar(String token) async {
+  Future<void> _loadProfile(String token) async {
     try {
       final user = await ApiService.getCurrentUser(token);
       if (_token != token) return;
+      applyAdminFields(user);
       await setAvatarUrl(user['avatar_url']?.toString());
     } catch (_) {}
   }
@@ -259,6 +292,7 @@ class AuthProvider extends ChangeNotifier {
       _email = user['email']?.toString();
       final avatar = user['avatar_url']?.toString();
       _avatarUrl = (avatar == null || avatar.isEmpty) ? null : avatar;
+      applyAdminFields(user);
       _isEmailVerified = user['is_verified'] == true ||
           user['email_verified'] == true ||
           user['is_email_verified'] == true;
@@ -288,6 +322,10 @@ class AuthProvider extends ChangeNotifier {
       _email = await _secureStorage.read(key: _emailKey);
       final avatar = await _secureStorage.read(key: _avatarKey);
       _avatarUrl = (avatar == null || avatar.isEmpty) ? null : avatar;
+      final adminRole = await _secureStorage.read(key: _adminRoleKey);
+      _adminRole = (adminRole == null || adminRole.isEmpty) ? null : adminRole;
+      final perms = await _secureStorage.read(key: _permissionsKey);
+      _permissions = (perms == null || perms.isEmpty) ? {} : perms.split(',').toSet();
       _isRestaurantApproved =
           await _secureStorage.read(key: _approvedKey) == 'true';
       _isLoggedIn = true;
@@ -306,6 +344,8 @@ class AuthProvider extends ChangeNotifier {
     await _secureStorage.write(key: _nameKey, value: _name ?? '');
     await _secureStorage.write(key: _emailKey, value: _email ?? '');
     await _secureStorage.write(key: _avatarKey, value: _avatarUrl ?? '');
+    await _secureStorage.write(key: _adminRoleKey, value: _adminRole ?? '');
+    await _secureStorage.write(key: _permissionsKey, value: _permissions.join(','));
     await _secureStorage.write(
         key: _approvedKey, value: _isRestaurantApproved.toString());
   }
@@ -317,6 +357,8 @@ class AuthProvider extends ChangeNotifier {
     await _secureStorage.delete(key: _nameKey);
     await _secureStorage.delete(key: _emailKey);
     await _secureStorage.delete(key: _avatarKey);
+    await _secureStorage.delete(key: _adminRoleKey);
+    await _secureStorage.delete(key: _permissionsKey);
     await _secureStorage.delete(key: _approvedKey);
   }
 
@@ -329,6 +371,8 @@ class AuthProvider extends ChangeNotifier {
     _name = null;
     _email = null;
     _avatarUrl = null;
+    _adminRole = null;
+    _permissions = {};
     _isLoggedIn = false;
     _isEmailVerified = false;
     _isRestaurantApproved = false;

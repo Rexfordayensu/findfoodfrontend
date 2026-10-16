@@ -17,6 +17,7 @@ import '../../widgets/notification_bell.dart';
 import '../../widgets/app_health.dart';
 import '../../widgets/commission.dart';
 import '../../widgets/rider_pay.dart' show RiderPayPage;
+import 'team_page.dart';
 
 int getPendingApprovalsCount(List<Map<String, dynamic>> restaurants) =>
     restaurants.length;
@@ -27,23 +28,43 @@ class AdminDashboard extends StatefulWidget {
   State<AdminDashboard> createState() => _AdminDashboardState();
 }
 
+/// A page of the admin dashboard; [permission] hides it from admins whose
+/// role doesn't allow it (the server enforces the same rules).
+class AdminDestination {
+  final String key, label;
+  final IconData icon, activeIcon;
+  final String? permission;
+  const AdminDestination(this.key, this.label, this.icon, this.activeIcon, [this.permission]);
+}
+
+const adminDestinations = [
+  AdminDestination('overview', 'Overview', Icons.grid_view_outlined, Icons.grid_view_rounded, 'view'),
+  AdminDestination('approvals', 'Approvals', Icons.storefront_outlined, Icons.storefront_rounded, 'approvals'),
+  AdminDestination('riders', 'Riders', Icons.electric_bike_outlined, Icons.electric_bike_rounded, 'view'),
+  AdminDestination('users', 'Users', Icons.people_outline_rounded, Icons.people_rounded, 'view'),
+  AdminDestination('reports', 'Reports', Icons.report_gmailerrorred_outlined, Icons.report_gmailerrorred_rounded, 'reports'),
+  AdminDestination('commission', 'Commission', Icons.percent_rounded, Icons.percent_rounded, 'commission'),
+  AdminDestination('riderpay', 'Rider pay', Icons.delivery_dining_outlined, Icons.delivery_dining_rounded, 'payouts'),
+  AdminDestination('team', 'Team', Icons.group_add_outlined, Icons.group_add_rounded, 'team'),
+  AdminDestination('activity', 'Activity log', Icons.history_rounded, Icons.history_rounded, 'audit'),
+  AdminDestination('settings', 'Settings', Icons.settings_outlined, Icons.settings_rounded),
+];
+
+/// The bottom bar on phones (the rest are in the ☰ menu), in this order.
+const _bottomBarKeys = ['overview', 'approvals', 'riders', 'users', 'reports', 'settings'];
+
 class _AdminDashboardState extends State<AdminDashboard>
     with LiveRefresh<AdminDashboard> {
-  int _selectedIndex = 0;
+  String _selected = 'overview';
   int _pendingApprovalsCount = 0;
   String _navQuery = '';
   bool _sidebarCollapsed = false;
 
-  final _navItems = [
-    {'icon': Icons.grid_view_rounded,           'label': 'Overview'},
-    {'icon': Icons.storefront_outlined,          'label': 'Approvals'},
-    {'icon': Icons.electric_bike_outlined,       'label': 'Riders'},
-    {'icon': Icons.people_outline_rounded,       'label': 'Users'},
-    {'icon': Icons.report_gmailerrorred_outlined, 'label': 'Reports'},
-    {'icon': Icons.percent_rounded,              'label': 'Commission'},
-    {'icon': Icons.delivery_dining_outlined,     'label': 'Rider pay'},
-    {'icon': Icons.settings_outlined,            'label': 'Settings'},
-  ];
+  List<AdminDestination> _visible(AuthProvider auth) => adminDestinations
+      .where((d) => d.permission == null || auth.can(d.permission!))
+      .toList();
+
+  void _go(String key) => setState(() => _selected = key);
 
   @override
   void initState() {
@@ -53,7 +74,11 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   Future<void> _refreshBadges() async {
-    await Future.wait([_loadPendingApprovalsCount(), _loadReportsCount()]);
+    final auth = context.read<AuthProvider>();
+    await Future.wait([
+      if (auth.can('approvals')) _loadPendingApprovalsCount(),
+      if (auth.can('reports')) _loadReportsCount(),
+    ]);
   }
 
   /// Open customer reports plus open app errors: the Reports badge.
@@ -76,7 +101,7 @@ class _AdminDashboardState extends State<AdminDashboard>
 
   /// "2 restaurants waiting for approval · 1 open report", or null.
   String? _attentionLine() {
-    final approvals = _badgeFor(1), reports = _badgeFor(4);
+    final approvals = _badgeFor('approvals'), reports = _badgeFor('reports');
     final parts = [
       if (approvals > 0) '$approvals restaurant${approvals == 1 ? '' : 's'} waiting for approval',
       if (reports > 0) '$reports open report${reports == 1 ? '' : 's'}',
@@ -84,9 +109,9 @@ class _AdminDashboardState extends State<AdminDashboard>
     return parts.isEmpty ? null : '${parts.join(' · ')}.';
   }
 
-  int _badgeFor(int index) => switch (index) {
-        1 => _pendingApprovalsCount,
-        4 => _reportsCount,
+  int _badgeFor(String key) => switch (key) {
+        'approvals' => _pendingApprovalsCount,
+        'reports' => _reportsCount,
         _ => 0,
       };
 
@@ -106,17 +131,22 @@ class _AdminDashboardState extends State<AdminDashboard>
     }
   }
 
-  Widget _buildPage() {
-    switch (_selectedIndex) {
-      case 0: return _OverviewPage(onNavigate: (i) => setState(() => _selectedIndex = i));
-      case 1: return _ApprovalsPage(onPendingCountChanged: _loadPendingApprovalsCount);
-      case 2: return const _RiderDeskPage();
-      case 3: return const _UsersPage();
-      case 4: return const _ReportsPage();
-      case 5: return const CommissionPage();
-      case 6: return const RiderPayPage();
-      case 7: return const _AdminSettingsPage();
-      default: return _OverviewPage(onNavigate: (i) => setState(() => _selectedIndex = i));
+  Widget _buildPage(AuthProvider auth) {
+    final visible = _visible(auth);
+    final key = visible.any((d) => d.key == _selected)
+        ? _selected
+        : visible.first.key;
+    switch (key) {
+      case 'approvals': return _ApprovalsPage(onPendingCountChanged: _loadPendingApprovalsCount);
+      case 'riders': return const _RiderDeskPage();
+      case 'users': return const _UsersPage();
+      case 'reports': return const _ReportsPage();
+      case 'commission': return const CommissionPage();
+      case 'riderpay': return const RiderPayPage();
+      case 'team': return const TeamPage();
+      case 'activity': return const ActivityLogPage();
+      case 'settings': return const _AdminSettingsPage();
+      default: return _OverviewPage(onNavigate: _go);
     }
   }
 
@@ -267,27 +297,26 @@ class _AdminDashboardState extends State<AdminDashboard>
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: ListView(
-                children: _navItems.asMap().entries.where((entry) {
-                  final label = entry.value['label'] as String;
-                  return label.toLowerCase().contains(_navQuery.toLowerCase());
-                }).map((entry) {
-                  final i = entry.key;
-                  final item = entry.value;
-                  final active = _selectedIndex == i;
+                children: _visible(auth).where((item) {
+                  return item.label.toLowerCase().contains(_navQuery.toLowerCase());
+                }).map((item) {
+                  final i = item.key;
+                  final active = _selected == i;
                   return Focus(
-                    autofocus: i == 0,
+                    autofocus: i == 'overview',
                     onKeyEvent: (_, event) {
                       if (event is KeyDownEvent &&
                           event.logicalKey == LogicalKeyboardKey.enter) {
-                        setState(() => _selectedIndex = i);
+                        _go(i);
                         if (!isWide) Navigator.pop(context);
                         return KeyEventResult.handled;
                       }
                       return KeyEventResult.ignored;
                     },
                     child: GestureDetector(
+                    key: Key('admin-nav-$i'),
                     onTap: () {
-                      setState(() => _selectedIndex = i);
+                      _go(i);
                       if (!isWide) Navigator.pop(context);
                     },
                     child: AnimatedContainer(
@@ -308,12 +337,12 @@ class _AdminDashboardState extends State<AdminDashboard>
                       child: compact
                           ? Center(
                               child: Tooltip(
-                                message: item['label'] as String,
+                                message: item.label,
                                 child: Badge(
                                   isLabelVisible: _badgeFor(i) > 0,
                                   label: Text('${_badgeFor(i)}'),
                                   backgroundColor: AppTheme.danger,
-                                  child: Icon(item['icon'] as IconData,
+                                  child: Icon(active ? item.activeIcon : item.icon,
                                       size: 20,
                                       color: active
                                           ? AppTheme.accent
@@ -323,7 +352,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                             )
                           : Row(
                         children: [
-                          Icon(item['icon'] as IconData,
+                          Icon(active ? item.activeIcon : item.icon,
                               size: 18,
                               color: active
                                   ? AppTheme.accent
@@ -331,7 +360,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                           if (!compact) ...[
                             const SizedBox(width: 12),
                             Expanded(
-                              child: Text(item['label'] as String,
+                              child: Text(item.label,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: active
@@ -377,7 +406,7 @@ class _AdminDashboardState extends State<AdminDashboard>
               child: Center(
                 child: Column(children: [
                   Tooltip(
-                    message: '$adminName · Admin account',
+                    message: '$adminName · ${auth.adminRoleLabel}',
                     child: CircleAvatar(
                       radius: 18,
                       backgroundColor: AppTheme.accent.withValues(alpha: 0.16),
@@ -442,7 +471,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700),
                             ),
-                            Text('Admin account',
+                            Text(auth.adminRoleLabel,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -519,7 +548,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                         const SizedBox(width: 16),
                       ],
                     ),
-                    Expanded(child: _buildPage()),
+                    Expanded(child: _buildPage(auth)),
                   ],
                 ),
               ),
@@ -563,45 +592,27 @@ class _AdminDashboardState extends State<AdminDashboard>
                 status: _attentionLine(),
                 padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
               ),
-              Expanded(child: _buildPage()),
+              Expanded(child: _buildPage(auth)),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: GlassNavBar(
-        // The bottom bar has no Commission or Rider pay tabs (they're in the
-        // ☰ menu), so its slots map to pages 0-4 and 7.
-        currentIndex: const {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 7: 5}[_selectedIndex] ?? -1,
-        onTap: (i) => setState(() => _selectedIndex = const [0, 1, 2, 3, 4, 7][i]),
-        items: [
-          const GlassNavItem(
-              icon: Icons.grid_view_outlined,
-              activeIcon: Icons.grid_view_rounded,
-              label: 'Overview'),
-          GlassNavItem(
-              icon: Icons.storefront_outlined,
-              activeIcon: Icons.storefront_rounded,
-              label: 'Approvals',
-              badge: _pendingApprovalsCount),
-          const GlassNavItem(
-              icon: Icons.electric_bike_outlined,
-              activeIcon: Icons.electric_bike_rounded,
-              label: 'Riders'),
-          const GlassNavItem(
-              icon: Icons.people_outline_rounded,
-              activeIcon: Icons.people_rounded,
-              label: 'Users'),
-          GlassNavItem(
-              icon: Icons.report_gmailerrorred_outlined,
-              activeIcon: Icons.report_gmailerrorred_rounded,
-              label: 'Reports',
-              badge: _reportsCount),
-          const GlassNavItem(
-              icon: Icons.settings_outlined,
-              activeIcon: Icons.settings_rounded,
-              label: 'Settings'),
-        ],
-      ),
+      bottomNavigationBar: Builder(builder: (context) {
+        final visible = {for (final d in _visible(auth)) d.key: d};
+        final bar = [for (final k in _bottomBarKeys) if (visible[k] != null) visible[k]!];
+        return GlassNavBar(
+          currentIndex: bar.indexWhere((d) => d.key == _selected),
+          onTap: (i) => _go(bar[i].key),
+          items: [
+            for (final d in bar)
+              GlassNavItem(
+                  icon: d.icon,
+                  activeIcon: d.activeIcon,
+                  label: d.label,
+                  badge: _badgeFor(d.key)),
+          ],
+        );
+      }),
     );
   }
 }
@@ -676,7 +687,7 @@ class _ReportsPageState extends State<_ReportsPage> {
 
 // ─── OVERVIEW ─────────────────────────────────────────────────────────────────
 class _OverviewPage extends StatefulWidget {
-  final ValueChanged<int> onNavigate;
+  final ValueChanged<String> onNavigate;
   const _OverviewPage({required this.onNavigate});
 
   @override
@@ -854,7 +865,7 @@ class _OverviewPageState extends State<_OverviewPage>
                         AppTheme.success, cardW,
                         expanded: _expandedStats.contains('Active Riders'),
                         onToggle: () => setState(() => _toggleStat('Active Riders')),
-                        onTap: () => widget.onNavigate(2)), // Riders tab
+                        onTap: () => widget.onNavigate('riders')),
                     _statCard(context, 'Restaurants',
                         formatCount(s['total_restaurants'] ?? 0),
                         '${s['pending_approvals'] ?? 0} pending · tap to review',
@@ -862,7 +873,7 @@ class _OverviewPageState extends State<_OverviewPage>
                         AppTheme.warning, cardW,
                         expanded: _expandedStats.contains('Restaurants'),
                         onToggle: () => setState(() => _toggleStat('Restaurants')),
-                        onTap: () => widget.onNavigate(1)), // Approvals tab
+                        onTap: () => widget.onNavigate('approvals')),
                     _statCard(context, 'Revenue',
                         formatCedis(((s['revenue_today'] ?? 0) as num).round()),
                         'Delivered orders · tap to view', Icons.payments_rounded,
@@ -895,13 +906,13 @@ class _OverviewPageState extends State<_OverviewPage>
                   runSpacing: 10,
                   children: [
                     _quickAction(ctx, 'Review approvals', Icons.fact_check_outlined,
-                        AppTheme.warning, width, () => widget.onNavigate(1)),
+                        AppTheme.warning, width, () => widget.onNavigate('approvals')),
                     _quickAction(ctx, 'Manage riders', Icons.electric_bike_outlined,
-                        AppTheme.success, width, () => widget.onNavigate(2)),
+                        AppTheme.success, width, () => widget.onNavigate('riders')),
                     _quickAction(ctx, 'View users', Icons.people_outline_rounded,
-                        const Color(0xFF60A5FA), width, () => widget.onNavigate(3)),
+                        const Color(0xFF60A5FA), width, () => widget.onNavigate('users')),
                     _quickAction(ctx, 'Open settings', Icons.tune_rounded,
-                        AppTheme.accent, width, () => widget.onNavigate(7)),
+                        AppTheme.accent, width, () => widget.onNavigate('settings')),
                   ],
                 );
               },
@@ -1027,7 +1038,7 @@ class _OverviewPageState extends State<_OverviewPage>
             trailing: Text(at == null ? '' : relativeTime(at, now),
                 style: TextStyle(
                     color: AppColors.textHint(context), fontSize: 11)),
-            onTap: item['kind'] == 'restaurant' ? () => widget.onNavigate(1) : null,
+            onTap: item['kind'] == 'restaurant' ? () => widget.onNavigate('approvals') : null,
           );
         }).toList(),
         ),

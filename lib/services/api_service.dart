@@ -1851,4 +1851,50 @@ class ApiService {
     if (response.statusCode == 200) return _decode(response);
     throw Exception(_errorDetail(response, 'Could not pay the rider'));
   }
+
+  // ── ADMIN TEAM AND ACTIVITY LOG ─────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> getAdminTeam(String token) async {
+    final response = await _http.get(Uri.parse('$baseUrl/admin/team'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load the team'));
+  }
+
+  static Future<Map<String, dynamic>> inviteAdmin(
+      String token, {required String name, required String email, required String role}) async {
+    final response = await _http.post(Uri.parse('$baseUrl/admin/team/invite'),
+        headers: _jsonAuth(token),
+        body: jsonEncode({'name': name, 'email': email, 'admin_role': role}));
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not send the invitation'));
+  }
+
+  static Future<Map<String, dynamic>> changeAdminRole(String token, int userId, String role) async {
+    final response = await _http.patch(Uri.parse('$baseUrl/admin/team/$userId'),
+        headers: _jsonAuth(token), body: jsonEncode({'admin_role': role}));
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not change the role'));
+  }
+
+  static Future<Map<String, dynamic>> removeAdmin(String token, int userId) async {
+    final response = await _http.delete(Uri.parse('$baseUrl/admin/team/$userId'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not remove this admin'));
+  }
+
+  static Future<List<Map<String, dynamic>>> getAuditLog(String token,
+      {int? beforeId, int? adminId}) async {
+    final query = {
+      'limit': '50',
+      if (beforeId != null) 'before_id': '$beforeId',
+      if (adminId != null) 'admin_id': '$adminId',
+    };
+    final response = await _http.get(
+        Uri.parse('$baseUrl/admin/audit-log').replace(queryParameters: query),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return List<Map<String, dynamic>>.from(_decodeList(response));
+    throw Exception(_errorDetail(response, 'Could not load the activity log'));
+  }
 }

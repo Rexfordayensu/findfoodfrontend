@@ -107,6 +107,8 @@ GoRouter createAppRouter(
         path: '/reset-password',
         builder: (_, state) => ResetPasswordScreen(
           token: state.uri.queryParameters['token'],
+          // From an admin invitation: setting a first password.
+          invite: state.uri.queryParameters['invite'] == '1',
         ),
       ),
       GoRoute(

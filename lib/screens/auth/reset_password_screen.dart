@@ -9,7 +9,10 @@ import '../../models/models.dart';
 class ResetPasswordScreen extends StatefulWidget {
   final String? token;
 
-  const ResetPasswordScreen({super.key, this.token});
+  /// Opened from an admin invitation: the first password, not a reset.
+  final bool invite;
+
+  const ResetPasswordScreen({super.key, this.token, this.invite = false});
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
@@ -63,7 +66,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
    try {
     await ApiService.resetPassword(token, newPassword);
     if (!mounted) return;
-    _showMessage('Password reset successfully! Please log in.', AppTheme.success);
+    _showMessage(
+        widget.invite
+            ? 'Password set! Sign in, and enter the code we email you.'
+            : 'Password reset successfully! Please log in.',
+        AppTheme.success);
     await Future.delayed(const Duration(milliseconds: 700));
       if (!mounted) return;
       context.go('/login');
@@ -110,7 +117,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               context.canPop() ? context.pop() : context.go('/login'),
         ),
         title: Text(
-          'Reset password',
+          widget.invite ? 'Welcome to the team' : 'Reset password',
           style: TextStyle(
             color: textPri,
             fontWeight: FontWeight.w700,
@@ -138,7 +145,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Create a new password',
+                  widget.invite ? 'Set your password' : 'Create a new password',
                   style: TextStyle(
                     color: textPri,
                     fontSize: 24,
@@ -148,7 +155,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Use a strong password with at least 8 characters and a mix of letters, numbers, and symbols.',
+                  widget.invite
+                      ? "You've been invited to help run FindFood. Choose a strong password "
+                          '(at least 8 characters, with letters, numbers and symbols) to sign in.'
+                      : 'Use a strong password with at least 8 characters and a mix of letters, numbers, and symbols.',
                   style: TextStyle(color: textSec, fontSize: 14, height: 1.6),
                 ),
                 const SizedBox(height: 24),
@@ -211,7 +221,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ),
                   const SizedBox(height: 24),
                   PrimaryButton(
-                    label: 'Reset password',
+                    label: widget.invite ? 'Set password' : 'Reset password',
                     icon: Icons.check_rounded,
                     isLoading: _isLoading,
                     onPressed: _isLoading ? null : _submit,
