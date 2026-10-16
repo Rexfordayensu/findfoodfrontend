@@ -41,8 +41,9 @@ policy = "; ".join([
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: " + " ".join(IMAGES),
     "font-src 'self' data: https://fonts.gstatic.com",
-    # wss: live order chat.
-    "connect-src 'self' " + " ".join([API, API.replace("https://", "wss://"), *FLUTTER, *IMAGES[1:]]),
+    # wss: live order chat. blob: and data: let the app read a photo the
+    # user just picked (the browser holds it at a blob: URL) before upload.
+    "connect-src 'self' blob: data: " + " ".join([API, API.replace("https://", "wss://"), *FLUTTER, *IMAGES[1:]]),
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     "object-src 'none'",
