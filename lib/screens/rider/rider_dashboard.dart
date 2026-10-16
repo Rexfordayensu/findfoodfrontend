@@ -16,6 +16,7 @@ import '../../utils/friendly_error.dart';
 import '../../widgets/notification_bell.dart';
 import '../../widgets/assign_rider.dart';
 import '../../widgets/rider_pay.dart';
+import '../../widgets/greeting_header.dart';
 
 class RiderDashboard extends StatefulWidget {
   const RiderDashboard({super.key});
@@ -243,9 +244,17 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            GreetingHeader(
+              name: context.watch<AuthProvider>().name ?? '',
+              role: 'rider',
+              status: _isOnline
+                  ? (_orders.isEmpty ? null : '${_orders.length} job${_orders.length == 1 ? '' : 's'} near you right now.')
+                  : "You're offline. Go online to get delivery jobs.",
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+            ),
             // ── Header ──────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [

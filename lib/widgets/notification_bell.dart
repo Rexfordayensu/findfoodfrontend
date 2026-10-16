@@ -25,33 +25,36 @@ class NotificationBell extends StatelessWidget {
       excludeSemantics: true,
       child: Tooltip(
         message: 'Notifications',
-        child: Material(
-          color: AppColors.card(context),
-          shape: CircleBorder(side: BorderSide(color: AppColors.border(context))),
-          child: InkWell(
-            key: const Key('notification-bell'),
-            customBorder: const CircleBorder(),
-            onTap: () => context.push('/notifications'),
-            child: SizedBox(
-              width: size,
-              height: size,
-              child: Stack(clipBehavior: Clip.none, children: [
-                Center(
+        // The badge sits outside the button so the button's shape and ink
+        // never clip or tint it.
+        child: Stack(key: const Key('notification-bell'), clipBehavior: Clip.none, children: [
+          Material(
+            // Solid, even on glass screens, so the bell never looks faded.
+            color: AppColors.sheet(context),
+            elevation: 0,
+            shape: CircleBorder(side: BorderSide(color: AppColors.border(context))),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () => context.push('/notifications'),
+              child: SizedBox(
+                width: size,
+                height: size,
+                child: Center(
                   child: Icon(
                     unread > 0 ? Icons.notifications_rounded : Icons.notifications_none_rounded,
                     size: size * 0.52,
                     color: AppColors.textPrimary(context),
                   ),
                 ),
-                Positioned(
-                  top: -3,
-                  right: -5,
-                  child: CountBadge(count: unread),
-                ),
-              ]),
+              ),
             ),
           ),
-        ),
+          Positioned(
+            top: -4,
+            right: -4,
+            child: IgnorePointer(child: CountBadge(count: unread)),
+          ),
+        ]),
       ),
     );
   }
@@ -78,8 +81,12 @@ class CountBadge extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppTheme.danger,
                 borderRadius: BorderRadius.circular(10),
-                // A ring in the page colour keeps it crisp on any background.
-                border: Border.all(color: AppColors.bg(context), width: 2),
+                // A solid ring (never the see-through page colour of glass
+                // screens) keeps it crisp on any background.
+                border: Border.all(color: AppColors.sheet(context), width: 2),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x40EF4444), blurRadius: 6, offset: Offset(0, 2)),
+                ],
               ),
               child: Text(
                 count > 99 ? '99+' : '$count',

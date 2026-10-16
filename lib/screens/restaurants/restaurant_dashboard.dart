@@ -20,6 +20,7 @@ import '../../widgets/notification_bell.dart';
 import '../../widgets/doorstep.dart';
 import '../../widgets/assign_rider.dart';
 import '../../widgets/payouts.dart';
+import '../../widgets/greeting_header.dart';
 import '../../widgets/rider_pay.dart' show ShopLocationTile;
 
 class RestaurantDashboard extends StatefulWidget {
@@ -513,9 +514,20 @@ class _OrdersPageState extends State<_OrdersPage> {
       body: SafeArea(
         child: Column(
           children: [
+            Builder(builder: (context) {
+              final waiting = _orders.where((o) => o.status == 'pending').length;
+              return GreetingHeader(
+                name: context.watch<AuthProvider>().name ?? '',
+                role: 'restaurant',
+                status: waiting == 0
+                    ? null
+                    : '$waiting new order${waiting == 1 ? ' is' : 's are'} waiting for you.',
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+              );
+            }),
             // ── Header ─────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
               child: Row(
                 children: [
                   Expanded(

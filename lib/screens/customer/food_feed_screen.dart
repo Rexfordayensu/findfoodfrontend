@@ -14,6 +14,7 @@ import '../../services/providers.dart';
 import '../../services/local_customer_store.dart';
 import 'menu_detail_screen.dart';
 import '../../widgets/greeting_header.dart';
+import '../../widgets/user_avatar.dart' show UserAvatar;
 import '../../utils/friendly_error.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/notification_bell.dart';
@@ -710,6 +711,7 @@ class _Header extends StatelessWidget {
               else
                 _AvatarButton(
                   name: auth.name,
+                  photoUrl: auth.avatarUrl,
                   // Customers manage their account here; other roles have
                   // their own dashboard with settings.
                   tooltip: auth.isCustomer ? 'Profile' : 'Your dashboard',
@@ -1739,38 +1741,26 @@ class _SignInButton extends StatelessWidget {
 /// The signed-in person's initial: the familiar way into "my account".
 class _AvatarButton extends StatelessWidget {
   final String? name;
+  final String? photoUrl;
   final String tooltip;
   final VoidCallback onTap;
 
-  const _AvatarButton({required this.name, required this.tooltip, required this.onTap});
+  const _AvatarButton(
+      {required this.name, this.photoUrl, required this.tooltip, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final trimmed = name?.trim() ?? '';
-    final initial = trimmed.isEmpty ? '' : trimmed[0].toUpperCase();
     return Tooltip(
       message: tooltip,
       child: Material(
+        color: Colors.transparent,
         shape: CircleBorder(
-            side: BorderSide(color: AppTheme.accent.withValues(alpha: 0.5), width: 2)),
+            side: BorderSide(color: AppTheme.accent.withValues(alpha: 0.6), width: 2)),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           key: const Key('feed-account'),
           onTap: onTap,
-          child: Ink(
-            width: 42,
-            height: 42,
-            decoration: const BoxDecoration(gradient: AppTheme.brandGradient),
-            child: Center(
-              child: initial.isEmpty
-                  ? const Icon(Icons.person_rounded, size: 22, color: Color(0xFF111111))
-                  : Text(initial,
-                      style: const TextStyle(
-                          color: Color(0xFF111111),
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800)),
-            ),
-          ),
+          child: UserAvatar(name: name, url: photoUrl, size: 40),
         ),
       ),
     );

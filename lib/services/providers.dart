@@ -62,6 +62,7 @@ class AuthProvider extends ChangeNotifier {
   static const String _nameKey = 'auth_name';
   static const String _emailKey = 'auth_email';
   static const String _approvedKey = 'auth_restaurant_approved';
+  static const String _avatarKey = 'auth_avatar_url';
 
   /// How often a signed-in session is renewed (tokens expire after 30 min on
   /// the server). Tests set this to null to avoid background timers.
@@ -79,6 +80,7 @@ class AuthProvider extends ChangeNotifier {
   String? _role;
   String? _name;
   String? _email;
+  String? _avatarUrl;
   bool _isLoggedIn = false;
   bool _isInitialized = false;
   bool _isEmailVerified = false;
@@ -89,6 +91,9 @@ class AuthProvider extends ChangeNotifier {
   String? get role => _role;
   String? get name => _name;
   String? get email => _email;
+
+  /// Profile photo (optional): uploaded, or from Google.
+  String? get avatarUrl => _avatarUrl;
   bool get isLoggedIn => _isLoggedIn;
   bool get isInitialized => _isInitialized;
   bool get isEmailVerified => _isEmailVerified;
@@ -115,7 +120,25 @@ class AuthProvider extends ChangeNotifier {
     _isLoggedIn = true;
     _isEmailVerified = isEmailVerified ?? false;
     _isRestaurantApproved = isRestaurantApproved ?? false;
+    _avatarUrl = null;
     _startTokenRefresh();
+    notifyListeners();
+    await _persistSession();
+    // Sign-in responses don't include the photo; fetch it in the background
+    // (background work is off in tests, like the token refresh).
+    if (refreshInterval != null) unawaited(_loadAvatar(token));
+  }
+
+  Future<void> _loadAvatar(String token) async {
+    try {
+      final user = await ApiService.getCurrentUser(token);
+      if (_token != token) return;
+      await setAvatarUrl(user['avatar_url']?.toString());
+    } catch (_) {}
+  }
+
+  Future<void> setAvatarUrl(String? url) async {
+    _avatarUrl = (url == null || url.isEmpty) ? null : url;
     notifyListeners();
     await _persistSession();
   }
@@ -234,6 +257,8 @@ class AuthProvider extends ChangeNotifier {
       if (freshRole != null) _role = normalizeRole(freshRole);
       _name = user['name']?.toString();
       _email = user['email']?.toString();
+      final avatar = user['avatar_url']?.toString();
+      _avatarUrl = (avatar == null || avatar.isEmpty) ? null : avatar;
       _isEmailVerified = user['is_verified'] == true ||
           user['email_verified'] == true ||
           user['is_email_verified'] == true;
@@ -261,6 +286,8 @@ class AuthProvider extends ChangeNotifier {
       _userId = int.tryParse(await _secureStorage.read(key: _userIdKey) ?? '');
       _name = await _secureStorage.read(key: _nameKey);
       _email = await _secureStorage.read(key: _emailKey);
+      final avatar = await _secureStorage.read(key: _avatarKey);
+      _avatarUrl = (avatar == null || avatar.isEmpty) ? null : avatar;
       _isRestaurantApproved =
           await _secureStorage.read(key: _approvedKey) == 'true';
       _isLoggedIn = true;
@@ -278,6 +305,7 @@ class AuthProvider extends ChangeNotifier {
     await _secureStorage.write(key: _roleKey, value: _role ?? 'customer');
     await _secureStorage.write(key: _nameKey, value: _name ?? '');
     await _secureStorage.write(key: _emailKey, value: _email ?? '');
+    await _secureStorage.write(key: _avatarKey, value: _avatarUrl ?? '');
     await _secureStorage.write(
         key: _approvedKey, value: _isRestaurantApproved.toString());
   }
@@ -288,6 +316,7 @@ class AuthProvider extends ChangeNotifier {
     await _secureStorage.delete(key: _roleKey);
     await _secureStorage.delete(key: _nameKey);
     await _secureStorage.delete(key: _emailKey);
+    await _secureStorage.delete(key: _avatarKey);
     await _secureStorage.delete(key: _approvedKey);
   }
 
@@ -299,6 +328,7 @@ class AuthProvider extends ChangeNotifier {
     _role = null;
     _name = null;
     _email = null;
+    _avatarUrl = null;
     _isLoggedIn = false;
     _isEmailVerified = false;
     _isRestaurantApproved = false;

@@ -49,7 +49,8 @@ void main() {
 
     expect(find.text('Delivery address'), findsNothing);
     expect(find.text('Pickup location'), findsOneWidget);
-    expect(find.text('Collect from Test Restaurant'), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const Key('pickup-card')), matching: find.text('Test Restaurant')), findsOneWidget);
+    expect(find.byKey(const Key('pickup-directions')), findsOneWidget);
     expect(find.text('24 Market Road, Accra'), findsOneWidget);
     expect(find.text('Pickup name'), findsOneWidget);
     expect(find.text('Pickup phone number'), findsOneWidget);

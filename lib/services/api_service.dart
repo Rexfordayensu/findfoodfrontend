@@ -1543,6 +1543,30 @@ class ApiService {
     throw Exception(_errorDetail(response, 'Could not upload the photo'));
   }
 
+  /// Sets the signed-in user's profile photo; returns their profile.
+  static Future<Map<String, dynamic>> uploadAvatar({
+    required String token,
+    required Uint8List imageBytes,
+    required String filename,
+  }) async {
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/auth/me/avatar'));
+    request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(http.MultipartFile.fromBytes('file', imageBytes,
+        filename: filename, contentType: _imageMediaType(filename)));
+    final response = await http.Response.fromStream(await _http.send(request));
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not upload your photo'));
+  }
+
+  static Future<Map<String, dynamic>> deleteAvatar(String token) async {
+    final response = await _http.delete(
+      Uri.parse('$baseUrl/auth/me/avatar'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not remove your photo'));
+  }
+
   /// The customer checked their food; returns the order with their code.
   static Future<Order> doorstepCheck(String token, int orderId, bool allThere) async {
     final response = await _http.post(

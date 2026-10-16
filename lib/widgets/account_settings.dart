@@ -8,6 +8,7 @@ import '../theme.dart';
 import '../legal/legal_documents.dart' show supportEmail;
 import '../services/notifications_provider.dart';
 import '../screens/legal_screen.dart';
+import 'user_avatar.dart' show EditableAvatar;
 import 'widgets.dart';
 import '../utils/friendly_error.dart';
 
@@ -117,15 +118,8 @@ class AccountHeader extends StatelessWidget {
     final name = (auth.name?.trim().isNotEmpty ?? false) ? auth.name! : 'Your account';
     return Row(
       children: [
-        CircleAvatar(
-          radius: 30,
-          backgroundColor: AppTheme.accentDim,
-          child: Text(
-            name[0].toUpperCase(),
-            style: TextStyle(color: AppColors.accentText(context), fontSize: 24, fontWeight: FontWeight.w800),
-          ),
-        ),
-        const SizedBox(width: 16),
+        const EditableAvatar(size: 60),
+        const SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

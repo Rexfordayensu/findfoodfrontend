@@ -5,6 +5,7 @@ import '../../models/models.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import '../../theme.dart';
 import '../../widgets/widgets.dart';
 import '../../services/api_service.dart';
@@ -61,6 +62,44 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
+  /// The restaurant, for its address and map location at pickup (a cart
+  /// refilled with "Order again" doesn't carry them).
+  Restaurant? _shop;
+
+  Future<void> _loadShop() async {
+    final id = context.read<CartProvider>().restaurantId;
+    if (id == null) return;
+    try {
+      final shops = await ApiService.getRestaurants();
+      final shop = shops.where((r) => r.id == id).firstOrNull;
+      if (mounted && shop != null) setState(() => _shop = shop);
+    } catch (_) {}
+  }
+
+  /// The phone number from the customer's profile, if they saved one.
+  Future<void> _prefillPhone() async {
+    final token = context.read<AuthProvider>().token;
+    if (token == null || _pickupPhoneController.text.isNotEmpty) return;
+    try {
+      final me = await ApiService.getCurrentUser(token);
+      final phone = me['phone']?.toString() ?? '';
+      if (mounted && phone.isNotEmpty && _pickupPhoneController.text.isEmpty) {
+        _pickupPhoneController.text = phone;
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _openDirections(String? address) async {
+    final shop = _shop;
+    final query = shop?.latitude != null && shop?.longitude != null
+        ? '${shop!.latitude},${shop.longitude}'
+        : '${shop?.name ?? context.read<CartProvider>().restaurantName ?? ''} ${address ?? ''}'.trim();
+    await launchUrlString(
+      'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(query)}',
+      mode: LaunchMode.externalApplication,
+    );
+  }
+
   int get _fee => _isDelivery ? (_deliveryFee ?? 0) : 0;
   int _total(CartProvider cart) => cart.totalAmount + _fee;
   int _toPay(CartProvider cart) =>
@@ -85,6 +124,8 @@ class _CartScreenState extends State<CartScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadCredit();
       _loadDeliveryQuote();
+      _loadShop();
+      _prefillPhone();
     });
     if (widget.paymentReference != null &&
         widget.paymentReference!.trim().isNotEmpty) {
@@ -686,39 +727,103 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _buildPickupDetails(CartProvider cart) {
-    final address = cart.restaurantAddress?.trim();
+    final saved = cart.restaurantAddress?.trim();
+    final address = saved?.isNotEmpty == true ? saved : _shop?.address.trim();
+    final name = cart.restaurantName ?? _shop?.name ?? 'the restaurant';
+    final banner = ApiService.imageUrl(_shop?.bannerUrl);
+    final textPri = AppColors.textPrimary(context);
     return Column(
       key: const ValueKey('pickup'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Pickup location', style: _strong(15)),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            _iconTile(Icons.storefront_outlined),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Collect from ${cart.restaurantName ?? 'the restaurant'}',
-                      style: TextStyle(
-                          color: AppColors.textPrimary(context),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 2),
-                  Text(
-                    address?.isNotEmpty == true
-                        ? address!
-                        : 'Restaurant address unavailable',
-                    style: _muted(13),
-                  ),
-                ],
+        Container(
+          key: const Key('pickup-card'),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: _softFill(context),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(children: [
+            Row(children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 52,
+                  height: 52,
+                  child: banner == null
+                      ? Container(
+                          color: AppTheme.accent.withValues(alpha: 0.18),
+                          child: Icon(Icons.storefront_rounded, color: AppColors.accentText(context)),
+                        )
+                      : Image.network(banner, fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                                color: AppTheme.accent.withValues(alpha: 0.18),
+                                child: Icon(Icons.storefront_rounded, color: AppColors.accentText(context)),
+                              )),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: textPri, fontSize: 15, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 3),
+                  Row(children: [
+                    Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary(context)),
+                    const SizedBox(width: 3),
+                    Expanded(
+                      child: Text(
+                        address?.isNotEmpty == true ? address! : 'Finding the address…',
+                        key: const Key('pickup-address'),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: _muted(13),
+                      ),
+                    ),
+                  ]),
+                ]),
+              ),
+            ]),
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  key: const Key('pickup-directions'),
+                  onPressed: address == null && _shop?.latitude == null
+                      ? null
+                      : () => _openDirections(address),
+                  icon: const Icon(Icons.directions_rounded, size: 18),
+                  label: const Text('Directions'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: textPri,
+                    side: BorderSide(color: AppColors.border(context)),
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 10),
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Icon(Icons.notifications_active_outlined, size: 16, color: AppTheme.success),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  "We'll let you know the moment your order is ready to collect. "
+                  'Show your collection code at the counter.',
+                  style: _muted(12.5),
+                ),
+              ),
+            ]),
+          ]),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 18),
+        Text("Who's collecting?", style: _strong(15)),
+        const SizedBox(height: 10),
         TextField(
           controller: _pickupNameController,
           textCapitalization: TextCapitalization.words,

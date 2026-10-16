@@ -70,9 +70,9 @@ void main() {
       expect(saved, isNull);
       expect(find.text('Choose your network.'), findsOneWidget);
 
-      await tester.tap(find.byKey(const Key('payout-provider')));
-      await settle(tester);
-      await tester.tap(find.text('MTN Mobile Money').last);
+      // Networks are cards to tap, not a dropdown.
+      expect(find.text('Telecel Cash'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('payout-network-MTN')));
       await settle(tester);
       await tester.enterText(find.byKey(const Key('payout-number')), '024 123 4567');
       await tester.tap(find.byKey(const Key('payout-save')));

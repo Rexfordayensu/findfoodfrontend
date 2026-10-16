@@ -199,21 +199,21 @@ class _PayoutFormState extends State<_PayoutForm> {
             padding: EdgeInsets.symmetric(vertical: 14),
             child: Center(child: CircularProgressIndicator(color: AppTheme.accent)),
           )
-        else
-          DropdownButtonFormField<String>(
-            key: const Key('payout-provider'),
-            initialValue: _provider,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: _type == 'momo' ? 'Network' : 'Bank',
-              prefixIcon: Icon(
-                  _type == 'momo' ? Icons.cell_tower_rounded : Icons.account_balance_outlined),
+        else if (_type == 'momo') ...[
+          Text('Your network', style: TextStyle(color: textSec, fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          for (final p in _providers!)
+            _NetworkTile(
+              code: '${p['code']}',
+              name: '${p['name']}',
+              selected: _provider == '${p['code']}',
+              onTap: () => setState(() => _provider = '${p['code']}'),
             ),
-            items: [
-              for (final p in _providers!)
-                DropdownMenuItem(value: '${p['code']}', child: Text('${p['name']}')),
-            ],
-            onChanged: (value) => setState(() => _provider = value),
+        ] else
+          _BankField(
+            banks: _providers!,
+            selected: _provider,
+            onChanged: (code) => setState(() => _provider = code),
           ),
         const SizedBox(height: 12),
         AppTextField(
@@ -238,6 +238,194 @@ class _PayoutFormState extends State<_PayoutForm> {
           onPressed: _saving ? null : _save,
         ),
       ],
+    );
+  }
+}
+
+/// Brand colours for Ghana's mobile money networks, so each is easy to spot.
+({Color bg, Color fg, String mark}) _networkLook(String code, String name) {
+  final key = '$code $name'.toLowerCase();
+  if (key.contains('mtn')) return (bg: const Color(0xFFFFCC00), fg: Colors.black, mark: 'MTN');
+  if (key.contains('vod') || key.contains('telecel')) {
+    return (bg: const Color(0xFFE4002B), fg: Colors.white, mark: 'T');
+  }
+  if (key.contains('airtel') || key.contains('tigo') || key.contains('atl')) {
+    return (bg: const Color(0xFF1B3F94), fg: Colors.white, mark: 'AT');
+  }
+  final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+  return (bg: AppTheme.accent, fg: Colors.black, mark: initial);
+}
+
+/// One mobile money network to choose: logo, name, and a tick when chosen.
+class _NetworkTile extends StatelessWidget {
+  final String code, name;
+  final bool selected;
+  final VoidCallback onTap;
+  const _NetworkTile({required this.code, required this.name, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final look = _networkLook(code, name);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: selected ? AppTheme.accent.withValues(alpha: 0.12) : AppColors.surface(context),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(
+              color: selected ? AppTheme.accentDeep : AppColors.border(context),
+              width: selected ? 1.6 : 1),
+        ),
+        child: InkWell(
+          key: Key('payout-network-$code'),
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(children: [
+              Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(color: look.bg, borderRadius: BorderRadius.circular(10)),
+                child: Text(look.mark,
+                    style: TextStyle(
+                        color: look.fg,
+                        fontSize: look.mark.length > 2 ? 11 : 14,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.2)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(name,
+                    style: TextStyle(
+                        color: AppColors.textPrimary(context),
+                        fontSize: 15,
+                        fontWeight: selected ? FontWeight.w800 : FontWeight.w600)),
+              ),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                child: selected
+                    ? const Icon(Icons.check_circle_rounded,
+                        key: ValueKey('on'), color: AppTheme.accentDeep, size: 22)
+                    : Icon(Icons.circle_outlined,
+                        key: const ValueKey('off'), color: AppColors.border(context), size: 22),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The chosen bank; tapping opens a searchable list (there are many banks).
+class _BankField extends StatelessWidget {
+  final List<Map<String, dynamic>> banks;
+  final String? selected;
+  final ValueChanged<String> onChanged;
+  const _BankField({required this.banks, required this.selected, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final name = banks.where((b) => '${b['code']}' == selected).map((b) => '${b['name']}').firstOrNull;
+    return Material(
+      color: AppColors.surface(context),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: AppColors.border(context)),
+      ),
+      child: InkWell(
+        key: const Key('payout-provider'),
+        borderRadius: BorderRadius.circular(14),
+        onTap: () async {
+          final code = await showModalBottomSheet<String>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: AppColors.sheet(context),
+            shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+            builder: (_) => _BankSearch(banks: banks, selected: selected),
+          );
+          if (code != null) onChanged(code);
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+          child: Row(children: [
+            Icon(Icons.account_balance_outlined, color: AppColors.textSecondary(context), size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(name ?? 'Choose your bank',
+                  style: TextStyle(
+                      color: name == null ? AppColors.textHint(context) : AppColors.textPrimary(context),
+                      fontSize: 15,
+                      fontWeight: name == null ? FontWeight.w500 : FontWeight.w700)),
+            ),
+            Icon(Icons.expand_more_rounded, color: AppColors.textSecondary(context)),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _BankSearch extends StatefulWidget {
+  final List<Map<String, dynamic>> banks;
+  final String? selected;
+  const _BankSearch({required this.banks, required this.selected});
+
+  @override
+  State<_BankSearch> createState() => _BankSearchState();
+}
+
+class _BankSearchState extends State<_BankSearch> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final q = _query.trim().toLowerCase();
+    final shown = widget.banks.where((b) => '${b['name']}'.toLowerCase().contains(q)).toList();
+    return SafeArea(
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.75,
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+            child: TextField(
+              key: const Key('bank-search'),
+              autofocus: false,
+              onChanged: (v) => setState(() => _query = v),
+              decoration: const InputDecoration(
+                hintText: 'Search banks',
+                prefixIcon: Icon(Icons.search_rounded),
+              ),
+            ),
+          ),
+          Expanded(
+            child: shown.isEmpty
+                ? Center(
+                    child: Text('No bank matches "$_query"',
+                        style: TextStyle(color: AppColors.textSecondary(context))))
+                : ListView.builder(
+                    itemCount: shown.length,
+                    itemBuilder: (_, i) {
+                      final bank = shown[i];
+                      final chosen = '${bank['code']}' == widget.selected;
+                      return ListTile(
+                        title: Text('${bank['name']}',
+                            style: TextStyle(
+                                color: AppColors.textPrimary(context),
+                                fontWeight: chosen ? FontWeight.w800 : FontWeight.w500)),
+                        trailing: chosen
+                            ? const Icon(Icons.check_rounded, color: AppTheme.accentDeep)
+                            : null,
+                        onTap: () => Navigator.of(context).pop('${bank['code']}'),
+                      );
+                    },
+                  ),
+          ),
+        ]),
+      ),
     );
   }
 }

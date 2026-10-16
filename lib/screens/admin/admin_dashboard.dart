@@ -74,6 +74,16 @@ class _AdminDashboardState extends State<AdminDashboard>
     }
   }
 
+  /// "2 restaurants waiting for approval · 1 open report", or null.
+  String? _attentionLine() {
+    final approvals = _badgeFor(1), reports = _badgeFor(4);
+    final parts = [
+      if (approvals > 0) '$approvals restaurant${approvals == 1 ? '' : 's'} waiting for approval',
+      if (reports > 0) '$reports open report${reports == 1 ? '' : 's'}',
+    ];
+    return parts.isEmpty ? null : '${parts.join(' · ')}.';
+  }
+
   int _badgeFor(int index) => switch (index) {
         1 => _pendingApprovalsCount,
         4 => _reportsCount,
@@ -492,6 +502,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                                 ? auth.name!
                                 : 'Admin',
                             role: 'admin',
+                            status: _attentionLine(),
                             padding: const EdgeInsets.fromLTRB(24, 18, 12, 12),
                           ),
                         ),
@@ -549,6 +560,7 @@ class _AdminDashboardState extends State<AdminDashboard>
               GreetingHeader(
                 name: auth.name?.trim().isNotEmpty == true ? auth.name! : 'Admin',
                 role: 'admin',
+                status: _attentionLine(),
                 padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
               ),
               Expanded(child: _buildPage()),

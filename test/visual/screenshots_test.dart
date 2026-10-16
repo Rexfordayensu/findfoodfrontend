@@ -337,9 +337,11 @@ void main() {
       }
       if (tab != null) {
         final byTooltip = find.byTooltip(tab);
-        await tester.tap(byTooltip.evaluate().isNotEmpty
-            ? byTooltip.first
-            : find.text(tab).last);
+        await tester.tap(tab.startsWith('key:')
+            ? find.byKey(Key(tab.substring(4)))
+            : byTooltip.evaluate().isNotEmpty
+                ? byTooltip.first
+                : find.text(tab).last);
         for (var i = 0; i < 10; i++) {
           await tester.pump(const Duration(milliseconds: 100));
         }
@@ -396,11 +398,11 @@ void main() {
   for (final dark in [false, true]) {
     final mode = dark ? 'dark' : 'light';
     testWidgets('checkout $mode', (t) => shoot(t, 'checkout_$mode',
-        role: 'customer', name: 'Rexford', dark: dark, tab: 'Cart',
+        role: 'customer', name: 'Rexford', dark: dark, tab: 'key:nav-basket',
         cart: sampleCart()));
   }
   testWidgets('checkout pickup light', (t) => shoot(t, 'checkout_pickup_light',
-      role: 'customer', name: 'Rexford', dark: false, tab: 'Cart',
+      role: 'customer', name: 'Rexford', dark: false, tab: 'key:nav-basket',
       cart: sampleCart(), then: 'Pickup'));
   for (final dark in [false, true]) {
     testWidgets('orders ${dark ? 'dark' : 'light'}', (t) => shoot(t,

@@ -303,11 +303,13 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Scrolls rather than overflowing when there's little room (short
+    // phones, a tall header above it).
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 56, color: AppColors.textHint(context)),
             const SizedBox(height: 16),
