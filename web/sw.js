@@ -44,6 +44,8 @@ self.addEventListener('push', (event) => {
       badge: '/icons/badge-96.png',
       tag: data.tag || undefined,
       renotify: Boolean(data.tag) && !watching,
+      // Announcements stay on screen until dismissed, so nobody misses them.
+      requireInteraction: data.kind === 'announcement',
       silent: watching,
       timestamp: Date.now(),
       data: { url },

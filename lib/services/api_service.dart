@@ -2166,4 +2166,20 @@ class ApiService {
         headers: {'Authorization': 'Bearer $token'});
     if (response.statusCode != 200) throw Exception(_errorDetail(response, 'Could not show it'));
   }
+
+  /// Announcements this person hasn't seen yet (shown as a banner).
+  static Future<List<Map<String, dynamic>>> getUnseenAnnouncements(String token) async {
+    final response = await _http.get(Uri.parse('$baseUrl/announcements/unseen'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return List<Map<String, dynamic>>.from(_decodeList(response));
+    throw Exception(_errorDetail(response, 'Could not check for announcements'));
+  }
+
+  /// One announcement in full; opening it marks it seen.
+  static Future<Map<String, dynamic>> openAnnouncement(String token, int id) async {
+    final response = await _http.get(Uri.parse('$baseUrl/announcements/$id'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not open the announcement'));
+  }
 }

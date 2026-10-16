@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../services/notifications_provider.dart';
 import '../services/providers.dart';
 import '../theme.dart';
+import '../widgets/announcement_gate.dart';
 import '../widgets/account_settings.dart' show showSettingsMessage;
 
 /// Every notification, read and unread, newest first, grouped by day.
@@ -55,9 +56,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final notes = context.read<NotificationsProvider>();
     notes.markRead(note);
     final link = note.link;
+    if (note.kind == 'announcement') {
+      if (link != null && link.startsWith('/announcements/')) {
+        context.push(link);
+      } else {
+        showAnnouncementFromNotification(context, note);
+      }
+      return;
+    }
     if (link == null || !link.startsWith('/')) return;
     // Details open on top; dashboards replace the page.
-    if (link.startsWith('/order-tracking/') || link.startsWith('/chat/')) {
+    if (link.startsWith('/order-tracking/') || link.startsWith('/chat/') ||
+        link.startsWith('/announcements/') || link.startsWith('/support/')) {
       context.push(link);
     } else {
       context.go(link);

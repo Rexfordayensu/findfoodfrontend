@@ -1,3 +1,4 @@
+import 'widgets/announcement_gate.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -83,7 +84,8 @@ class _FindFoodAppState extends State<FindFoodApp> {
     }
     // A notification tapped while the app is open goes to its page.
     notifications?.onOpen = (location) {
-      if (location.startsWith('/order-tracking/') || location.startsWith('/chat/')) {
+      if (location.startsWith('/order-tracking/') || location.startsWith('/chat/') ||
+          location.startsWith('/announcements/') || location.startsWith('/support/')) {
         _router.push(location);
       } else {
         _router.go(location);
@@ -118,6 +120,9 @@ class _FindFoodAppState extends State<FindFoodApp> {
           themeMode: themeProvider.mode,
           scaffoldMessengerKey: appScaffoldMessengerKey,
           routerConfig: _router,
+          // Unseen announcements pop up over any page.
+          builder: (context, child) =>
+              AnnouncementGate(navigatorKey: _navigatorKey, child: child ?? const SizedBox()),
         );
       },
     );

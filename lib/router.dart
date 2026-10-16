@@ -1,4 +1,5 @@
 import 'screens/support_screen.dart';
+import 'widgets/announcement_gate.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -99,6 +100,11 @@ GoRouter createAppRouter(
           path: '/notifications',
           builder: (_, __) => const NotificationsScreen()),
       GoRoute(path: '/support', builder: (_, __) => const SupportInboxScreen()),
+      GoRoute(
+        path: '/announcements/:id',
+        builder: (_, state) =>
+            AnnouncementScreen(announcementId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0),
+      ),
       GoRoute(
         path: '/support/:threadId',
         builder: (_, state) =>
@@ -306,7 +312,8 @@ GoRouter createAppRouter(
           location.startsWith('/order-chat/') ||
           location == '/notifications' ||
           location == '/support' ||
-          location.startsWith('/support/');
+          location.startsWith('/support/') ||
+          location.startsWith('/announcements/');
       if (restaurantRoute && !auth.isRestaurant) return _homeForRole(auth);
       if (location == '/rider' && !auth.isRider) return _homeForRole(auth);
       if (location == '/admin' && !auth.isAdmin) return _homeForRole(auth);
