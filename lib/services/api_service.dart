@@ -441,11 +441,13 @@ class ApiService {
     double? deliveryLatitude,
     double? deliveryLongitude,
     DateTime? scheduledFor,
+    String? promoCode,
   }) async {
     final payload = <String, dynamic>{
       'restaurant_id': restaurantId,
       'items': items,
       'fulfillment_method': fulfillmentMethod,
+      if (promoCode != null && promoCode.isNotEmpty) 'promo_code': promoCode,
     };
     if (pickupName != null && pickupName.trim().isNotEmpty) {
       payload['pickup_name'] = pickupName.trim();
@@ -2009,5 +2011,42 @@ class ApiService {
         headers: {'Authorization': 'Bearer $token'});
     if (response.statusCode == 200) return utf8.decode(response.bodyBytes);
     throw Exception(_errorDetail(response, 'Could not download the payments'));
+  }
+
+  // ── PROMO CODES ─────────────────────────────────────────────────────────────
+
+  /// {valid, discount, message, code} for this basket.
+  static Future<Map<String, dynamic>> checkPromo(String token,
+      {required String code, required int restaurantId, required int subtotal,
+      required int deliveryFee, required bool delivery}) async {
+    final response = await _http.post(Uri.parse('$baseUrl/promo/check'),
+        headers: _jsonAuth(token),
+        body: jsonEncode({
+          'code': code, 'restaurant_id': restaurantId, 'subtotal': subtotal,
+          'delivery_fee': deliveryFee, 'fulfillment_method': delivery ? 'delivery' : 'pickup',
+        }));
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not check the code'));
+  }
+
+  static Future<List<Map<String, dynamic>>> getPromos(String token) async {
+    final response = await _http.get(Uri.parse('$baseUrl/admin/promos'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return List<Map<String, dynamic>>.from(_decodeList(response));
+    throw Exception(_errorDetail(response, 'Could not load promo codes'));
+  }
+
+  static Future<Map<String, dynamic>> createPromo(String token, Map<String, dynamic> body) async {
+    final response = await _http.post(Uri.parse('$baseUrl/admin/promos'),
+        headers: _jsonAuth(token), body: jsonEncode(body));
+    if (response.statusCode == 201) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not create the code'));
+  }
+
+  static Future<Map<String, dynamic>> updatePromo(String token, int id, Map<String, dynamic> body) async {
+    final response = await _http.patch(Uri.parse('$baseUrl/admin/promos/$id'),
+        headers: _jsonAuth(token), body: jsonEncode(body));
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not update the code'));
   }
 }

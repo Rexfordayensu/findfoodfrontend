@@ -24,7 +24,7 @@ class OrderPayment {
 
     // FindFood credit is used first; it may cover the whole order.
     final credit = await creditBalance(token);
-    if (credit >= order.totalAmount) {
+    if (credit >= order.amountToPay) {
       final init = await ApiService.initializePayment(
           token: token, orderId: order.id, provider: 'paystack');
       if (init['paid'] == true) return true;
@@ -132,9 +132,13 @@ class OrderPayment {
           children: [
             SheetHeader(
                 title: 'Choose payment method',
-                subtitle: credit > 0
-                    ? 'Total ${order.displayTotal} · ${formatCedis(credit)} credit used · '
-                        'you pay ${formatCedis(order.totalAmount - credit)}'
+                subtitle: credit > 0 || order.discountAmount > 0
+                    ? [
+                        'Total ${order.displayTotal}',
+                        if (order.discountAmount > 0) '${formatCedis(order.discountAmount)} promo',
+                        if (credit > 0) '${formatCedis(credit)} credit used',
+                        'you pay ${formatCedis((order.amountToPay - credit).clamp(0, order.amountToPay))}',
+                      ].join(' · ')
                     : 'Total ${order.displayTotal}'),
             for (final provider in providers)
               ListTile(

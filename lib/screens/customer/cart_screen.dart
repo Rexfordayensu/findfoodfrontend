@@ -56,6 +56,7 @@ class _CartScreenState extends State<CartScreen> {
         _deliveryKm = (quote['distance_km'] as num?)?.toDouble();
         _quoteMode = quote['mode']?.toString();
       });
+      if (_promoCode != null) _applyPromo(quiet: true);
     } catch (_) {
       // The order is priced on the server either way; the total shown then
       // just leaves the fee out.
@@ -103,7 +104,126 @@ class _CartScreenState extends State<CartScreen> {
   int get _fee => _isDelivery ? (_deliveryFee ?? 0) : 0;
   int _total(CartProvider cart) => cart.totalAmount + _fee;
   int _toPay(CartProvider cart) =>
-      (_total(cart) - _credit).clamp(0, _total(cart));
+      (_total(cart) - _discount - _credit).clamp(0, _total(cart));
+
+  // ── Promo code ──
+  final _promoController = TextEditingController();
+  bool _promoOpen = false, _checkingPromo = false;
+  String? _promoCode, _promoMessage, _promoError;
+  int _discount = 0;
+
+  Future<void> _applyPromo({bool quiet = false}) async {
+    final cart = context.read<CartProvider>();
+    final token = context.read<AuthProvider>().token;
+    final code = (_promoCode ?? _promoController.text).trim();
+    if (code.isEmpty || cart.restaurantId == null) return;
+    if (token == null) {
+      setState(() => _promoError = 'Sign in to use a promo code.');
+      return;
+    }
+    setState(() => _checkingPromo = true);
+    try {
+      final result = await ApiService.checkPromo(token,
+          code: code, restaurantId: cart.restaurantId!, subtotal: cart.totalAmount,
+          deliveryFee: _fee, delivery: _isDelivery);
+      if (!mounted) return;
+      setState(() {
+        if (result['valid'] == true) {
+          _promoCode = '${result['code']}';
+          _discount = (result['discount'] as num).toInt();
+          _promoMessage = '${result['message']}';
+          _promoError = null;
+        } else {
+          _promoCode = null;
+          _discount = 0;
+          _promoMessage = null;
+          _promoError = quiet ? '$code no longer applies: ${result['message']}' : '${result['message']}';
+        }
+      });
+    } catch (e) {
+      if (mounted) setState(() => _promoError = friendlyMessage(e));
+    } finally {
+      if (mounted) setState(() => _checkingPromo = false);
+    }
+  }
+
+  void _removePromo() => setState(() {
+        _promoCode = null;
+        _discount = 0;
+        _promoMessage = null;
+        _promoError = null;
+        _promoController.clear();
+      });
+
+  Widget _promoSection() {
+    final textSec = AppColors.textSecondary(context);
+    if (_promoCode != null) {
+      return Container(
+        key: const Key('promo-applied'),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppTheme.success.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppTheme.success.withValues(alpha: 0.35)),
+        ),
+        child: Row(children: [
+          const Icon(Icons.local_offer_rounded, color: AppTheme.success, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('$_promoCode applied',
+                  style: TextStyle(color: AppColors.textPrimary(context), fontWeight: FontWeight.w800)),
+              Text('${_promoMessage ?? ''} · you save ${formatCedis(_discount)}',
+                  style: TextStyle(color: textSec, fontSize: 12.5)),
+            ]),
+          ),
+          TextButton(key: const Key('promo-remove'), onPressed: _removePromo, child: const Text('Remove')),
+        ]),
+      );
+    }
+    if (!_promoOpen) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          key: const Key('promo-open'),
+          onPressed: () => setState(() => _promoOpen = true),
+          icon: const Icon(Icons.local_offer_outlined, size: 18),
+          label: const Text('Have a promo code?'),
+        ),
+      );
+    }
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Expanded(
+          child: TextField(
+            key: const Key('promo-field'),
+            controller: _promoController,
+            textCapitalization: TextCapitalization.characters,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _applyPromo(),
+            decoration: const InputDecoration(
+              hintText: 'Promo code',
+              prefixIcon: Icon(Icons.local_offer_outlined),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        FilledButton(
+          key: const Key('promo-apply'),
+          onPressed: _checkingPromo ? null : () => _applyPromo(),
+          child: _checkingPromo
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('Apply'),
+        ),
+      ]),
+      if (_promoError != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 6, left: 4),
+          child: Text(_promoError!, key: const Key('promo-error'),
+              style: const TextStyle(color: AppTheme.danger, fontSize: 12.5)),
+        ),
+    ]);
+  }
   bool _isDelivery = true;
   bool _isDetectingLocation = false;
   double? _deliveryLatitude;
@@ -138,6 +258,7 @@ class _CartScreenState extends State<CartScreen> {
   @override
   void dispose() {
     _deliveryAddressController.dispose();
+    _promoController.dispose();
     _pickupNameController.dispose();
     _pickupPhoneController.dispose();
     _kitchenNoteController.dispose();
@@ -291,6 +412,7 @@ class _CartScreenState extends State<CartScreen> {
         pickupName: !_isDelivery ? _pickupNameController.text.trim() : null,
         pickupPhone: !_isDelivery ? _pickupPhoneController.text.trim() : null,
         kitchenNote: _kitchenNoteController.text.trim().isNotEmpty ? _kitchenNoteController.text.trim() : null,
+        promoCode: _promoCode,
       );
 
       // The order now exists (awaiting payment), so the cart is done with;
@@ -393,7 +515,10 @@ class _CartScreenState extends State<CartScreen> {
                 children: [
                   _ModeToggle(
                     isDelivery: _isDelivery,
-                    onChanged: (value) => setState(() => _isDelivery = value),
+                    onChanged: (value) {
+                      setState(() => _isDelivery = value);
+                      if (_promoCode != null) _applyPromo(quiet: true);
+                    },
                   ),
                   const SizedBox(height: 18),
                   AnimatedSize(
@@ -448,6 +573,10 @@ class _CartScreenState extends State<CartScreen> {
               ),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.only(top: 14),
+            child: _promoSection(),
+          ),
           _section(
             'Summary',
             child: _card(
@@ -484,6 +613,19 @@ class _CartScreenState extends State<CartScreen> {
                       ),
                     ),
                   ],
+                  if (_discount > 0) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      key: const Key('checkout-discount'),
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Promo $_promoCode', style: _muted(14)),
+                        Text('−${formatCedis(_discount)}',
+                            style: const TextStyle(
+                                color: AppTheme.success, fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                  ],
                   if (_credit > 0) ...[
                     const SizedBox(height: 10),
                     Row(
@@ -491,7 +633,7 @@ class _CartScreenState extends State<CartScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('FindFood credit', style: _muted(14)),
-                        Text('−${formatCedis(_credit.clamp(0, _total(cart)))}',
+                        Text('−${formatCedis(_credit.clamp(0, _total(cart) - _discount))}',
                             style: const TextStyle(
                                 color: AppTheme.success, fontWeight: FontWeight.w700)),
                       ],

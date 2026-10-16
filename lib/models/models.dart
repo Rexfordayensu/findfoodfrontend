@@ -194,6 +194,9 @@ class Order {
 
   /// Included in [totalAmount]; 0 for pickup and older orders.
   final int deliveryFee;
+
+  /// Taken off by a promo code: the customer pays [amountToPay].
+  final int discountAmount;
   final double? deliveryDistanceKm;
 
   /// What the rider earns for this delivery (null on older orders).
@@ -234,12 +237,16 @@ class Order {
     this.deliveryCode,
     this.pickupCode,
     this.deliveryFee = 0,
+    this.discountAmount = 0,
     this.deliveryDistanceKm,
     this.riderPay,
   });
 
   /// The food alone, without the delivery fee.
   int get foodTotal => totalAmount - deliveryFee;
+
+  /// What the customer pays: the total less any promo discount.
+  int get amountToPay => totalAmount - discountAmount;
 
   /// "Use my current location" at checkout stores raw coordinates as the
   /// address; show those as a pinned location instead of numbers.
@@ -324,6 +331,7 @@ class Order {
         deliveryCode: json['delivery_code'],
         pickupCode: json['pickup_code'],
         deliveryFee: (json['delivery_fee'] as num?)?.toInt() ?? 0,
+        discountAmount: (json['discount_amount'] as num?)?.toInt() ?? 0,
         deliveryDistanceKm: (json['delivery_distance_km'] as num?)?.toDouble(),
         riderPay: (json['rider_pay'] as num?)?.toInt(),
         items: [

@@ -415,7 +415,7 @@ class _OrderRow extends StatelessWidget {
                             fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 3),
-                      Text(order.displayTotal,
+                      Text(formatCedis(order.amountToPay),
                           style: TextStyle(color: textPri, fontSize: 15)),
                     ],
                   ),

@@ -636,7 +636,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
           _infoRow('Order ID', '#${_order.id}'),
-          _infoRow('Total', _order.displayTotal),
+          if (_order.discountAmount > 0)
+            _infoRow('Promo discount', '−${formatCedis(_order.discountAmount)}'),
+          _infoRow(_order.discountAmount > 0 ? 'You paid' : 'Total', formatCedis(_order.amountToPay)),
           _infoRow('Status', _statusLabel(_order.status)),
           const SizedBox(height: 32),
         ],
