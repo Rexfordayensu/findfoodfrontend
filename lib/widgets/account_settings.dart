@@ -739,6 +739,7 @@ class _NotificationPreferencesFormState
   bool _email = true;
   bool _push = true;
   bool _orders = true;
+  bool _promotions = true;
 
   @override
   void initState() {
@@ -759,6 +760,7 @@ class _NotificationPreferencesFormState
         _email = data['email_notifications'] ?? true;
         _push = data['push_notifications'] ?? true;
         _orders = data['order_alerts'] ?? true;
+        _promotions = data['promotions'] ?? true;
         _loading = false;
       });
     } catch (error) {
@@ -778,6 +780,7 @@ class _NotificationPreferencesFormState
         emailNotifications: _email,
         pushNotifications: _push,
         orderAlerts: _orders,
+        promotions: _promotions,
       );
       if (!mounted) return;
       Navigator.of(context).pop();
@@ -866,6 +869,9 @@ class _NotificationPreferencesFormState
           _switch('notif-orders', 'Order alerts',
               'New and updated orders', _orders,
               (v) => setState(() => _orders = v)),
+          _switch('notif-promotions', 'Offers and news',
+              'Deals and news from FindFood. Important updates always come through.',
+              _promotions, (v) => setState(() => _promotions = v)),
           const SizedBox(height: 16),
           PrimaryButton(
             key: const Key('notif-save'),

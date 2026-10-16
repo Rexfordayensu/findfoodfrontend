@@ -1097,6 +1097,7 @@ class ApiService {
     required bool emailNotifications,
     required bool pushNotifications,
     required bool orderAlerts,
+    bool? promotions,
   }) async {
     final response = await _http.put(
       Uri.parse('$baseUrl/auth/notifications'),
@@ -1108,6 +1109,7 @@ class ApiService {
         'email_notifications': emailNotifications,
         'push_notifications': pushNotifications,
         'order_alerts': orderAlerts,
+        if (promotions != null) 'promotions': promotions,
       }),
     );
     if (response.statusCode == 200) return;
@@ -2048,5 +2050,44 @@ class ApiService {
         headers: _jsonAuth(token), body: jsonEncode(body));
     if (response.statusCode == 200) return _decode(response);
     throw Exception(_errorDetail(response, 'Could not update the code'));
+  }
+
+  // ── ANNOUNCEMENTS AND PLATFORM SWITCHES ─────────────────────────────────────
+
+  static Future<Map<String, dynamic>> getAnnouncements(String token) async {
+    final response = await _http.get(Uri.parse('$baseUrl/admin/announcements'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load announcements'));
+  }
+
+  static Future<Map<String, dynamic>> sendAnnouncement(String token,
+      {required String audience, required String kind, required String title, required String body}) async {
+    final response = await _http.post(Uri.parse('$baseUrl/admin/announcements'),
+        headers: _jsonAuth(token),
+        body: jsonEncode({'audience': audience, 'kind': kind, 'title': title, 'body': body}));
+    if (response.statusCode == 201) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not send the announcement'));
+  }
+
+  static Future<Map<String, dynamic>> getPlatformSettings(String token) async {
+    final response = await _http.get(Uri.parse('$baseUrl/admin/platform'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load the settings'));
+  }
+
+  static Future<Map<String, dynamic>> setPlatformSettings(String token, Map<String, dynamic> body) async {
+    final response = await _http.put(Uri.parse('$baseUrl/admin/platform'),
+        headers: _jsonAuth(token), body: jsonEncode(body));
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not save the settings'));
+  }
+
+  /// Whether ordering and delivery are open right now (public).
+  static Future<Map<String, dynamic>> getPlatformStatus() async {
+    final response = await _http.get(Uri.parse('$baseUrl/platform/status'));
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not check if FindFood is open'));
   }
 }

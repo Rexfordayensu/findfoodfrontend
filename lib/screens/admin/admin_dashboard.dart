@@ -18,6 +18,7 @@ import '../../widgets/app_health.dart';
 import '../../widgets/commission.dart';
 import '../../widgets/rider_pay.dart' show RiderPayPage;
 import 'finance_page.dart';
+import 'broadcast_page.dart';
 import 'orders_page.dart';
 import 'promos_page.dart';
 import '../../widgets/rider_verification.dart' show RiderApprovalsPage;
@@ -48,6 +49,8 @@ const adminDestinations = [
   AdminDestination('riders', 'Riders', Icons.electric_bike_outlined, Icons.electric_bike_rounded, 'view'),
   AdminDestination('users', 'Users', Icons.people_outline_rounded, Icons.people_rounded, 'view'),
   AdminDestination('reports', 'Reports', Icons.report_gmailerrorred_outlined, Icons.report_gmailerrorred_rounded, 'reports'),
+  AdminDestination('announce', 'Announcements', Icons.campaign_outlined, Icons.campaign_rounded, 'announcements'),
+  AdminDestination('platform', 'Platform', Icons.toggle_off_outlined, Icons.toggle_on_rounded, 'platform'),
   AdminDestination('promos', 'Promo codes', Icons.local_offer_outlined, Icons.local_offer_rounded, 'promos'),
   AdminDestination('finance', 'Finance', Icons.account_balance_wallet_outlined, Icons.account_balance_wallet_rounded, 'finance'),
   AdminDestination('commission', 'Commission', Icons.percent_rounded, Icons.percent_rounded, 'commission'),
@@ -179,6 +182,8 @@ class _AdminDashboardState extends State<AdminDashboard>
       case 'riders': return const _RiderDeskPage();
       case 'users': return const _UsersPage();
       case 'reports': return const _ReportsPage();
+      case 'announce': return const AnnouncementsPage();
+      case 'platform': return const PlatformPage();
       case 'promos': return const PromosPage();
       case 'finance': return const FinancePage();
       case 'commission': return const CommissionPage();

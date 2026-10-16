@@ -15,6 +15,7 @@ import '../../services/local_customer_store.dart';
 import 'menu_detail_screen.dart';
 import '../../widgets/greeting_header.dart';
 import '../../widgets/user_avatar.dart' show UserAvatar;
+import '../../widgets/platform_banner.dart';
 import '../../utils/friendly_error.dart';
 import '../../widgets/error_view.dart';
 import '../../widgets/notification_bell.dart';
@@ -739,6 +740,7 @@ class _Header extends StatelessWidget {
               role: 'customer',
               padding: const EdgeInsets.only(top: 12, bottom: 0),
             ),
+          const PlatformStatusBanner(padding: EdgeInsets.only(top: 12)),
           const SizedBox(height: 10),
             ]),
             ),

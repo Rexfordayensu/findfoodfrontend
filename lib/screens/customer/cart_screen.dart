@@ -12,6 +12,7 @@ import '../../services/api_service.dart';
 import '../../services/providers.dart';
 import '../../services/order_payment.dart';
 import '../../utils/friendly_error.dart';
+import '../../widgets/platform_banner.dart';
 
 
 class CartScreen extends StatefulWidget {
@@ -492,6 +493,15 @@ class _CartScreenState extends State<CartScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
+          // Paused, closed, or pickup only: say so, and switch to pickup.
+          PlatformStatusBanner(
+            padding: const EdgeInsets.only(top: 8),
+            onStatus: (status) {
+              if (status['delivery_open'] != true && status['ordering_open'] == true && _isDelivery) {
+                setState(() => _isDelivery = false);
+              }
+            },
+          ),
           _section(
             'Your order',
             trailing: '$itemCount ${itemCount == 1 ? 'item' : 'items'}',
