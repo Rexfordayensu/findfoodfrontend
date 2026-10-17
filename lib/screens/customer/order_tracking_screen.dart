@@ -15,6 +15,7 @@ import '../../widgets/order_issues.dart';
 import '../../widgets/rating_sheet.dart';
 import '../../utils/friendly_error.dart';
 import '../../widgets/assign_rider.dart';
+import '../../widgets/rider_map.dart';
 
 class OrderTrackingScreen extends StatefulWidget {
   final Order order;
@@ -401,6 +402,17 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               ],
             ),
           ),
+          // ── Live map: the rider's dot on the way ──────────
+          if (_order.fulfillmentMethod == 'delivery' &&
+              _order.riderId != null &&
+              _order.isActive &&
+              _order.status != 'awaiting_payment') ...[
+            const SizedBox(height: 16),
+            RiderMapCard(
+                key: ValueKey('map-${_order.id}-${_order.riderId}'),
+                orderId: _order.id,
+                viewer: MapViewer.customer),
+          ],
           if (_order.deliveryCode == null &&
               _order.isActive &&
               _order.status != 'awaiting_payment') ...[

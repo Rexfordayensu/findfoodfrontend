@@ -9,6 +9,7 @@ import '../../theme.dart';
 import '../../utils/friendly_error.dart';
 import '../../widgets/account_settings.dart' show SheetHeader, showSettingsSheet, showSettingsMessage;
 import '../../widgets/live_refresh.dart';
+import '../../widgets/rider_map.dart';
 import '../../widgets/widgets.dart';
 
 const _statusLabels = {
@@ -138,9 +139,26 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> with LiveRefresh<Admi
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
         children: [
-          Text('Orders',
-              style: TextStyle(color: AppColors.textPrimary(context), fontSize: 28,
-                  fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+          Row(children: [
+            Expanded(
+              child: Text('Orders',
+                  style: TextStyle(color: AppColors.textPrimary(context), fontSize: 28,
+                      fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+            ),
+            OutlinedButton.icon(
+              key: const Key('orders-live-map'),
+              onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const AdminLiveMapScreen())),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.textPrimary(context),
+                side: BorderSide(color: AppColors.border(context)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                textStyle: const TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.w700, fontSize: 13.5),
+              ),
+              icon: const Icon(Icons.map_outlined, size: 18),
+              label: const Text('Live map'),
+            ),
+          ]),
           const SizedBox(height: 4),
           Text('Step in when an order is stuck: call people, find a rider, cancel or refund.',
               style: TextStyle(color: textSec, fontSize: 13.5, height: 1.4)),
@@ -458,6 +476,11 @@ class _OrderDeskSheetState extends State<OrderDeskSheet> {
                 child: Text('${attention['reason']} for ${attention['minutes']} minutes.',
                     style: const TextStyle(color: Color(0xFFB45309), fontWeight: FontWeight.w700)),
               ),
+            ],
+            if (order['rider'] != null &&
+                const ['pending', 'preparing', 'ready', 'out_for_delivery'].contains(status)) ...[
+              section('Where the rider is'),
+              RiderMapCard(orderId: order['id'] as int, viewer: MapViewer.admin, height: 170),
             ],
             section('People'),
             for (final (label, person, icon) in people)

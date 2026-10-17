@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../theme.dart';
+import '../../widgets/rider_map.dart';
 import '../../widgets/glass.dart';
 import '../../widgets/handoff_code.dart';
 import '../../utils/time_format.dart';
@@ -877,6 +878,16 @@ class _OrderCard extends StatelessWidget {
                     if (order.riderPhone != null) ...[
                       const SizedBox(width: 8),
                       CallButton(phone: order.riderPhone!, who: order.riderName ?? 'the rider'),
+                    ],
+                    if (!isPickup) ...[
+                      const SizedBox(width: 8),
+                      ActionPill(
+                        key: Key('track-rider-${order.id}'),
+                        icon: Icons.map_outlined,
+                        label: 'Track',
+                        semanticLabel: 'See ${order.riderName ?? 'the rider'} on the map',
+                        onPressed: () => openRiderMap(context, order.id, MapViewer.restaurant),
+                      ),
                     ],
                   ]),
                 ],

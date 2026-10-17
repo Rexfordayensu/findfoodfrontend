@@ -18,6 +18,7 @@ import '../../widgets/assign_rider.dart';
 import '../../widgets/rider_pay.dart';
 import '../../widgets/greeting_header.dart';
 import '../../widgets/rider_verification.dart';
+import '../../services/rider_location.dart';
 
 class RiderDashboard extends StatefulWidget {
   const RiderDashboard({super.key});
@@ -28,6 +29,20 @@ class RiderDashboard extends StatefulWidget {
 
 class _RiderDashboardState extends State<RiderDashboard> {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Share where the rider is while they have a delivery.
+    final token = context.read<AuthProvider>().token;
+    if (token != null) RiderLocationSharer.instance.start(token);
+  }
+
+  @override
+  void dispose() {
+    RiderLocationSharer.instance.stop();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -233,6 +248,7 @@ class _AvailableDeliveriesPageState extends State<_AvailableDeliveriesPage> {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     try {
       final accepted = await ApiService.acceptDelivery(auth.token!, order.id);
+      RiderLocationSharer.instance.refresh(); // start sharing for this job
       if (!mounted) return;
       setState(() => _orders.removeWhere((o) => o.id == order.id));
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -752,6 +768,7 @@ class _MyDeliveriesPageState extends State<_MyDeliveriesPage> with LiveRefresh {
               padding: EdgeInsets.fromLTRB(20, 16, 20, 16),
               child: Text('My deliveries', style: AppText.display),
             ),
+            const _SharingBanner(),
             Expanded(
               child: _loading
                   ? const Center(
@@ -1155,6 +1172,54 @@ class _RiderSettingsPage extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Tells the rider their location is being shared (or how to turn it on).
+class _SharingBanner extends StatelessWidget {
+  const _SharingBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final sharer = RiderLocationSharer.instance;
+    return ListenableBuilder(
+      listenable: sharer,
+      builder: (context, _) {
+        final state = sharer.state;
+        if (state == SharingState.idle) return const SizedBox.shrink();
+        final sharing = state == SharingState.sharing;
+        final color = sharing ? AppTheme.success : AppTheme.warning;
+        return Container(
+          key: const Key('rider-sharing-banner'),
+          margin: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+          padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withValues(alpha: 0.35)),
+          ),
+          child: Row(children: [
+            Icon(sharing ? Icons.my_location_rounded : Icons.location_disabled_rounded, color: color, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                sharing
+                    ? 'The customer can see you on the map. Keep FindFood open while you deliver.'
+                    : 'Turn on location so the customer can see you coming.',
+                style: TextStyle(color: AppColors.textPrimary(context), fontSize: 13, height: 1.35,
+                    fontWeight: FontWeight.w600),
+              ),
+            ),
+            if (!sharing)
+              TextButton(
+                key: const Key('rider-sharing-retry'),
+                onPressed: sharer.retry,
+                child: const Text('Turn on'),
+              ),
+          ]),
+        );
+      },
     );
   }
 }

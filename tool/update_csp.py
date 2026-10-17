@@ -20,6 +20,9 @@ IMAGES = [API, "https://res.cloudinary.com", "https://*.googleusercontent.com"]
 # Flutter loads fallback fonts (e.g. for ₵) from fonts.gstatic.com. Its
 # renderer is served from our own site (build_web.sh: --no-web-resources-cdn).
 FLUTTER = ["https://fonts.gstatic.com"]
+# Maps: OpenFreeMap serves the map style, tiles, icons and label fonts. The
+# map library itself is served from our own site (web/maplibre).
+MAPS = ["https://tiles.openfreemap.org"]
 
 root = Path(__file__).resolve().parent.parent
 # Hash the file as Vercel serves it: git stores it with LF line endings
@@ -39,11 +42,11 @@ policy = "; ".join([
     "script-src 'self' 'wasm-unsafe-eval' " + " ".join(hashes),
     # Flutter positions its elements with inline styles.
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: " + " ".join(IMAGES),
+    "img-src 'self' data: blob: " + " ".join([*IMAGES, *MAPS]),
     "font-src 'self' data: https://fonts.gstatic.com",
     # wss: live order chat. blob: and data: let the app read a photo the
     # user just picked (the browser holds it at a blob: URL) before upload.
-    "connect-src 'self' blob: data: " + " ".join([API, API.replace("https://", "wss://"), *FLUTTER, *IMAGES[1:]]),
+    "connect-src 'self' blob: data: " + " ".join([API, API.replace("https://", "wss://"), *FLUTTER, *IMAGES[1:], *MAPS]),
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     "object-src 'none'",

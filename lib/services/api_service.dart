@@ -2222,4 +2222,31 @@ class ApiService {
     if (response.statusCode == 200) return _decode(response);
     throw Exception(_errorDetail(response, 'Could not open the announcement'));
   }
+
+  /// An order's map: the shop, the drop-off and where the rider is now.
+  static Future<Map<String, dynamic>> getOrderTracking(String token, int orderId) async {
+    final response = await _http.get(Uri.parse('$baseUrl/orders/$orderId/tracking'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not load the map'));
+  }
+
+  /// Admin: riders out on deliveries right now, with where they are.
+  static Future<List<Map<String, dynamic>>> getLiveRiders(String token) async {
+    final response = await _http.get(Uri.parse('$baseUrl/admin/riders/live'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return List<Map<String, dynamic>>.from(_decodeList(response));
+    throw Exception(_errorDetail(response, 'Could not load the riders'));
+  }
+
+  /// The rider's phone reports where it is. Returns whether to keep sharing
+  /// (only while the rider has a delivery).
+  static Future<bool> updateRiderLocation(String token,
+      {required double lat, required double lng, double? heading}) async {
+    final response = await _http.put(Uri.parse('$baseUrl/riders/me/location'),
+        headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+        body: jsonEncode({'lat': lat, 'lng': lng, if (heading != null) 'heading': heading}));
+    if (response.statusCode == 200) return _decode(response)['sharing'] == true;
+    throw Exception(_errorDetail(response, 'Could not share your location'));
+  }
 }
