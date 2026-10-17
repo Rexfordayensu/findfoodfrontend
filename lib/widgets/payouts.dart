@@ -242,18 +242,86 @@ class _PayoutFormState extends State<_PayoutForm> {
   }
 }
 
-/// Brand colours for Ghana's mobile money networks, so each is easy to spot.
-({Color bg, Color fg, String mark}) _networkLook(String code, String name) {
+/// Ghana's mobile money networks, as people know them today: MTN MoMo,
+/// Telecel Cash (Vodafone until 2024) and AT Money (AirtelTigo until 2023).
+enum _Network { mtn, telecel, at, other }
+
+_Network _networkOf(String code, String name) {
   final key = '$code $name'.toLowerCase();
-  if (key.contains('mtn')) return (bg: const Color(0xFFFFCC00), fg: Colors.black, mark: 'MTN');
-  if (key.contains('vod') || key.contains('telecel')) {
-    return (bg: const Color(0xFFE4002B), fg: Colors.white, mark: 'T');
+  if (key.contains('mtn')) return _Network.mtn;
+  if (key.contains('vod') || key.contains('telecel')) return _Network.telecel;
+  if (key.contains('airtel') || key.contains('tigo') || key.contains('atl') || key.contains('at money')) {
+    return _Network.at;
   }
-  if (key.contains('airtel') || key.contains('tigo') || key.contains('atl')) {
-    return (bg: const Color(0xFF1B3F94), fg: Colors.white, mark: 'AT');
+  return _Network.other;
+}
+
+String _networkName(String code, String name) => switch (_networkOf(code, name)) {
+      _Network.mtn => 'MTN MoMo',
+      _Network.telecel => 'Telecel Cash',
+      _Network.at => 'AT Money',
+      _Network.other => name,
+    };
+
+/// A logo tile in each network's brand style.
+class _NetworkLogo extends StatelessWidget {
+  final String code, name;
+  const _NetworkLogo({required this.code, required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    const size = Size(60, 40);
+    Widget tile(Color bg, Widget child, {Color? border}) => Container(
+          width: size.width,
+          height: size.height,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(10),
+            border: border == null ? null : Border.all(color: border),
+          ),
+          child: child,
+        );
+    return switch (_networkOf(code, name)) {
+      // MTN: black wordmark in an oval, on MTN yellow.
+      _Network.mtn => tile(
+          const Color(0xFFFFCB05),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.black, width: 1.6),
+              borderRadius: const BorderRadius.all(Radius.elliptical(30, 14)),
+            ),
+            child: const Text('MTN',
+                style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 11, height: 1.1)),
+          ),
+        ),
+      // Telecel: white lowercase wordmark on Telecel red.
+      _Network.telecel => tile(
+          const Color(0xFFE30613),
+          const Text('telecel',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12.5,
+                  letterSpacing: -0.3)),
+        ),
+      // AT: the two-letter mark in AT's red and blue.
+      _Network.at => tile(
+          Colors.white,
+          const Text.rich(
+            TextSpan(children: [
+              TextSpan(text: 'A', style: TextStyle(color: Color(0xFFE2231A))),
+              TextSpan(text: 'T', style: TextStyle(color: Color(0xFF0057B8))),
+            ]),
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5),
+          ),
+          border: AppColors.border(context),
+        ),
+      _Network.other => tile(
+          AppTheme.accent,
+          Text(name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase(),
+              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 16)),
+        ),
+    };
   }
-  final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
-  return (bg: AppTheme.accent, fg: Colors.black, mark: initial);
 }
 
 /// One mobile money network to choose: logo, name, and a tick when chosen.
@@ -265,7 +333,6 @@ class _NetworkTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final look = _networkLook(code, name);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
@@ -283,21 +350,10 @@ class _NetworkTile extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(children: [
-              Container(
-                width: 38,
-                height: 38,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(color: look.bg, borderRadius: BorderRadius.circular(10)),
-                child: Text(look.mark,
-                    style: TextStyle(
-                        color: look.fg,
-                        fontSize: look.mark.length > 2 ? 11 : 14,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.2)),
-              ),
+              _NetworkLogo(code: code, name: name),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(name,
+                child: Text(_networkName(code, name),
                     style: TextStyle(
                         color: AppColors.textPrimary(context),
                         fontSize: 15,

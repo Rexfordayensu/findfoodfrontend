@@ -500,7 +500,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                   side: BorderSide(color: AppTheme.danger.withValues(alpha: 0.55), width: 1.4),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                  textStyle: const TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.w800, fontSize: 15),
                 ),
                 icon: const Icon(Icons.report_gmailerrorred_rounded, size: 22),
                 label: Text(_order.isCompleted ? 'Report a problem with this order' : 'Order not arrived? Report it'),

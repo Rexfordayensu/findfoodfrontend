@@ -192,10 +192,19 @@ class _DoorstepCheckCardState extends State<DoorstepCheckCard> {
           const SizedBox(height: 4),
           SizedBox(
             width: double.infinity,
-            child: TextButton(
+            child: OutlinedButton.icon(
               key: const Key('doorstep-problem'),
               onPressed: _busy ? null : _somethingWrong,
-              child: const Text("Something's missing or wrong"),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.danger,
+                backgroundColor: AppTheme.danger.withValues(alpha: 0.05),
+                side: BorderSide(color: AppTheme.danger.withValues(alpha: 0.55), width: 1.4),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                textStyle: const TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.w800, fontSize: 15),
+              ),
+              icon: const Icon(Icons.report_gmailerrorred_rounded, size: 20),
+              label: const Text("Something's missing or wrong"),
             ),
           ),
         ]),
@@ -316,58 +325,84 @@ class _PackFormState extends State<_PackForm> {
               style: TextStyle(
                   color: textPri, fontSize: 14, fontWeight: FontWeight.w600)),
         const SizedBox(height: 14),
-        Material(
-          color: AppColors.surface(context),
-          borderRadius: BorderRadius.circular(14),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            key: const Key('pack-photo'),
-            onTap: _uploading ? null : _takePhoto,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: _preview != null
-                      ? Image.memory(_preview!,
-                          width: 56,
-                          height: 56,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              const SizedBox(width: 56, height: 56))
-                      : Container(
-                          width: 56,
-                          height: 56,
-                          color: AppTheme.accent.withValues(alpha: 0.18),
-                          child: const Icon(Icons.photo_camera_rounded,
-                              color: AppTheme.accentDeep),
-                        ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                            _uploading
-                                ? 'Uploading…'
-                                : _preview != null
-                                    ? 'Photo added'
-                                    : 'Photo of the packed food',
-                            style: TextStyle(
-                                color: textPri,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14)),
-                        const SizedBox(height: 2),
-                        Text(
-                            'Recommended: it proves what you packed if a customer says something was missing.',
-                            style: TextStyle(
-                                color: textSec, fontSize: 12, height: 1.35)),
-                      ]),
-                ),
-              ]),
-            ),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.surface(context),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border(context)),
           ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: _preview != null
+                    ? Image.memory(_preview!,
+                        width: 64,
+                        height: 64,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            const SizedBox(width: 64, height: 64))
+                    : Container(
+                        width: 64,
+                        height: 64,
+                        color: AppTheme.accent.withValues(alpha: 0.18),
+                        child: const Icon(Icons.add_a_photo_rounded,
+                            color: AppTheme.accentDeep, size: 28),
+                      ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        if (_preview != null && !_uploading) ...[
+                          const Icon(Icons.check_circle_rounded,
+                              color: AppTheme.success, size: 16),
+                          const SizedBox(width: 4),
+                        ],
+                        Flexible(
+                          child: Text(
+                              _uploading
+                                  ? 'Uploading…'
+                                  : _preview != null
+                                      ? 'Photo added'
+                                      : 'Photo of the packed food',
+                              style: TextStyle(
+                                  color: textPri,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14)),
+                        ),
+                      ]),
+                      const SizedBox(height: 2),
+                      Text(
+                          'Recommended: it proves what you packed if a customer says something was missing.',
+                          style: TextStyle(
+                              color: textSec, fontSize: 12, height: 1.35)),
+                    ]),
+              ),
+            ]),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              key: const Key('pack-photo'),
+              onPressed: _uploading ? null : _takePhoto,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.accentText(context),
+                backgroundColor: AppTheme.accent.withValues(alpha: 0.10),
+                side: const BorderSide(color: AppTheme.accentDeep, width: 1.4),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                textStyle: const TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.w800, fontSize: 14.5),
+              ),
+              icon: Icon(_preview != null ? Icons.refresh_rounded : Icons.photo_camera_rounded, size: 20),
+              label: Text(_uploading
+                  ? 'Uploading…'
+                  : _preview != null
+                      ? 'Retake photo'
+                      : 'Take a photo'),
+            ),
+          ]),
         ),
         const SizedBox(height: 6),
         CheckboxListTile(
