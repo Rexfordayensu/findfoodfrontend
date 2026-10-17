@@ -27,6 +27,7 @@ import 'screens/restaurants/restaurant_dashboard.dart' deferred as restaurant_pa
 import 'services/api_service.dart';
 import 'services/providers.dart';
 import 'utils/web_url_helper.dart' show reloadPage;
+import 'services/crash_reporter.dart';
 
 GoRouter createAppRouter(
   AuthProvider auth, {
@@ -395,7 +396,21 @@ final _loads = <String, Future<void>>{};
 var _reloading = false;
 
 Future<void> _load(String name, Future<void> Function() loader) =>
-    _loads.putIfAbsent(name, loader);
+    _loads.putIfAbsent(name, () => _withRetries(loader));
+
+/// Mobile data drops out: try a page's download a few times before giving up.
+Future<void> _withRetries(Future<void> Function() loader) async {
+  for (var attempt = 1;; attempt++) {
+    try {
+      return await loader();
+    } catch (_) {
+      if (attempt >= 3) rethrow;
+      await Future<void>.delayed(Duration(milliseconds: 700 * attempt));
+    }
+  }
+}
+
+final _reported = <String>{};
 
 /// A page from a deferred library: a spinner until its code has arrived.
 ///
@@ -419,10 +434,23 @@ class _Deferred extends StatelessWidget {
             _reloading = true;
             return const _LoadingScreen();
           }
+          final error = snapshot.error!;
+          // Tell us what went wrong, once per page (Admin → Reports → Errors).
+          if (_reported.add(name)) {
+            CrashReporter.report(error, snapshot.stackTrace, context: 'loading the $name page');
+          }
+          final detail = '$error';
           return Scaffold(
             body: Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 const Text("Couldn't load this page. Check your connection."),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(32, 8, 32, 0),
+                  child: Text(detail.length > 160 ? '${detail.substring(0, 160)}…' : detail,
+                      key: const Key('deferred-error-detail'),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 11)),
+                ),
                 TextButton(
                   onPressed: () {
                     if (reloadPage()) return;
