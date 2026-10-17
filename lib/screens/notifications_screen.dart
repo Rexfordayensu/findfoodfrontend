@@ -202,6 +202,7 @@ String notificationTime(DateTime when, [DateTime? now]) {
       'rider_assigned' => (Icons.two_wheeler_rounded, AppTheme.info),
       'rider_changed' => (Icons.swap_horiz_rounded, AppTheme.warning),
       'on_the_way' => (Icons.delivery_dining_rounded, AppTheme.info),
+      'rider_near' => (Icons.near_me_rounded, AppTheme.success),
       'delivered' => (Icons.celebration_rounded, AppTheme.success),
       'completed' => (Icons.task_alt_rounded, AppTheme.success),
       'cancelled' => (Icons.cancel_rounded, AppTheme.danger),

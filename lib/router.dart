@@ -26,6 +26,7 @@ import 'screens/restaurant/restaurant_pending_approval_screen.dart' deferred as 
 import 'screens/restaurants/restaurant_dashboard.dart' deferred as restaurant_page;
 import 'services/api_service.dart';
 import 'services/providers.dart';
+import 'utils/web_url_helper.dart' show reloadPage;
 
 GoRouter createAppRouter(
   AuthProvider auth, {
@@ -391,11 +392,16 @@ void preloadDashboardFor(String? role) {
 }
 
 final _loads = <String, Future<void>>{};
+var _reloading = false;
 
 Future<void> _load(String name, Future<void> Function() loader) =>
     _loads.putIfAbsent(name, loader);
 
 /// A page from a deferred library: a spinner until its code has arrived.
+///
+/// If FindFood was updated while the app was open, the page's code on the
+/// server belongs to the new version and the open (old) app can't load it.
+/// Reloading picks up the new version, so that happens once by itself.
 class _Deferred extends StatelessWidget {
   final String name;
   final Future<void> Function() loader;
@@ -409,12 +415,17 @@ class _Deferred extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done && !snapshot.hasError) return page();
         if (snapshot.hasError) {
+          if (_reloading || reloadPage(onlyOnce: true)) {
+            _reloading = true;
+            return const _LoadingScreen();
+          }
           return Scaffold(
             body: Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 const Text("Couldn't load this page. Check your connection."),
                 TextButton(
                   onPressed: () {
+                    if (reloadPage()) return;
                     _loads.remove(name);
                     (context as Element).markNeedsBuild();
                   },

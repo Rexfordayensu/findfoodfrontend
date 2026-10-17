@@ -20,3 +20,22 @@ Future<bool> downloadTextFile(String filename, String content, String mimeType) 
   html.Url.revokeObjectUrl(url);
   return true;
 }
+
+const _reloadedAt = 'ff-reloaded-at';
+
+bool reloadPage(bool onlyOnce) {
+  final now = DateTime.now().millisecondsSinceEpoch;
+  if (onlyOnce) {
+    try {
+      final last = int.tryParse(html.window.sessionStorage[_reloadedAt] ?? '') ?? 0;
+      if (now - last < 60000) return false;
+    } catch (_) {
+      // Storage blocked (private mode): reload anyway.
+    }
+  }
+  try {
+    html.window.sessionStorage[_reloadedAt] = '$now';
+  } catch (_) {}
+  html.window.location.reload();
+  return true;
+}
