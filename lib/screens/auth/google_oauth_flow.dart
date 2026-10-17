@@ -1,3 +1,4 @@
+import '../../legal/legal_documents.dart' show supportEmail;
 import 'dart:async';
 import 'dart:convert';
 
@@ -328,7 +329,7 @@ class GoogleOAuthFlowService {
       return 'That sign-in was started twice or from an old tab. Please tap "Continue with Google" once more.';
     }
     if (normalized.contains('suspended')) {
-      return 'This account has been suspended. Please contact FindFood support.';
+      return "This FindFood account has been suspended. Email $supportEmail and we'll look into it.";
     }
     if (normalized.contains('not verified')) {
       return "Your Google email isn't verified yet. Verify it with Google, or sign in with email instead.";

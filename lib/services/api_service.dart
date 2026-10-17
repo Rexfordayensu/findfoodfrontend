@@ -1,3 +1,4 @@
+import '../legal/legal_documents.dart' show supportEmail;
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -56,7 +57,8 @@ class _SessionAwareClient extends http.BaseClient {
         if (response.statusCode == 401) {
           ApiService.onSessionInvalid?.call('Your session has expired. Please sign in again.');
         } else if (response.statusCode == 403 && body.contains('suspended')) {
-          ApiService.onSessionInvalid?.call('This account has been suspended. Contact support.');
+          ApiService.onSessionInvalid?.call(
+              "This FindFood account has been suspended. Email $supportEmail and we'll look into it.");
         }
       }
       return http.StreamedResponse(
