@@ -1334,18 +1334,23 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
                   prefixIcon: Icons.notes_rounded,
                   maxLines: 2),
               const SizedBox(height: 12),
-              AppTextField(
-                  controller: priceCtrl,
-                  hint: 'Price in pesewas (e.g. 4500 = GH₵ 45)',
-                  prefixIcon: Icons.attach_money_rounded,
-                  keyboardType: TextInputType.number),
+              _PriceField(controller: priceCtrl),
               const SizedBox(height: 20),
               PrimaryButton(
+                key: const Key('menu-add-save'),
                 label: 'Add to menu',
                 isLoading: saving,
                 onPressed: () async {
-                  if (nameCtrl.text.trim().isEmpty ||
-                      priceCtrl.text.trim().isEmpty) {
+                  final price = parseCedis(priceCtrl.text);
+                  if (nameCtrl.text.trim().isEmpty || price == null) {
+                    ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
+                      backgroundColor: AppTheme.danger,
+                      content: Text(
+                          nameCtrl.text.trim().isEmpty
+                              ? 'Give the dish a name.'
+                              : 'Enter the price in cedis, e.g. 45 or 45.50.',
+                          style: const TextStyle(color: Colors.white)),
+                    ));
                     return;
                   }
                   set(() => saving = true);
@@ -1360,7 +1365,7 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
                       description: descCtrl.text.trim().isEmpty
                           ? null
                           : descCtrl.text.trim(),
-                      price: int.parse(priceCtrl.text.trim()),
+                      price: price,
                     );
 
                     // 2. If a photo was picked, upload it now that we have the item ID
@@ -1408,7 +1413,7 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final nameCtrl = TextEditingController(text: item.name);
     final descCtrl = TextEditingController(text: item.description ?? '');
-    final priceCtrl = TextEditingController(text: item.price.toString());
+    final priceCtrl = TextEditingController(text: cedisInput(item.price));
     bool saving = false;
     bool removingImage = false;
     Uint8List? pickedBytes;
@@ -1577,18 +1582,23 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
                   prefixIcon: Icons.notes_rounded,
                   maxLines: 2),
               const SizedBox(height: 12),
-              AppTextField(
-                  controller: priceCtrl,
-                  hint: 'Price in pesewas',
-                  prefixIcon: Icons.attach_money_rounded,
-                  keyboardType: TextInputType.number),
+              _PriceField(controller: priceCtrl),
               const SizedBox(height: 20),
               PrimaryButton(
+                key: const Key('menu-edit-save'),
                 label: 'Save changes',
                 isLoading: saving,
                 onPressed: () async {
-                  if (nameCtrl.text.trim().isEmpty ||
-                      priceCtrl.text.trim().isEmpty) {
+                  final price = parseCedis(priceCtrl.text);
+                  if (nameCtrl.text.trim().isEmpty || price == null) {
+                    ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
+                      backgroundColor: AppTheme.danger,
+                      content: Text(
+                          nameCtrl.text.trim().isEmpty
+                              ? 'Give the dish a name.'
+                              : 'Enter the price in cedis, e.g. 45 or 45.50.',
+                          style: const TextStyle(color: Colors.white)),
+                    ));
                     return;
                   }
                   set(() => saving = true);
@@ -1603,7 +1613,7 @@ class _MenuManagerPageState extends State<_MenuManagerPage> {
                       description: descCtrl.text.trim().isEmpty
                           ? null
                           : descCtrl.text.trim(),
-                      price: int.tryParse(priceCtrl.text.trim()) ?? 0,
+                      price: price,
                     );
 
                     // New photo picked → upload it
@@ -3044,5 +3054,43 @@ class _RestaurantProfileFormState extends State<_RestaurantProfileForm> {
         ),
       ],
     );
+  }
+}
+
+/// The price of a dish, typed in cedis (45 or 45.50), with what customers
+/// will see written underneath.
+class _PriceField extends StatelessWidget {
+  final TextEditingController controller;
+  const _PriceField({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      AppTextField(
+        key: const Key('menu-price'),
+        controller: controller,
+        hint: 'Price in cedis, e.g. 45 or 45.50',
+        prefixIcon: Icons.payments_outlined,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      ),
+      ValueListenableBuilder<TextEditingValue>(
+        valueListenable: controller,
+        builder: (context, value, _) {
+          if (value.text.trim().isEmpty) return const SizedBox.shrink();
+          final pesewas = parseCedis(value.text);
+          final (text, color) = pesewas == null
+              ? ('Use numbers only, e.g. 45 or 45.50', AppTheme.danger)
+              : pesewas >= 100000
+                  ? ('Customers will see ${formatCedis(pesewas)}. Check this is right.', AppTheme.warning)
+                  : ('Customers will see ${formatCedis(pesewas)}', AppColors.textSecondary(context));
+          return Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(text,
+                key: const Key('menu-price-preview'),
+                style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.w600)),
+          );
+        },
+      ),
+    ]);
   }
 }

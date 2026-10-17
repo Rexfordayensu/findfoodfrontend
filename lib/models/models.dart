@@ -614,6 +614,19 @@ String formatCedis(int pesewas) {
   return 'GH₵ ${pesewas < 0 ? '-' : ''}${formatCount(int.parse(cedis[0]))}.${cedis[1]}';
 }
 
+/// A price typed in cedis ("45", "45.50", "GH₵ 1,200") as pesewas; null when
+/// it isn't a price above zero.
+int? parseCedis(String text) {
+  final cleaned = text.replaceAll(RegExp(r'gh[s₵¢]?|₵|¢|cedis?|\s|,', caseSensitive: false), '');
+  if (!RegExp(r'^\d+(\.\d{1,2})?$').hasMatch(cleaned)) return null;
+  final pesewas = (double.parse(cleaned) * 100).round();
+  return pesewas > 0 ? pesewas : null;
+}
+
+/// Pesewas written for a price box, in cedis: 5000 → "50", 4550 → "45.50".
+String cedisInput(int pesewas) =>
+    pesewas % 100 == 0 ? '${pesewas ~/ 100}' : (pesewas / 100).toStringAsFixed(2);
+
 class RiderAnalytics {
   final int totalDeliveries;
   final int completedDeliveries;
