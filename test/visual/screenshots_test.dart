@@ -264,6 +264,13 @@ final client = MockClient((request) async {
 });
 
 Future<void> capture(WidgetTester tester, GlobalKey key, String name) async {
+  // Bundled pictures (logos) only decode when given real time.
+  await tester.runAsync(() async {
+    for (final element in find.byType(Image).evaluate()) {
+      final image = (element.widget as Image).image;
+      if (image is AssetBundleImageProvider) await precacheImage(image, element);
+    }
+  });
   for (var i = 0; i < 12; i++) {
     await tester.pump(const Duration(milliseconds: 100));
   }

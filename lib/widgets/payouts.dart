@@ -263,7 +263,7 @@ String _networkName(String code, String name) => switch (_networkOf(code, name))
       _Network.other => name,
     };
 
-/// A logo tile in each network's brand style.
+/// Each network's official logo (assets/brand/networks).
 class _NetworkLogo extends StatelessWidget {
   final String code, name;
   const _NetworkLogo({required this.code, required this.name});
@@ -275,6 +275,7 @@ class _NetworkLogo extends StatelessWidget {
           width: size.width,
           height: size.height,
           alignment: Alignment.center,
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(10),
@@ -282,39 +283,16 @@ class _NetworkLogo extends StatelessWidget {
           ),
           child: child,
         );
+    Widget logo(String file, Color bg, {bool outlined = false}) => tile(
+          bg,
+          Image.asset('assets/brand/networks/$file',
+              width: size.width, height: size.height, fit: BoxFit.cover, filterQuality: FilterQuality.medium),
+          border: outlined ? AppColors.border(context) : null,
+        );
     return switch (_networkOf(code, name)) {
-      // MTN: black wordmark in an oval, on MTN yellow.
-      _Network.mtn => tile(
-          const Color(0xFFFFCB05),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.black, width: 1.6),
-              borderRadius: const BorderRadius.all(Radius.elliptical(30, 14)),
-            ),
-            child: const Text('MTN',
-                style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 11, height: 1.1)),
-          ),
-        ),
-      // Telecel: white lowercase wordmark on Telecel red.
-      _Network.telecel => tile(
-          const Color(0xFFE30613),
-          const Text('telecel',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12.5,
-                  letterSpacing: -0.3)),
-        ),
-      // AT: the two-letter mark in AT's red and blue.
-      _Network.at => tile(
-          Colors.white,
-          const Text.rich(
-            TextSpan(children: [
-              TextSpan(text: 'A', style: TextStyle(color: Color(0xFFE2231A))),
-              TextSpan(text: 'T', style: TextStyle(color: Color(0xFF0057B8))),
-            ]),
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5),
-          ),
-          border: AppColors.border(context),
-        ),
+      _Network.mtn => logo('mtn.png', const Color(0xFFFFCA06)),
+      _Network.telecel => logo('telecel.png', Colors.white, outlined: true),
+      _Network.at => logo('at.png', Colors.white, outlined: true),
       _Network.other => tile(
           AppTheme.accent,
           Text(name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase(),
