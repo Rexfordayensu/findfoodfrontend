@@ -9352,9 +9352,13 @@ case 24:case 1:return A.o(q,r)
 case 2:return A.n(o.at(-1),r)}})
 return A.p($async$ns,r)},
 bG2(a){var s=B.d.a4(a).toLowerCase()
-if(B.d.m(s,"expired")||B.d.m(s,"session"))return"Google sign-in session expired. Please try again."
+if(B.d.m(s,"expired")||B.d.m(s,"session"))return'Google sign-in took too long. Please tap "Continue with Google" again.'
 if(B.d.m(s,"cancel"))return"Google sign-in was cancelled."
-return"Google sign-in failed. Please try again."},
+if(B.d.m(s,"state"))return'That sign-in was started twice or from an old tab. Please tap "Continue with Google" once more.'
+if(B.d.m(s,"suspended"))return"This account has been suspended. Please contact FindFood support."
+if(B.d.m(s,"not verified"))return"Your Google email isn't verified yet. Verify it with Google, or sign in with email instead."
+if(B.d.m(s,"unavailable")||B.d.m(s,"validation"))return"Google couldn't confirm your sign-in. Please try again, or sign in with email and password."
+return"Google sign-in failed. Please try again, or sign in with email and password."},
 a_O(a){var s=0,r=A.q(t.H),q,p
 var $async$a_O=A.m(function(b,c){if(b===1)return A.n(c,r)
 for(;;)switch(s){case 0:p=$.al.CW$.x.h(0,a)

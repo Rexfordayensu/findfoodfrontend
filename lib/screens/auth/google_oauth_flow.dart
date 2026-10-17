@@ -312,15 +312,31 @@ class GoogleOAuthFlowService {
     );
   }
 
+  @visibleForTesting
+  static String displayErrorMessage(String error) => _displayErrorMessage(error);
+
+  /// The server's reason, said plainly, with what to do next.
   static String _displayErrorMessage(String error) {
     final normalized = error.trim().toLowerCase();
     if (normalized.contains('expired') || normalized.contains('session')) {
-      return 'Google sign-in session expired. Please try again.';
+      return 'Google sign-in took too long. Please tap "Continue with Google" again.';
     }
     if (normalized.contains('cancel')) {
       return 'Google sign-in was cancelled.';
     }
-    return 'Google sign-in failed. Please try again.';
+    if (normalized.contains('state')) {
+      return 'That sign-in was started twice or from an old tab. Please tap "Continue with Google" once more.';
+    }
+    if (normalized.contains('suspended')) {
+      return 'This account has been suspended. Please contact FindFood support.';
+    }
+    if (normalized.contains('not verified')) {
+      return "Your Google email isn't verified yet. Verify it with Google, or sign in with email instead.";
+    }
+    if (normalized.contains('unavailable') || normalized.contains('validation')) {
+      return "Google couldn't confirm your sign-in. Please try again, or sign in with email and password.";
+    }
+    return 'Google sign-in failed. Please try again, or sign in with email and password.';
   }
 
   static Future<void> _showInvalidCallbackMessage(GlobalKey<NavigatorState> navigatorKey) async {
