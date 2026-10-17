@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../theme.dart';
+import '../../widgets/share_restaurant.dart';
 import '../../widgets/rider_map.dart';
 import '../../widgets/glass.dart';
 import '../../widgets/handoff_code.dart';
@@ -567,6 +568,23 @@ class _OrdersPageState extends State<_OrdersPage> {
                               fontSize: 12,
                               fontWeight: FontWeight.w700)),
                     ]),
+                  ),
+                  const SizedBox(width: 8),
+                  // Share the restaurant (e.g. on WhatsApp Status)
+                  Tooltip(
+                    message: 'Share your restaurant',
+                    child: GestureDetector(
+                      key: const Key('orders-share'),
+                      onTap: () => showRestaurantShareSheet(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.brandGradient,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.ios_share_rounded, color: Colors.black, size: 18),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   // Refresh button
@@ -2867,6 +2885,8 @@ class _SettingsPageState extends State<_SettingsPage> {
                   children: [
                     const AccountHeader(subtitle: 'Restaurant owner'),
                     const SizedBox(height: 20),
+                    const ShareRestaurantCard(),
+                    const SizedBox(height: 16),
                     _buildBannerSection(context, auth),
                     const SizedBox(height: 16),
                     if (auth.token != null) ...[

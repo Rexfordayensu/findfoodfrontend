@@ -2249,4 +2249,20 @@ class ApiService {
     if (response.statusCode == 200) return _decode(response)['sharing'] == true;
     throw Exception(_errorDetail(response, 'Could not share your location'));
   }
+
+  /// The restaurant's share link and banners (paths on the API).
+  static Future<Map<String, dynamic>> getMyRestaurantShare(String token) async {
+    final response = await _http.get(Uri.parse('$baseUrl/restaurants/mine/share'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode == 200) return _decode(response);
+    throw Exception(_errorDetail(response, 'Could not get your share link'));
+  }
+
+  /// A picture from the API (e.g. a share banner) as bytes.
+  static Future<Uint8List> getImageBytes(String path) async {
+    final url = path.startsWith('http') ? path : '$baseUrl$path';
+    final response = await _http.get(Uri.parse(url));
+    if (response.statusCode == 200) return response.bodyBytes;
+    throw Exception('Could not load the picture');
+  }
 }

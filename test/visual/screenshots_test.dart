@@ -268,7 +268,7 @@ Future<void> capture(WidgetTester tester, GlobalKey key, String name) async {
   await tester.runAsync(() async {
     for (final element in find.byType(Image).evaluate()) {
       final image = (element.widget as Image).image;
-      if (image is AssetBundleImageProvider) await precacheImage(image, element);
+      if (image is AssetBundleImageProvider || image is MemoryImage) await precacheImage(image, element);
     }
   });
   for (var i = 0; i < 12; i++) {

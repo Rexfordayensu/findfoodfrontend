@@ -5,6 +5,14 @@
       "destination": "https://findfooddelivery-backend.onrender.com/auth/google/:path*"
     },
     {
+      "source": "/r/:id(\\d+)/card.jpg",
+      "destination": "https://findfooddelivery-backend.onrender.com/share/restaurants/:id/card.jpg"
+    },
+    {
+      "source": "/r/:id(\\d+)",
+      "destination": "https://findfooddelivery-backend.onrender.com/share/restaurants/:id"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
