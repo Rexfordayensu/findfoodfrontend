@@ -197,6 +197,76 @@ void main() {
     }, () => client);
   });
 
+  test('the service fee is worked out the way the server prices it', () {
+    expect(serviceFeeFor(5000, null), 0);
+    expect(serviceFeeFor(5000, {'mode': 'off', 'flat': 150}), 0);
+    expect(serviceFeeFor(5000, {'mode': 'flat', 'flat': 150}), 150);
+    expect(serviceFeeFor(5000, {'mode': 'percent', 'percent': 2.5, 'max': 200}), 130,
+        reason: 'halves round up, to the nearest 10 pesewas');
+    expect(serviceFeeFor(100000, {'mode': 'percent', 'percent': 2.5, 'max': 200}), 200, reason: 'capped');
+  });
+
+  testWidgets('checkout shows the service fee as its own line before paying', (tester) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    tester.view.physicalSize = const Size(430, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final cart = CartProvider()
+      ..addItem(MenuItem(id: 1, name: 'Jollof', price: 5000, isAvailable: true, restaurantId: 7),
+          7, 'Test Restaurant');
+    final client = MockClient((request) async => request.url.path == '/restaurants/7/delivery-quote'
+        ? json({'fee': 1000, 'distance_km': null, 'mode': 'flat',
+            'service_fee': {'mode': 'flat', 'flat': 150, 'percent': 2, 'max': 500}})
+        : http.Response('{}', 404));
+    await http.runWithClient(() async {
+      await tester.pumpWidget(MultiProvider(
+        providers: [
+          ChangeNotifierProvider<CartProvider>.value(value: cart),
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ],
+        child: const MaterialApp(home: CartScreen()),
+      ));
+      await settle(tester);
+      final line = find.byKey(const Key('checkout-service-fee'));
+      await tester.scrollUntilVisible(line, 200, scrollable: find.byType(Scrollable).first);
+      expect(find.descendant(of: line, matching: find.text('Service fee')), findsOneWidget);
+      expect(find.descendant(of: line, matching: find.text('GH₵ 1.50')), findsOneWidget);
+      expect(find.text('Keeps payments secure and support running.'), findsOneWidget);
+      expect(find.text('GH₵ 61.50'), findsWidgets, reason: 'food + delivery + service fee');
+    }, () => client);
+  });
+
+  testWidgets('an admin turns on a percent service fee and sees an example', (tester) async {
+    final auth = await signIn(tester, 'admin');
+    Map<String, dynamic>? sent;
+    var current = Map<String, dynamic>.from({...settings, 'service_fee_mode': 'off',
+        'service_fee_flat': 100, 'service_fee_percent': 2.0, 'service_fee_max': 500});
+    final client = MockClient((request) async {
+      if (request.method == 'PUT') {
+        sent = jsonDecode(request.body) as Map<String, dynamic>;
+        current = sent!;
+      }
+      return json({'settings': current, 'defaults': settings, 'restaurants_without_location': 0, 'history': []});
+    });
+    await http.runWithClient(() async {
+      await tester.pumpWidget(ChangeNotifierProvider.value(
+        value: auth,
+        child: const MaterialApp(home: Scaffold(body: RiderPayPage())),
+      ));
+      await settle(tester);
+      expect(find.byKey(const Key('service-fee-example')), findsNothing, reason: 'off by default');
+      await tester.tap(find.byKey(const Key('service_fee_mode-percent')));
+      await settle(tester);
+      expect(find.textContaining('the customer sees a service fee of GH₵ 1.20'), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const Key('delivery-settings-save')));
+      await tester.tap(find.byKey(const Key('delivery-settings-save')));
+      await settle(tester);
+      await tester.tap(find.byKey(const Key('delivery-settings-confirm')));
+      await settle(tester);
+    }, () => client);
+    expect(sent!['service_fee_mode'], 'percent');
+  });
+
   testWidgets('without a location, checkout explains the higher distance fee', (tester) async {
     FlutterSecureStorage.setMockInitialValues({});
     tester.view.physicalSize = const Size(430, 1600);

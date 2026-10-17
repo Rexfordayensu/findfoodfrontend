@@ -42,6 +42,8 @@ class _CartScreenState extends State<CartScreen> {
   int? _deliveryFee;
   double? _deliveryKm;
   String? _quoteMode;
+  // FindFood's service fee rule ({mode, flat, percent, max}), if switched on.
+  Map? _serviceRule;
   int _quoteRequest = 0;
 
   Future<void> _loadDeliveryQuote() async {
@@ -56,6 +58,7 @@ class _CartScreenState extends State<CartScreen> {
         _deliveryFee = (quote['fee'] as num?)?.toInt() ?? 0;
         _deliveryKm = (quote['distance_km'] as num?)?.toDouble();
         _quoteMode = quote['mode']?.toString();
+        _serviceRule = quote['service_fee'] as Map?;
       });
       if (_promoCode != null) _applyPromo(quiet: true);
     } catch (_) {
@@ -103,7 +106,8 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   int get _fee => _isDelivery ? (_deliveryFee ?? 0) : 0;
-  int _total(CartProvider cart) => cart.totalAmount + _fee;
+  int _serviceFee(CartProvider cart) => serviceFeeFor(cart.totalAmount, _serviceRule);
+  int _total(CartProvider cart) => cart.totalAmount + _fee + _serviceFee(cart);
   int _toPay(CartProvider cart) =>
       (_total(cart) - _discount - _credit).clamp(0, _total(cart));
 
@@ -621,6 +625,19 @@ class _CartScreenState extends State<CartScreen> {
                         key: const Key('checkout-location-hint'),
                         style: _muted(12),
                       ),
+                    ),
+                  ],
+                  // FindFood's service fee, always shown before paying.
+                  if (_serviceFee(cart) > 0) ...[
+                    const SizedBox(height: 10),
+                    KeyedSubtree(
+                      key: const Key('checkout-service-fee'),
+                      child: _summaryRow('Service fee', formatCedis(_serviceFee(cart))),
+                    ),
+                    const SizedBox(height: 4),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('Keeps payments secure and support running.', style: _muted(12)),
                     ),
                   ],
                   if (_discount > 0) ...[

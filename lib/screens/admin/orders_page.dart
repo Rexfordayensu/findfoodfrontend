@@ -554,6 +554,8 @@ class _OrderDeskSheetState extends State<OrderDeskSheet> {
             _kv(context, 'Total', formatCedis((order['total_amount'] as num).toInt())),
             if ((order['delivery_fee'] as num? ?? 0) > 0)
               _kv(context, 'Delivery fee', formatCedis((order['delivery_fee'] as num).toInt())),
+            if ((order['service_fee'] as num? ?? 0) > 0)
+              _kv(context, 'Service fee', formatCedis((order['service_fee'] as num).toInt())),
             _kv(context, 'Paid', formatCedis((order['amount_paid'] as num).toInt())),
             for (final p in (order['payments'] as List).cast<Map>())
               _kv(context, '${p['provider']} · ${p['reference']}',

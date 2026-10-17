@@ -507,6 +507,54 @@ class _DeliverySettingsState extends State<_DeliverySettings> {
                 'Simpler, but far orders can pay less', Icons.horizontal_rule_rounded),
           ]),
         ],
+        section('Service fee', 'An optional FindFood fee on every order, shown to customers at checkout.'),
+        Row(children: [
+          choice('service_fee_mode', 'off', 'Off', 'No service fee', Icons.block_rounded),
+          const SizedBox(width: 10),
+          choice('service_fee_mode', 'flat', 'Flat', 'Same fee on every order', Icons.horizontal_rule_rounded),
+          const SizedBox(width: 10),
+          choice('service_fee_mode', 'percent', 'Percent', 'A share of the food, with a cap', Icons.percent_rounded),
+        ]),
+        if (d['service_fee_mode'] == 'flat') ...[
+          const SizedBox(height: 12),
+          _MoneyField(label: 'Service fee', value: (d['service_fee_flat'] as num).toInt(),
+              keyName: 'service_fee_flat', onChanged: (v) => _set('service_fee_flat', v)),
+        ],
+        if (d['service_fee_mode'] == 'percent') ...[
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: Slider(
+                key: const Key('service-fee-slider'),
+                value: ((d['service_fee_percent'] as num).toDouble()).clamp(0, 10),
+                min: 0,
+                max: 10,
+                divisions: 20,
+                label: '${d['service_fee_percent']}%',
+                activeColor: AppTheme.accentDeep,
+                onChanged: _saving ? null : (v) => _set('service_fee_percent', (v * 2).round() / 2),
+              ),
+            ),
+            SizedBox(
+              width: 56,
+              child: Text('${d['service_fee_percent']}%',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(color: textPri, fontWeight: FontWeight.w800, fontSize: 16)),
+            ),
+          ]),
+          _MoneyField(label: 'At most', value: (d['service_fee_max'] as num).toInt(),
+              keyName: 'service_fee_max', onChanged: (v) => _set('service_fee_max', v)),
+        ],
+        if (d['service_fee_mode'] != 'off') ...[
+          const SizedBox(height: 8),
+          Text(
+            'Example: on GH₵ 60 of food the customer sees a service fee of '
+            '${formatCedis(serviceFeeFor(6000, {'mode': d['service_fee_mode'], 'flat': d['service_fee_flat'], 'percent': d['service_fee_percent'], 'max': d['service_fee_max']}))}. '
+            'It goes to FindFood, not the restaurant. Mention it in your Terms.',
+            key: const Key('service-fee-example'),
+            style: TextStyle(color: textSec, fontSize: 12.5, height: 1.4),
+          ),
+        ],
         section("Riders' share", 'The part of each delivery fee the rider earns.'),
         Row(children: [
           Expanded(
@@ -584,8 +632,13 @@ class _DeliverySettingsState extends State<_DeliverySettings> {
     final fee = s['fee_mode'] == 'distance'
         ? '${formatCedis(s['base_fee'] as int)} + ${formatCedis(s['per_km'] as int)}/km'
         : 'Flat ${formatCedis(s['flat_fee'] as int)}';
+    final service = switch (s['service_fee_mode']) {
+      'flat' => ' · service fee ${formatCedis((s['service_fee_flat'] as num).toInt())}',
+      'percent' => ' · service fee ${s['service_fee_percent']}%',
+      _ => '',
+    };
     return '$fee · riders ${percentLabel(s['rider_share_percent'] as num)} · '
-        '${s['payout_mode'] == 'automatic' ? 'automatic' : 'weekly'}';
+        '${s['payout_mode'] == 'automatic' ? 'automatic' : 'weekly'}$service';
   }
 }
 

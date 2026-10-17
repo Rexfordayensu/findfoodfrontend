@@ -195,6 +195,9 @@ class Order {
   /// Included in [totalAmount]; 0 for pickup and older orders.
   final int deliveryFee;
 
+  /// FindFood's service fee, included in [totalAmount]; 0 when switched off.
+  final int serviceFee;
+
   /// Taken off by a promo code: the customer pays [amountToPay].
   final int discountAmount;
   final double? deliveryDistanceKm;
@@ -237,13 +240,14 @@ class Order {
     this.deliveryCode,
     this.pickupCode,
     this.deliveryFee = 0,
+    this.serviceFee = 0,
     this.discountAmount = 0,
     this.deliveryDistanceKm,
     this.riderPay,
   });
 
-  /// The food alone, without the delivery fee.
-  int get foodTotal => totalAmount - deliveryFee;
+  /// The food alone, without the delivery and service fees.
+  int get foodTotal => totalAmount - deliveryFee - serviceFee;
 
   /// What the customer pays: the total less any promo discount.
   int get amountToPay => totalAmount - discountAmount;
@@ -331,6 +335,7 @@ class Order {
         deliveryCode: json['delivery_code'],
         pickupCode: json['pickup_code'],
         deliveryFee: (json['delivery_fee'] as num?)?.toInt() ?? 0,
+        serviceFee: (json['service_fee'] as num?)?.toInt() ?? 0,
         discountAmount: (json['discount_amount'] as num?)?.toInt() ?? 0,
         deliveryDistanceKm: (json['delivery_distance_km'] as num?)?.toDouble(),
         riderPay: (json['rider_pay'] as num?)?.toInt(),
@@ -697,4 +702,22 @@ class PasswordResetException implements Exception {
   PasswordResetException(this.message);
   @override
   String toString() => message;
+}
+
+/// FindFood's service fee on [food] pesewas of food, by the rule the server
+/// sends with the delivery quote ({mode, flat, percent, max}); the server
+/// prices the order the same way.
+int serviceFeeFor(int food, Map? rule) {
+  if (rule == null) return 0;
+  switch (rule['mode']) {
+    case 'flat':
+      return ((rule['flat'] as num?) ?? 0).toInt().clamp(0, 1 << 30);
+    case 'percent':
+      var fee = ((food * ((rule['percent'] as num?) ?? 0) / 100 / 10).round() * 10);
+      final max = ((rule['max'] as num?) ?? 0).toInt();
+      if (max > 0 && fee > max) fee = max;
+      return fee < 0 ? 0 : fee;
+    default:
+      return 0;
+  }
 }

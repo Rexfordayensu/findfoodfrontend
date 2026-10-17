@@ -855,7 +855,8 @@ class _OrderCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(order.displayTotal,
+                    // The restaurant's own sale: the food, not delivery or service fees.
+                    Text(formatCedis(order.foodTotal),
                         style: TextStyle(color: AppColors.accentText(context),
                             fontSize: 18,
                             fontWeight: FontWeight.w800)),
