@@ -1075,14 +1075,14 @@ class _OverviewPageState extends State<_OverviewPage>
     ].join('\n');
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Export statistics'),
         content: SelectableText(csv),
         actions: [
           TextButton(
             onPressed: () {
               Clipboard.setData(ClipboardData(text: csv));
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                   content: Text('CSV copied to clipboard')));
             },

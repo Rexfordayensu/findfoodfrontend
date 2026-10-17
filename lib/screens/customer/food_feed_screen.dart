@@ -539,7 +539,7 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => Padding(
+      builder: (dialogContext) => Padding(
         padding: const EdgeInsets.all(28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -548,7 +548,7 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.border(context),
+                color: AppColors.border(dialogContext),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -565,7 +565,7 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
             const SizedBox(height: 16),
             Text(r.name,
                 style: TextStyle(
-                    color: AppColors.textPrimary(context),
+                    color: AppColors.textPrimary(dialogContext),
                     fontSize: 20,
                     fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
@@ -573,7 +573,7 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
               'This restaurant is coming soon\nto FINDFOOD. Check back shortly!',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  color: AppColors.textSecondary(context),
+                  color: AppColors.textSecondary(dialogContext),
                   fontSize: 14,
                   height: 1.5),
             ),
@@ -581,7 +581,7 @@ class _FoodFeedScreenState extends State<FoodFeedScreen>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(dialogContext),
                 child: const Text('Got it'),
               ),
             ),

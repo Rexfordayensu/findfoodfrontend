@@ -98,28 +98,28 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
         cart.items.isNotEmpty) {
       showDialog(
         context: context,
-        builder: (_) => AlertDialog(
-          backgroundColor: AppColors.card(context),
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: AppColors.card(dialogContext),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text('Start new cart?',
               style: TextStyle(
-                  color: AppColors.textPrimary(context),
+                  color: AppColors.textPrimary(dialogContext),
                   fontWeight: FontWeight.w700)),
           content: Text(
             'Your cart has items from ${cart.restaurantName}. '
             'Adding from ${widget.restaurant.name} will clear it.',
-            style: TextStyle(color: AppColors.textSecondary(context)),
+            style: TextStyle(color: AppColors.textSecondary(dialogContext)),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: Text('Cancel',
-                  style: TextStyle(color: AppColors.textHint(context))),
+                  style: TextStyle(color: AppColors.textHint(dialogContext))),
             ),
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
                 cart.addItem(
                   item,
                   widget.restaurant.id,
@@ -129,7 +129,7 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
                 _showAddedSnack(item.name);
               },
               child: Text('Clear & add',
-                  style: TextStyle(color: AppColors.accentText(context), fontWeight: FontWeight.w700)),
+                  style: TextStyle(color: AppColors.accentText(dialogContext), fontWeight: FontWeight.w700)),
             ),
           ],
         ),

@@ -156,7 +156,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       backgroundColor: AppColors.card(context),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => Padding(
+      // Everything inside uses the sheet's own context: the tracking page may
+      // close or rebuild while this is open.
+      builder: (sheetContext) => Padding(
         padding: const EdgeInsets.all(28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -180,13 +182,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             const SizedBox(height: 20),
             Text(isPickup ? 'Picked up!' : 'Delivered!',
                 style: TextStyle(
-                    color: AppColors.textPrimary(context),
+                    color: AppColors.textPrimary(sheetContext),
                     fontSize: 22,
                     fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
             Text('Enjoy your meal! How was your experience?',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textSecondary(context))),
+                style: TextStyle(color: AppColors.textSecondary(sheetContext))),
             const SizedBox(height: 24),
             if (!_order.isRated) ...[
               PrimaryButton(
@@ -194,7 +196,8 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 label: 'Rate order',
                 icon: Icons.star_rounded,
                 onPressed: () async {
-                  Navigator.of(context).pop();
+                  Navigator.of(sheetContext).pop();
+                  if (!mounted) return;
                   if (await showRateOrderSheet(context, _order) && mounted) {
                     setState(() => _order = _order.copyWith(isRated: true));
                   }
@@ -204,7 +207,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
             ],
             GhostButton(
               label: 'Back to home',
-              onPressed: () => context.go('/'),
+              onPressed: () {
+                final router = GoRouter.of(sheetContext);
+                Navigator.of(sheetContext).pop();
+                router.go('/');
+              },
             ),
           ],
         ),
@@ -482,18 +489,30 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 status: _order.issueStatus!, note: _issueNote, credit: _issueCredit),
           ] else if (reportableReasons(_order, DateTime.now()).isNotEmpty) ...[
             const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
                 key: const Key('tracking-report-problem'),
                 onPressed: _reportProblem,
-                style: TextButton.styleFrom(foregroundColor: AppTheme.danger),
-                icon: const Icon(Icons.report_gmailerrorred_rounded, size: 20),
-                label: Text(_order.isCompleted
-                    ? 'Something wrong with your order? Report a problem'
-                    : 'Order not arrived? Report it'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.danger,
+                  backgroundColor: AppTheme.danger.withValues(alpha: 0.06),
+                  side: BorderSide(color: AppTheme.danger.withValues(alpha: 0.55), width: 1.4),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                ),
+                icon: const Icon(Icons.report_gmailerrorred_rounded, size: 22),
+                label: Text(_order.isCompleted ? 'Report a problem with this order' : 'Order not arrived? Report it'),
               ),
             ),
+            if (_order.isCompleted)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text("Missing, wrong or damaged food? Tell us and we'll sort it out.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textSecondary(context), fontSize: 12.5)),
+              ),
           ],
           const SizedBox(height: 28),
 

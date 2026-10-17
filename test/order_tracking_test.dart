@@ -2,6 +2,7 @@ import 'package:findfood_app/models/models.dart';
 import 'package:findfood_app/screens/customer/order_tracking_screen.dart';
 import 'package:findfood_app/services/providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -70,5 +71,48 @@ void main() {
 
     expect(find.text('In progress...'), findsNothing);
     expect(find.text('Live'), findsNothing);
+  });
+
+  testWidgets('the delivered pop-up survives the tracking page closing behind it', (tester) async {
+    // Reported crash: "Null check operator used on a null value" when the
+    // page under the "Delivered!" sheet went away and the sheet redrew.
+    tester.view.physicalSize = const Size(400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    FlutterSecureStorage.setMockInitialValues({});
+    AuthProvider.refreshInterval = null;
+    final auth = AuthProvider();
+    await auth.login(token: 't', userId: 7, role: 'customer', name: 'Ama');
+    final navigatorKey = GlobalKey<NavigatorState>();
+    final client = MockClient((request) async => http.Response(
+        '[{"id": 9, "total_amount": 15000, "status": "delivered", "restaurant_id": 1, '
+        '"user_id": 7, "fulfillment_method": "delivery"}]', 200,
+        headers: {'content-type': 'application/json'}));
+    await http.runWithClient(() async {
+      await tester.pumpWidget(ChangeNotifierProvider.value(
+        value: auth,
+        child: MaterialApp(navigatorKey: navigatorKey, home: const Scaffold(body: Text('Orders'))),
+      ));
+      final tracking = MaterialPageRoute<void>(
+          builder: (_) => OrderTrackingScreen(order: order('out_for_delivery', method: 'delivery')));
+      navigatorKey.currentState!.push(tracking);
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await tester.pump(const Duration(seconds: 5)); // the poll finds it delivered
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.text('Delivered!'), findsOneWidget);
+
+      navigatorKey.currentState!.removeRoute(tracking); // the page closes underneath
+      await tester.pump();
+      tester.view.physicalSize = const Size(420, 1000); // anything that redraws the sheet
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }, () => client);
+    expect(tester.takeException(), isNull);
+    expect(find.text('Delivered!'), findsOneWidget);
   });
 }

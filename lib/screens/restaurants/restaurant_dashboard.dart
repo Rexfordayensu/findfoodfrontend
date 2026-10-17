@@ -1046,26 +1046,26 @@ class _OrderCard extends StatelessWidget {
   void _confirmReject(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.card(context),
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.card(dialogContext),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Reject order #${order.id}?',
             style: TextStyle(
-                color: AppColors.textPrimary(context),
+                color: AppColors.textPrimary(dialogContext),
                 fontWeight: FontWeight.w700)),
         content: Text(
           'This cancels the order and refunds the customer.',
-          style: TextStyle(color: AppColors.textSecondary(context)),
+          style: TextStyle(color: AppColors.textSecondary(dialogContext)),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text('Keep it',
-                style: TextStyle(color: AppColors.textHint(context))),
+                style: TextStyle(color: AppColors.textHint(dialogContext))),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               onUpdateStatus(order, 'cancelled');
             },
             child: const Text('Reject',
