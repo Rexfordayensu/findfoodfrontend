@@ -5,6 +5,7 @@ import '../../theme.dart';
 import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
+import '../../widgets/share_restaurant.dart';
 import '../../widgets/glass.dart';
 import '../../widgets/promotion_card.dart';
 import '../../widgets/reviews.dart';
@@ -204,6 +205,7 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
               ),
             ),
             actions: [
+              ShareRestaurantButton(restaurantId: widget.restaurant.id, name: widget.restaurant.name),
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: GestureDetector(

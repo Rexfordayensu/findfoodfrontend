@@ -78,7 +78,8 @@ void main() {
     await tester.tap(find.byKey(const Key('share-format-wide')));
     await settle(tester);
     expect(find.byKey(const Key('share-preview-wide')), findsOneWidget);
-    expect(find.text('Share banner'), findsOneWidget);
+    expect(find.byKey(const Key('share-link-primary')), findsOneWidget);
+    expect(find.byKey(const Key('share-link')), findsNothing, reason: 'the main button shares the link');
     expect(find.text('https://findfood-nu.vercel.app/r/3'), findsOneWidget);
   });
 
@@ -110,5 +111,42 @@ void main() {
   testWidgets('a restaurant waiting for approval is told why it cannot share yet', (tester) async {
     await open(tester, status: 409);
     expect(find.text('You can share your restaurant once FindFood has approved it.'), findsOneWidget);
+  });
+
+  testWidgets('anyone can share a restaurant from its page, signed in or not', (tester) async {
+    final requested = <String>[];
+    final client = MockClient((request) async {
+      requested.add('${request.url.path}?${request.url.query}');
+      expect(request.headers.containsKey('Authorization'), isFalse);
+      return http.Response.bytes(Uint8List.fromList(_jpeg), 200, headers: {'content-type': 'image/jpeg'});
+    });
+    await http.runWithClient(() async {
+      FlutterSecureStorage.setMockInitialValues({});
+      tester.view.physicalSize = const Size(430, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(ChangeNotifierProvider.value(
+        value: AuthProvider(),
+        child: const MaterialApp(
+          home: Scaffold(body: Center(child: ShareRestaurantButton(restaurantId: 7, name: 'Auntie Ama'))),
+        ),
+      ));
+      await tester.tap(find.byKey(const Key('menu-share')));
+      await settle(tester);
+    }, () => client);
+    expect(requested, containsAll([
+      '/share/restaurants/7/card.jpg?size=story',
+      '/share/restaurants/7/card.jpg?size=wide',
+    ]));
+    expect(find.text('Share Auntie Ama'), findsOneWidget);
+    expect(find.text('Send it to friends or post it on your Status. They can tap it to order.'), findsOneWidget);
+    // Friends get a link first; the Status banner is one tap away.
+    expect(find.byKey(const Key('share-preview-wide')), findsOneWidget);
+    expect(find.byKey(const Key('share-link-primary')), findsOneWidget);
+    expect(find.text('https://findfood-nu.vercel.app/r/7'), findsOneWidget);
+    expect(find.byKey(const Key('share-photo-tip')), findsNothing);
+    await tester.tap(find.byKey(const Key('share-format-story')));
+    await settle(tester);
+    expect(find.text('Share to Status'), findsOneWidget);
   });
 }

@@ -10,9 +10,48 @@ import '../utils/share_helper.dart';
 import 'account_settings.dart' show SheetHeader, showSettingsSheet, showSettingsMessage;
 import 'widgets.dart';
 
-/// Opens the share sheet: a preview of the restaurant's banner first, then
-/// share it to WhatsApp Status (or anywhere), share or copy the link.
+/// Opens the share sheet for the signed-in restaurant: a preview of its
+/// banner first, then share it to WhatsApp Status (or anywhere), share or
+/// copy the link.
 Future<void> showRestaurantShareSheet(BuildContext context) => showSettingsSheet<void>(context, const _ShareSheet());
+
+/// The same sheet for anyone recommending a restaurant to friends.
+Future<void> showShareRestaurantSheet(BuildContext context, {required int restaurantId, required String name}) =>
+    showSettingsSheet<void>(context, _ShareSheet(restaurantId: restaurantId, restaurantName: name));
+
+/// Where FindFood is running (share links point here).
+String _site() {
+  final base = Uri.base;
+  return base.scheme == 'http' || base.scheme == 'https' ? base.origin : 'https://findfood-nu.vercel.app';
+}
+
+/// A round share button for the top of a restaurant's page.
+class ShareRestaurantButton extends StatelessWidget {
+  final int restaurantId;
+  final String name;
+  const ShareRestaurantButton({super.key, required this.restaurantId, required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Share $name',
+      child: GestureDetector(
+        key: const Key('menu-share'),
+        onTap: () => showShareRestaurantSheet(context, restaurantId: restaurantId, name: name),
+        child: Container(
+          margin: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.4),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.ios_share_rounded, color: Colors.white, size: 20),
+        ),
+      ),
+    );
+  }
+}
 
 /// A card inviting the restaurant to share itself (Settings).
 class ShareRestaurantCard extends StatelessWidget {
@@ -66,7 +105,10 @@ class ShareRestaurantCard extends StatelessWidget {
 }
 
 class _ShareSheet extends StatefulWidget {
-  const _ShareSheet();
+  /// Set when someone shares a restaurant that isn't theirs.
+  final int? restaurantId;
+  final String? restaurantName;
+  const _ShareSheet({this.restaurantId, this.restaurantName});
 
   @override
   State<_ShareSheet> createState() => _ShareSheetState();
@@ -75,7 +117,10 @@ class _ShareSheet extends StatefulWidget {
 class _ShareSheetState extends State<_ShareSheet> {
   Map<String, dynamic>? _info;
   String? _error;
-  bool _story = true;
+  // Restaurants mostly post to their Status; customers send links to friends.
+  late bool _story = !_customer;
+
+  bool get _customer => widget.restaurantId != null;
   final _bytes = <bool, Uint8List>{};
   bool _busy = false;
 
@@ -92,7 +137,16 @@ class _ShareSheetState extends State<_ShareSheet> {
 
   Future<void> _load() async {
     try {
-      final info = await ApiService.getMyRestaurantShare(context.read<AuthProvider>().token!);
+      final id = widget.restaurantId;
+      final info = id != null
+          ? <String, dynamic>{
+              'url': '${_site()}/r/$id',
+              'story_image': '/share/restaurants/$id/card.jpg?size=story',
+              'wide_image': '/share/restaurants/$id/card.jpg?size=wide',
+              'text': 'Check out ${widget.restaurantName} on FindFood',
+              'has_photo': true,
+            }
+          : await ApiService.getMyRestaurantShare(context.read<AuthProvider>().token!);
       if (!mounted) return;
       setState(() {
         _info = info;
@@ -142,7 +196,7 @@ class _ShareSheetState extends State<_ShareSheet> {
   Future<void> _shareLink() async {
     final result = await shareLink(text: '${_info!['text']}', url: _url);
     if (result == ShareResult.unsupported && mounted) {
-      await _copyLink(note: 'Link copied. Paste it in a chat: it shows your banner.');
+      await _copyLink(note: 'Link copied. Paste it in a chat: it shows the banner.');
     }
   }
 
@@ -151,9 +205,11 @@ class _ShareSheetState extends State<_ShareSheet> {
     final textSec = AppColors.textSecondary(context);
     final info = _info;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-      const SheetHeader(
-        title: 'Share your restaurant',
-        subtitle: 'Your banner is made from your photo, menu and reviews. Customers tap it to order.',
+      SheetHeader(
+        title: _customer ? 'Share ${widget.restaurantName}' : 'Share your restaurant',
+        subtitle: _customer
+            ? 'Send it to friends or post it on your Status. They can tap it to order.'
+            : 'Your banner is made from your photo, menu and reviews. Customers tap it to order.',
       ),
       if (_error != null)
         Padding(
@@ -173,7 +229,9 @@ class _ShareSheetState extends State<_ShareSheet> {
         Text(
           _story
               ? 'For WhatsApp Status: tap Share, choose WhatsApp, then My status.'
-              : 'This is what people see when you send your link in a chat.',
+              : _customer
+                  ? 'Send the link in any chat: it shows this picture.'
+                  : 'This is what people see when you send your link in a chat.',
           textAlign: TextAlign.center,
           style: TextStyle(color: textSec, fontSize: 12.5),
         ),
@@ -193,24 +251,36 @@ class _ShareSheetState extends State<_ShareSheet> {
           ),
         ],
         const SizedBox(height: 16),
-        PrimaryButton(
-          key: const Key('share-banner'),
-          label: _story ? 'Share to Status' : 'Share banner',
-          icon: Icons.ios_share_rounded,
-          isLoading: _busy || _bytes[_story] == null,
-          onPressed: _bytes[_story] == null ? null : _shareBanner,
-        ),
+        // The tall banner goes on a Status; the wide one is the link's preview,
+        // so that tab shares the link itself.
+        if (_story)
+          PrimaryButton(
+            key: const Key('share-banner'),
+            label: 'Share to Status',
+            icon: Icons.ios_share_rounded,
+            isLoading: _busy || _bytes[true] == null,
+            onPressed: _bytes[true] == null ? null : _shareBanner,
+          )
+        else
+          PrimaryButton(
+            key: const Key('share-link-primary'),
+            label: 'Share link',
+            icon: Icons.ios_share_rounded,
+            onPressed: _shareLink,
+          ),
         const SizedBox(height: 10),
         Row(children: [
-          Expanded(
-            child: _SecondaryButton(
-              key: const Key('share-link'),
-              icon: Icons.link_rounded,
-              label: 'Share link',
-              onPressed: _shareLink,
+          if (_story) ...[
+            Expanded(
+              child: _SecondaryButton(
+                key: const Key('share-link'),
+                icon: Icons.link_rounded,
+                label: 'Share link',
+                onPressed: _shareLink,
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
+            const SizedBox(width: 10),
+          ],
           Expanded(
             child: _SecondaryButton(
               key: const Key('share-copy'),
