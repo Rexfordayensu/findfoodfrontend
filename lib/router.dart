@@ -13,6 +13,7 @@ import 'screens/auth/login_screen.dart';
 import 'screens/auth/google_oauth_screen.dart';
 import 'screens/auth/reset_password_screen.dart';
 import 'screens/customer/cart_screen.dart';
+import 'screens/customer/group_order_screen.dart';
 import 'screens/customer/customer_pages.dart';
 import 'screens/customer/food_feed_screen.dart';
 import 'screens/customer/order_tracking_screen.dart';
@@ -103,6 +104,10 @@ GoRouter createAppRouter(
           path: '/notifications',
           builder: (_, __) => const NotificationsScreen()),
       GoRoute(path: '/support', builder: (_, __) => const SupportInboxScreen()),
+      GoRoute(
+        path: '/group/:code',
+        builder: (_, state) => GroupOrderScreen(code: state.pathParameters['code'] ?? ''),
+      ),
       GoRoute(
         path: '/announcements/:id',
         builder: (_, state) =>
@@ -375,7 +380,8 @@ bool _isCustomerRoute(String route) {
       route == '/cart' ||
       route == '/checkout' ||
       route.startsWith('/payment/callback') ||
-      route.startsWith('/restaurants/');
+      route.startsWith('/restaurants/') ||
+      route.startsWith('/group/');
 }
 
 /// Starts downloading a role's dashboard as soon as we know who signed in,

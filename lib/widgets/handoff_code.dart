@@ -300,6 +300,18 @@ class PackingList extends StatelessWidget {
                     child: Text(line.name ?? 'Item #${line.menuItemId}',
                         style: TextStyle(color: textPri, fontSize: size)),
                   ),
+                  // Group orders: whose bag it goes in.
+                  if (line.forName != null)
+                    Container(
+                      margin: const EdgeInsets.only(left: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accent.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text('for ${line.forName}',
+                          style: TextStyle(color: textPri, fontSize: size - 2, fontWeight: FontWeight.w700)),
+                    ),
                 ],
               ),
             ),

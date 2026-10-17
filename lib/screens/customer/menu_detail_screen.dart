@@ -6,6 +6,7 @@ import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../services/providers.dart';
 import '../../widgets/share_restaurant.dart';
+import 'group_order_screen.dart';
 import '../../widgets/glass.dart';
 import '../../widgets/promotion_card.dart';
 import '../../widgets/reviews.dart';
@@ -404,6 +405,10 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
+                  if (r.isOpen) ...[
+                    GroupOrderCard(restaurant: r),
+                    const SizedBox(height: 16),
+                  ],
                   if (_promotions.isNotEmpty) ...[
                     PromotionCarousel(
                       title: 'Current offers',

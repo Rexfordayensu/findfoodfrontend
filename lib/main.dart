@@ -87,7 +87,7 @@ class _FindFoodAppState extends State<FindFoodApp> {
     // A notification tapped while the app is open goes to its page.
     notifications?.onOpen = (location) {
       if (location.startsWith('/order-tracking/') || location.startsWith('/chat/') ||
-          location.startsWith('/announcements/') || location.startsWith('/support/')) {
+          location.startsWith('/announcements/') || location.startsWith('/support/') || location.startsWith('/group/')) {
         _router.push(location);
       } else {
         _router.go(location);

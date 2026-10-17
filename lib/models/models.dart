@@ -413,6 +413,9 @@ class OrderLine {
   final String? imageUrl;
   final bool isAvailable;
 
+  /// Group orders: whose dish it is (for labelling the bags).
+  final String? forName;
+
   const OrderLine({
     required this.menuItemId,
     required this.quantity,
@@ -420,6 +423,7 @@ class OrderLine {
     this.price,
     this.imageUrl,
     this.isAvailable = true,
+    this.forName,
   });
 
   factory OrderLine.fromJson(Map<String, dynamic> json) => OrderLine(
@@ -429,6 +433,7 @@ class OrderLine {
         price: (json['price'] as num?)?.round(),
         imageUrl: json['image_url'],
         isAvailable: json['is_available'] ?? true,
+        forName: json['for_name'],
       );
 }
 

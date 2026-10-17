@@ -484,12 +484,14 @@ class ApiService {
     double? deliveryLongitude,
     DateTime? scheduledFor,
     String? promoCode,
+    String? groupCode,
   }) async {
     final payload = <String, dynamic>{
       'restaurant_id': restaurantId,
       'items': items,
       'fulfillment_method': fulfillmentMethod,
       if (promoCode != null && promoCode.isNotEmpty) 'promo_code': promoCode,
+      if (groupCode != null) 'group_code': groupCode,
     };
     if (pickupName != null && pickupName.trim().isNotEmpty) {
       payload['pickup_name'] = pickupName.trim();
@@ -2265,4 +2267,41 @@ class ApiService {
     if (response.statusCode == 200) return response.bodyBytes;
     throw Exception('Could not load the picture');
   }
+
+  // ── Group orders ──────────────────────────────────────────────────────────
+  static Future<Map<String, dynamic>> _groupCall(String method, String path, String token,
+      {Object? body, String failure = 'Something went wrong with the group order'}) async {
+    final uri = Uri.parse('$baseUrl$path');
+    final headers = {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'};
+    final response = switch (method) {
+      'GET' => await _http.get(uri, headers: headers),
+      'PUT' => await _http.put(uri, headers: headers, body: jsonEncode(body ?? {})),
+      _ => await _http.post(uri, headers: headers, body: jsonEncode(body ?? {})),
+    };
+    if (response.statusCode == 200 || response.statusCode == 201) return _decode(response);
+    throw Exception(_errorDetail(response, failure));
+  }
+
+  /// Start a group order (or reopen yours at this restaurant).
+  static Future<Map<String, dynamic>> startGroupOrder(String token,
+          {required int restaurantId, int minutes = 20}) =>
+      _groupCall('POST', '/group-orders', token,
+          body: {'restaurant_id': restaurantId, 'minutes': minutes}, failure: 'Could not start the group order');
+
+  static Future<Map<String, dynamic>> getGroupOrder(String token, String code) =>
+      _groupCall('GET', '/group-orders/$code', token, failure: 'Could not open the group order');
+
+  /// Replace your own dishes in the group basket.
+  static Future<Map<String, dynamic>> setGroupItems(String token, String code, List<Map<String, int>> items) =>
+      _groupCall('PUT', '/group-orders/$code/items', token, body: {'items': items},
+          failure: 'Could not save your food');
+
+  static Future<Map<String, dynamic>> lockGroupOrder(String token, String code) =>
+      _groupCall('POST', '/group-orders/$code/lock', token, failure: 'Could not start checkout');
+
+  static Future<Map<String, dynamic>> unlockGroupOrder(String token, String code) =>
+      _groupCall('POST', '/group-orders/$code/unlock', token, failure: 'Could not reopen the basket');
+
+  static Future<Map<String, dynamic>> cancelGroupOrder(String token, String code) =>
+      _groupCall('POST', '/group-orders/$code/cancel', token, failure: 'Could not cancel the group order');
 }

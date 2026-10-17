@@ -14,7 +14,6 @@ import '../../services/order_payment.dart';
 import '../../utils/friendly_error.dart';
 import '../../widgets/platform_banner.dart';
 
-
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key, this.paymentReference});
 
@@ -51,8 +50,8 @@ class _CartScreenState extends State<CartScreen> {
     if (restaurantId == null) return;
     final request = ++_quoteRequest;
     try {
-      final quote = await ApiService.getDeliveryQuote(restaurantId,
-          latitude: _deliveryLatitude, longitude: _deliveryLongitude);
+      final quote =
+          await ApiService.getDeliveryQuote(restaurantId, latitude: _deliveryLatitude, longitude: _deliveryLongitude);
       if (!mounted || request != _quoteRequest) return;
       setState(() {
         _deliveryFee = (quote['fee'] as num?)?.toInt() ?? 0;
@@ -108,8 +107,7 @@ class _CartScreenState extends State<CartScreen> {
   int get _fee => _isDelivery ? (_deliveryFee ?? 0) : 0;
   int _serviceFee(CartProvider cart) => serviceFeeFor(cart.totalAmount, _serviceRule);
   int _total(CartProvider cart) => cart.totalAmount + _fee + _serviceFee(cart);
-  int _toPay(CartProvider cart) =>
-      (_total(cart) - _discount - _credit).clamp(0, _total(cart));
+  int _toPay(CartProvider cart) => (_total(cart) - _discount - _credit).clamp(0, _total(cart));
 
   // ── Promo code ──
   final _promoController = TextEditingController();
@@ -129,8 +127,11 @@ class _CartScreenState extends State<CartScreen> {
     setState(() => _checkingPromo = true);
     try {
       final result = await ApiService.checkPromo(token,
-          code: code, restaurantId: cart.restaurantId!, subtotal: cart.totalAmount,
-          deliveryFee: _fee, delivery: _isDelivery);
+          code: code,
+          restaurantId: cart.restaurantId!,
+          subtotal: cart.totalAmount,
+          deliveryFee: _fee,
+          delivery: _isDelivery);
       if (!mounted) return;
       setState(() {
         if (result['valid'] == true) {
@@ -224,36 +225,33 @@ class _CartScreenState extends State<CartScreen> {
       if (_promoError != null)
         Padding(
           padding: const EdgeInsets.only(top: 6, left: 4),
-          child: Text(_promoError!, key: const Key('promo-error'),
-              style: const TextStyle(color: AppTheme.danger, fontSize: 12.5)),
+          child: Text(_promoError!,
+              key: const Key('promo-error'), style: const TextStyle(color: AppTheme.danger, fontSize: 12.5)),
         ),
     ]);
   }
+
   bool _isDelivery = true;
   bool _isDetectingLocation = false;
   double? _deliveryLatitude;
   double? _deliveryLongitude;
-
 
   final TextEditingController _deliveryAddressController = TextEditingController();
   final TextEditingController _pickupNameController = TextEditingController();
   final TextEditingController _pickupPhoneController = TextEditingController();
   final TextEditingController _kitchenNoteController = TextEditingController();
 
-
   @override
   void initState() {
     super.initState();
-    _pickupNameController.text =
-        context.read<AuthProvider>().name?.trim() ?? '';
+    _pickupNameController.text = context.read<AuthProvider>().name?.trim() ?? '';
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadCredit();
       _loadDeliveryQuote();
       _loadShop();
       _prefillPhone();
     });
-    if (widget.paymentReference != null &&
-        widget.paymentReference!.trim().isNotEmpty) {
+    if (widget.paymentReference != null && widget.paymentReference!.trim().isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _verifyReturnedPayment(widget.paymentReference!.trim());
       });
@@ -281,8 +279,7 @@ class _CartScreenState extends State<CartScreen> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
         throw Exception('Location permission was not granted.');
       }
 
@@ -291,8 +288,7 @@ class _CartScreenState extends State<CartScreen> {
       setState(() {
         _deliveryLatitude = position.latitude;
         _deliveryLongitude = position.longitude;
-        _deliveryAddressController.text =
-            'Current location (${position.latitude.toStringAsFixed(6)}, '
+        _deliveryAddressController.text = 'Current location (${position.latitude.toStringAsFixed(6)}, '
             '${position.longitude.toStringAsFixed(6)})';
       });
       _showCheckoutMessage('Current location added as your delivery address.');
@@ -319,8 +315,7 @@ class _CartScreenState extends State<CartScreen> {
     final auth = context.read<AuthProvider>();
     if (!auth.isLoggedIn || auth.token == null) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Verifying your payment...')));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Verifying your payment...')));
 
     for (var attempt = 0; attempt < 12; attempt++) {
       try {
@@ -334,14 +329,10 @@ class _CartScreenState extends State<CartScreen> {
           final orders = await ApiService.getMyOrders(auth.token!);
           final order = orderId == null
               ? (orders.isNotEmpty ? orders.first : null)
-              : orders
-                  .where((item) => item.id.toString() == orderId.toString())
-                  .firstOrNull;
+              : orders.where((item) => item.id.toString() == orderId.toString()).firstOrNull;
           if (!mounted) return;
           if (order == null) {
-            _showCheckoutMessage(
-                'Payment succeeded, but the order was not found.',
-                isError: true);
+            _showCheckoutMessage('Payment succeeded, but the order was not found.', isError: true);
             return;
           }
           context.read<CartProvider>().clearCart();
@@ -356,9 +347,7 @@ class _CartScreenState extends State<CartScreen> {
     }
 
     if (mounted) {
-      _showCheckoutMessage(
-          'Payment is still being confirmed. Please check your orders shortly.',
-          isError: true);
+      _showCheckoutMessage('Payment is still being confirmed. Please check your orders shortly.', isError: true);
     }
   }
 
@@ -377,20 +366,14 @@ class _CartScreenState extends State<CartScreen> {
     if (cart.restaurantId == null || cart.orderPayload.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         backgroundColor: AppTheme.danger,
-        content: Text('Your cart is empty. Please add items before checkout.',
-            style: TextStyle(color: Colors.white)),
+        content: Text('Your cart is empty. Please add items before checkout.', style: TextStyle(color: Colors.white)),
       ));
       return;
     }
 
-    final hasDeliveryCoordinates =
-        _deliveryLatitude != null && _deliveryLongitude != null;
-    if (_isDelivery &&
-        _deliveryAddressController.text.trim().isEmpty &&
-        !hasDeliveryCoordinates) {
-      _showCheckoutMessage(
-          'Enter a delivery address or use your current location.',
-          isError: true);
+    final hasDeliveryCoordinates = _deliveryLatitude != null && _deliveryLongitude != null;
+    if (_isDelivery && _deliveryAddressController.text.trim().isEmpty && !hasDeliveryCoordinates) {
+      _showCheckoutMessage('Enter a delivery address or use your current location.', isError: true);
       return;
     }
     if (!_isDelivery && _pickupNameController.text.trim().isEmpty) {
@@ -409,8 +392,6 @@ class _CartScreenState extends State<CartScreen> {
         restaurantId: cart.restaurantId!,
         items: cart.orderPayload,
         fulfillmentMethod: _isDelivery ? 'delivery' : 'pickup',
-
-
         deliveryAddress: _isDelivery ? _deliveryAddressController.text.trim() : null,
         deliveryLatitude: _isDelivery ? _deliveryLatitude : null,
         deliveryLongitude: _isDelivery ? _deliveryLongitude : null,
@@ -418,6 +399,7 @@ class _CartScreenState extends State<CartScreen> {
         pickupPhone: !_isDelivery ? _pickupPhoneController.text.trim() : null,
         kitchenNote: _kitchenNoteController.text.trim().isNotEmpty ? _kitchenNoteController.text.trim() : null,
         promoCode: _promoCode,
+        groupCode: cart.groupCode,
       );
 
       // The order now exists (awaiting payment), so the cart is done with;
@@ -427,11 +409,9 @@ class _CartScreenState extends State<CartScreen> {
       final paid = await OrderPayment.start(context, order);
       if (!mounted) return;
       if (paid) {
-        context.go('/order-tracking/${order.id}',
-            extra: order.copyWith(status: 'pending'));
+        context.go('/order-tracking/${order.id}', extra: order.copyWith(status: 'pending'));
       } else {
-        _showCheckoutMessage(
-            'Payment not completed. Your order is saved under Orders - tap "Pay now" to finish.');
+        _showCheckoutMessage('Payment not completed. Your order is saved under Orders - tap "Pay now" to finish.');
         context.go('/orders');
       }
     } catch (e) {
@@ -506,6 +486,28 @@ class _CartScreenState extends State<CartScreen> {
               }
             },
           ),
+          if (cart.isGroup)
+            Container(
+              key: const Key('checkout-group-banner'),
+              margin: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.accent.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppTheme.accent.withValues(alpha: 0.5)),
+              ),
+              child: Row(children: [
+                const Icon(Icons.groups_rounded, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Group order for ${cart.groupPeople} ${cart.groupPeople == 1 ? 'person' : 'people'}. '
+                    "You're paying for everyone; to change the food, go back to the group.",
+                    style: _muted(13),
+                  ),
+                ),
+              ]),
+            ),
           _section(
             'Your order',
             trailing: '$itemCount ${itemCount == 1 ? 'item' : 'items'}',
@@ -539,9 +541,7 @@ class _CartScreenState extends State<CartScreen> {
                     duration: const Duration(milliseconds: 200),
                     curve: Curves.easeOutCubic,
                     alignment: Alignment.topCenter,
-                    child: _isDelivery
-                        ? _buildDeliveryDetails()
-                        : _buildPickupDetails(cart),
+                    child: _isDelivery ? _buildDeliveryDetails() : _buildPickupDetails(cart),
                   ),
                 ],
               ),
@@ -576,13 +576,11 @@ class _CartScreenState extends State<CartScreen> {
                       children: [
                         Text('Paystack', style: _strong(15)),
                         const SizedBox(height: 2),
-                        Text('Card or mobile money, paid securely',
-                            style: _muted(13)),
+                        Text('Card or mobile money, paid securely', style: _muted(13)),
                       ],
                     ),
                   ),
-                  Icon(Icons.check_circle_rounded,
-                      size: 20, color: AppColors.textPrimary(context)),
+                  Icon(Icons.check_circle_rounded, size: 20, color: AppColors.textPrimary(context)),
                 ],
               ),
             ),
@@ -648,8 +646,7 @@ class _CartScreenState extends State<CartScreen> {
                       children: [
                         Text('Promo $_promoCode', style: _muted(14)),
                         Text('−${formatCedis(_discount)}',
-                            style: const TextStyle(
-                                color: AppTheme.success, fontWeight: FontWeight.w700)),
+                            style: const TextStyle(color: AppTheme.success, fontWeight: FontWeight.w700)),
                       ],
                     ),
                   ],
@@ -661,8 +658,7 @@ class _CartScreenState extends State<CartScreen> {
                       children: [
                         Text('FindFood credit', style: _muted(14)),
                         Text('−${formatCedis(_credit.clamp(0, _total(cart) - _discount))}',
-                            style: const TextStyle(
-                                color: AppTheme.success, fontWeight: FontWeight.w700)),
+                            style: const TextStyle(color: AppTheme.success, fontWeight: FontWeight.w700)),
                       ],
                     ),
                   ],
@@ -695,8 +691,7 @@ class _CartScreenState extends State<CartScreen> {
         letterSpacing: -0.2,
       );
 
-  TextStyle _muted(double size) =>
-      TextStyle(color: AppColors.textSecondary(context), fontSize: size, height: 1.35);
+  TextStyle _muted(double size) => TextStyle(color: AppColors.textSecondary(context), fontSize: size, height: 1.35);
 
   Widget _section(String title, {String? trailing, required Widget child}) {
     return Padding(
@@ -754,30 +749,29 @@ class _CartScreenState extends State<CartScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.menuItem.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: _strong(15)),
+                Text(item.menuItem.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: _strong(15)),
                 const SizedBox(height: 3),
                 Text('${item.menuItem.displayPrice} each', style: _muted(13)),
               ],
             ),
           ),
           const SizedBox(width: 12),
-          _QuantityStepper(
-            quantity: item.quantity,
-            onDecrease: () => provider.decreaseItem(item.menuItem.id),
-            onIncrease: () => provider.addItem(
-              item.menuItem,
-              cart.restaurantId!,
-              cart.restaurantName!,
-              restaurantAddress: cart.restaurantAddress,
+          if (cart.isGroup)
+            Text('×${item.quantity}', style: _strong(15))
+          else
+            _QuantityStepper(
+              quantity: item.quantity,
+              onDecrease: () => provider.decreaseItem(item.menuItem.id),
+              onIncrease: () => provider.addItem(
+                item.menuItem,
+                cart.restaurantId!,
+                cart.restaurantName!,
+                restaurantAddress: cart.restaurantAddress,
+              ),
             ),
-          ),
           SizedBox(
             width: 84,
-            child: Text(item.displaySubtotal,
-                textAlign: TextAlign.right, style: _strong(14)),
+            child: Text(item.displaySubtotal, textAlign: TextAlign.right, style: _strong(14)),
           ),
         ],
       ),
@@ -789,20 +783,14 @@ class _CartScreenState extends State<CartScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: _muted(14)),
-        Text(value,
-            style: TextStyle(
-                color: AppColors.textPrimary(context),
-                fontSize: 14,
-                fontWeight: FontWeight.w600)),
+        Text(value, style: TextStyle(color: AppColors.textPrimary(context), fontSize: 14, fontWeight: FontWeight.w600)),
       ],
     );
   }
 
   Widget _buildCheckoutBar(CartProvider cart, AuthProvider auth) {
     final inset = MediaQuery.viewPaddingOf(context).bottom;
-    final bottom = inset > 0
-        ? inset
-        : (kIsWeb && defaultTargetPlatform == TargetPlatform.iOS ? 24.0 : 12.0);
+    final bottom = inset > 0 ? inset : (kIsWeb && defaultTargetPlatform == TargetPlatform.iOS ? 24.0 : 12.0);
     return Container(
       padding: EdgeInsets.fromLTRB(20, 12, 16, bottom),
       decoration: BoxDecoration(
@@ -885,9 +873,7 @@ class _CartScreenState extends State<CartScreen> {
                 )
               : const Icon(Icons.my_location_rounded, size: 18),
           label: Text(
-            _isDetectingLocation
-                ? 'Finding your location…'
-                : 'Use my current location',
+            _isDetectingLocation ? 'Finding your location…' : 'Use my current location',
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
           ),
         ),
@@ -926,7 +912,8 @@ class _CartScreenState extends State<CartScreen> {
                           color: AppTheme.accent.withValues(alpha: 0.18),
                           child: Icon(Icons.storefront_rounded, color: AppColors.accentText(context)),
                         )
-                      : Image.network(ApiService.sizedImage(banner, width: 240), fit: BoxFit.cover,
+                      : Image.network(ApiService.sizedImage(banner, width: 240),
+                          fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Container(
                                 color: AppTheme.accent.withValues(alpha: 0.18),
                                 child: Icon(Icons.storefront_rounded, color: AppColors.accentText(context)),
@@ -962,9 +949,7 @@ class _CartScreenState extends State<CartScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   key: const Key('pickup-directions'),
-                  onPressed: address == null && _shop?.latitude == null
-                      ? null
-                      : () => _openDirections(address),
+                  onPressed: address == null && _shop?.latitude == null ? null : () => _openDirections(address),
                   icon: const Icon(Icons.directions_rounded, size: 18),
                   label: const Text('Directions'),
                   style: OutlinedButton.styleFrom(
@@ -1019,9 +1004,7 @@ class _CartScreenState extends State<CartScreen> {
 
 /// Quiet fill for controls that sit inside a card.
 Color _softFill(BuildContext context) =>
-    Theme.of(context).brightness == Brightness.dark
-        ? const Color(0x12FFFFFF)
-        : AppTheme.lightBg;
+    Theme.of(context).brightness == Brightness.dark ? const Color(0x12FFFFFF) : AppTheme.lightBg;
 
 /// Delivery / pickup switch: a sliding white thumb on a quiet track.
 class _ModeToggle extends StatelessWidget {
@@ -1077,9 +1060,7 @@ class _ModeToggle extends StatelessWidget {
 
   Widget _option(BuildContext context, String label, IconData icon, bool value) {
     final selected = isDelivery == value;
-    final color = selected
-        ? AppColors.textPrimary(context)
-        : AppColors.textSecondary(context);
+    final color = selected ? AppColors.textPrimary(context) : AppColors.textSecondary(context);
     return Expanded(
       child: Semantics(
         button: true,
@@ -1146,9 +1127,7 @@ class _QuantityStepper extends StatelessWidget {
           SizedBox(
             width: 22,
             child: Text('$quantity',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: color, fontSize: 14, fontWeight: FontWeight.w700)),
+                textAlign: TextAlign.center, style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w700)),
           ),
           button(Icons.add_rounded, 'Increase', onIncrease),
         ],

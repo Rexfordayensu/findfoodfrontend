@@ -67,7 +67,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (link == null || !link.startsWith('/')) return;
     // Details open on top; dashboards replace the page.
     if (link.startsWith('/order-tracking/') || link.startsWith('/chat/') ||
-        link.startsWith('/announcements/') || link.startsWith('/support/')) {
+        link.startsWith('/announcements/') || link.startsWith('/support/') || link.startsWith('/group/')) {
       context.push(link);
     } else {
       context.go(link);
@@ -203,6 +203,7 @@ String notificationTime(DateTime when, [DateTime? now]) {
       'rider_changed' => (Icons.swap_horiz_rounded, AppTheme.warning),
       'on_the_way' => (Icons.delivery_dining_rounded, AppTheme.info),
       'rider_near' => (Icons.near_me_rounded, AppTheme.success),
+      'group_order' => (Icons.groups_rounded, AppTheme.accentDeep),
       'delivered' => (Icons.celebration_rounded, AppTheme.success),
       'completed' => (Icons.task_alt_rounded, AppTheme.success),
       'cancelled' => (Icons.cancel_rounded, AppTheme.danger),

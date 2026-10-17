@@ -388,6 +388,37 @@ class CartProvider extends ChangeNotifier {
   String? _restaurantName;
   String? _restaurantAddress;
 
+  /// Set while checking out a group order: the dishes come from the group.
+  String? groupCode;
+  int groupPeople = 0;
+  bool get isGroup => groupCode != null;
+
+  /// Fill the cart with a group order's dishes for the host's checkout.
+  void loadGroup({
+    required String code,
+    required int people,
+    required int restaurantId,
+    required String restaurantName,
+    String? restaurantAddress,
+    required List<(MenuItem, int)> dishes,
+  }) {
+    _items.clear();
+    _restaurantId = restaurantId;
+    _restaurantName = restaurantName;
+    _restaurantAddress = restaurantAddress;
+    for (final (dish, quantity) in dishes) {
+      final existing = _items.where((i) => i.menuItem.id == dish.id).firstOrNull;
+      if (existing != null) {
+        existing.quantity += quantity;
+      } else {
+        _items.add(CartItem(menuItem: dish)..quantity = quantity);
+      }
+    }
+    groupCode = code;
+    groupPeople = people;
+    notifyListeners();
+  }
+
   List<CartItem> get items => _items;
   int? get restaurantId => _restaurantId;
   String? get restaurantName => _restaurantName;
@@ -407,6 +438,12 @@ class CartProvider extends ChangeNotifier {
     String restaurantName, {
     String? restaurantAddress,
   }) {
+    // Adding from a menu leaves group checkout: this is a normal cart again.
+    if (groupCode != null) {
+      _items.clear();
+      groupCode = null;
+      groupPeople = 0;
+    }
     if (_restaurantId != null && _restaurantId != restaurantId) {
       _items.clear();
       _restaurantAddress = null;
@@ -452,6 +489,8 @@ class CartProvider extends ChangeNotifier {
 
   void clearCart() {
     _items.clear();
+    groupCode = null;
+    groupPeople = 0;
     _restaurantId = null;
     _restaurantName = null;
     _restaurantAddress = null;
