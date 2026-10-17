@@ -13,6 +13,11 @@ for f in .last_build_id assets canvaskit flutter.js flutter_bootstrap.js \
          flutter_service_worker.js main.dart.js version.json; do
   [ -e "web/$f" ] && mv "web/$f" "$stash/"
 done
+# The on-demand pages too: left in web/, Flutter copies the previous build's
+# pages over the new ones, and the new main.dart.js can't load them.
+for f in web/main.dart.js_*.part.js; do
+  [ -e "$f" ] && mv "$f" "$stash/"
+done
 trap 'cp -rn "$stash"/. web/ 2>/dev/null || true' EXIT
 
 rm -rf build/web
@@ -41,8 +46,8 @@ if ! grep -q "_flutter.loader.load();" build/web/flutter_bootstrap.js; then
 fi
 
 # Pages loaded on demand (admin, restaurant and rider dashboards) are separate
-# main.dart.js_N.part.js files; drop the previous build's before copying.
-rm -f web/main.dart.js_*.part.js
+# main.dart.js_N.part.js files; each must be the one this main.dart.js expects.
+python tool/check_parts.py build/web
 cp -r build/web/. web/
 # Allow index.html's inline scripts (by hash) in the Content-Security-Policy.
 python tool/update_csp.py
